@@ -66,6 +66,7 @@ async def api_current_user(request):
     })
 
 from app.routes.entry_routes import entry_routes
+from app.routes.auth_routes import auth_routes
 
 # --------------------------------------------------------------------------
 # APPLICATION ROUTING & MIDDLEWARE
@@ -73,7 +74,7 @@ from app.routes.entry_routes import entry_routes
 
 routes = [
     Route("/api/health", api_health, methods=["GET"]),
-    Route("/api/auth/me", api_current_user, methods=["GET"]),
+    *auth_routes,
     *entry_routes,
     Mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads"),
     Mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static"),

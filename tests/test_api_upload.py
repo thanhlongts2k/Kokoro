@@ -69,6 +69,10 @@ def run_tests():
     print(f"  -> Anh 1 (JPEG): {len(img1_bytes)} bytes")
     print(f"  -> Anh 2 (PNG):  {len(img2_bytes)} bytes")
 
+    from app.auth import create_session_token
+    token = create_session_token(1, "aria.tanaka@kokoro.me", "Aria Tanaka (心)")
+    auth_header = {"Authorization": f"Bearer {token}"}
+
     # 2. Send multipart request to POST /api/entries
     print("\n[Step 2] Gui request POST /api/entries qua multipart/form-data...")
     fields = {
@@ -89,7 +93,7 @@ def run_tests():
     req = urllib.request.Request(
         "http://localhost:5050/api/entries",
         data=body_bytes,
-        headers={"Content-Type": ct_header},
+        headers={"Content-Type": ct_header, "Authorization": f"Bearer {token}"},
         method="POST"
     )
 
@@ -158,7 +162,7 @@ def run_tests():
 
     # 5. Verify GET /api/entries
     print("\n[Step 5] Kiem tra endpoint GET /api/entries...")
-    get_req = urllib.request.Request("http://localhost:5050/api/entries")
+    get_req = urllib.request.Request("http://localhost:5050/api/entries", headers=auth_header)
     with urllib.request.urlopen(get_req) as resp:
         get_data = json.loads(resp.read().decode("utf-8"))
 
@@ -173,7 +177,7 @@ def run_tests():
 
     # 6. Test PATCH /api/entries/{id}/pin
     print(f"\n[Step 6] Test PATCH /api/entries/{entry_id}/pin...")
-    pin_req = urllib.request.Request(f"http://localhost:5050/api/entries/{entry_id}/pin", method="PATCH")
+    pin_req = urllib.request.Request(f"http://localhost:5050/api/entries/{entry_id}/pin", headers=auth_header, method="PATCH")
     with urllib.request.urlopen(pin_req) as resp:
         pin_data = json.loads(resp.read().decode("utf-8"))
     assert pin_data["status"] == "success"
@@ -183,7 +187,7 @@ def run_tests():
 
     # 7. Test GET /api/stats/summary
     print("\n[Step 7] Test GET /api/stats/summary...")
-    stats_req = urllib.request.Request("http://localhost:5050/api/stats/summary")
+    stats_req = urllib.request.Request("http://localhost:5050/api/stats/summary", headers=auth_header)
     with urllib.request.urlopen(stats_req) as resp:
         stats_data = json.loads(resp.read().decode("utf-8"))
     assert stats_data["status"] == "success"

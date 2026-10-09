@@ -117,11 +117,13 @@ def init_db():
         with conn.cursor() as cur:
             cur.execute(schema_sql)
 
-            # Insert default Mock User for development if MOCK_AUTH is enabled
+            # Insert default Mock Users for development if MOCK_AUTH is enabled
             if Config.MOCK_AUTH:
                 cur.execute("""
                 INSERT INTO users (google_id, email, name, avatar_url)
-                VALUES ('mock_google_id_001', 'aria.tanaka@kokoro.me', 'Aria Tanaka (心)', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80')
+                VALUES 
+                    ('mock_google_id_001', 'aria.tanaka@kokoro.me', 'Aria Tanaka (心)', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'),
+                    ('mock_google_id_002', 'kenji.sato@kokoro.me', 'Kenji Sato (Zen)', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80')
                 ON CONFLICT (google_id) DO UPDATE 
                 SET last_login = CURRENT_TIMESTAMP;
                 """)

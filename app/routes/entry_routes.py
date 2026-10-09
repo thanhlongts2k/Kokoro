@@ -5,12 +5,29 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 from app.database import get_db, get_cursor
 from app.services.media_service import MediaService
+from app.auth import get_current_user
+
+def require_auth(request: Request):
+    """Helper to check current user or return 401 response tuple (user, error_response)."""
+    user = get_current_user(request)
+    if not user:
+        return None, JSONResponse({
+            "status": "error",
+            "message": "Vui lòng đăng nhập để xem và quản lý nhật ký 🌸",
+            "authenticated": False
+        }, status_code=401)
+    return user, None
 
 async def get_entries(request: Request) -> JSONResponse:
     """
-    Retrieve entries from PostgreSQL database.
+    Retrieve entries from PostgreSQL database strictly scoped to the authenticated user.
     Query filters: ?mood=... &tag=... &month=... &search=...
     """
+    user, err_resp = require_auth(request)
+    if err_resp:
+        return err_resp
+
+    user_id = user["id"]
     query_params = request.query_params
     mood = query_params.get("mood")
     tag = query_params.get("tag")
@@ -36,9 +53,9 @@ async def get_entries(request: Request) -> JSONResponse:
         LEFT JOIN entry_photos p ON e.id = p.entry_id
         LEFT JOIN entry_tags et ON e.id = et.entry_id
         LEFT JOIN tags t ON et.tag_id = t.id
-        WHERE 1=1
+        WHERE e.user_id = %s
     """
-    params = []
+    params = [user_id]
 
     if mood and mood != "all":
         sql += " AND e.mood = %s"
@@ -103,9 +120,15 @@ async def get_entries(request: Request) -> JSONResponse:
 
 async def create_entry(request: Request) -> JSONResponse:
     """
-    Create a new journal entry with multipart/form-data.
+    Create a new journal entry with multipart/form-data belonging strictly to the authenticated user.
     Accepts: title, content, mood, weather, entry_date, tags, photos (files)
     """
+    user, err_resp = require_auth(request)
+    if err_resp:
+        return err_resp
+
+    user_id = user["id"]
+
     try:
         form = await request.form()
     except Exception as e:
@@ -159,12 +182,7 @@ async def create_entry(request: Request) -> JSONResponse:
     try:
         with get_db() as conn:
             with conn.cursor() as cur:
-                # 1. Get first active user (Mock user in dev)
-                cur.execute("SELECT id FROM users LIMIT 1;")
-                user_row = cur.fetchone()
-                user_id = user_row[0] if user_row else 1
-
-                # 2. Insert Entry
+                # 1. Insert Entry scoped to authenticated user_id
                 cur.execute("""
                     INSERT INTO entries (user_id, title, content, mood, weather, entry_date, is_pinned)
                     VALUES (%s, %s, %s, %s, %s, %s, FALSE)
@@ -172,14 +190,14 @@ async def create_entry(request: Request) -> JSONResponse:
                 """, (user_id, title, content, mood, weather, entry_date))
                 entry_id, created_at = cur.fetchone()
 
-                # 3. Insert Photos
+                # 2. Insert Photos
                 for p in processed_photos:
                     cur.execute("""
                         INSERT INTO entry_photos (entry_id, file_path, thumb_path, file_name, file_size, width, height, sort_order)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
                     """, (entry_id, p["file_path"], p["thumb_path"], p["file_name"], p["file_size"], p["width"], p["height"], p["sort_order"]))
 
-                # 4. Insert Tags & Link
+                # 3. Insert Tags & Link
                 for t_name in tag_list:
                     cur.execute("""
                         INSERT INTO tags (user_id, name)
@@ -209,7 +227,12 @@ async def create_entry(request: Request) -> JSONResponse:
         return JSONResponse({"status": "error", "message": f"Database save error: {e}"}, status_code=500)
 
 async def delete_entry(request: Request) -> JSONResponse:
-    """Delete an entry and all its associated photos from disk."""
+    """Delete an entry and all its associated photos, verifying user ownership."""
+    user, err_resp = require_auth(request)
+    if err_resp:
+        return err_resp
+
+    user_id = user["id"]
     entry_id = request.path_params.get("id")
     try:
         entry_id = int(entry_id)
@@ -217,31 +240,43 @@ async def delete_entry(request: Request) -> JSONResponse:
         return JSONResponse({"status": "error", "message": "ID không hợp lệ"}, status_code=400)
 
     try:
-        # Retrieve photo paths before deleting
+        # Retrieve photo paths before deleting, verifying user ownership
         photo_paths = []
         with get_cursor() as cur:
-            cur.execute("SELECT file_path, thumb_path FROM entry_photos WHERE entry_id = %s;", (entry_id,))
-            for r in cur.fetchall():
+            cur.execute("""
+                SELECT p.file_path, p.thumb_path 
+                FROM entry_photos p
+                JOIN entries e ON p.entry_id = e.id
+                WHERE e.id = %s AND e.user_id = %s;
+            """, (entry_id, user_id))
+            rows = cur.fetchall()
+            for r in rows:
                 if r["file_path"]: photo_paths.append(r["file_path"])
                 if r["thumb_path"]: photo_paths.append(r["thumb_path"])
 
-        # Delete entry (Cascade deletes entry_photos and entry_tags)
+        # Delete entry with user_id filter
         with get_db() as conn:
             with conn.cursor() as cur:
-                cur.execute("DELETE FROM entries WHERE id = %s RETURNING id;", (entry_id,))
+                cur.execute("DELETE FROM entries WHERE id = %s AND user_id = %s RETURNING id;", (entry_id, user_id))
                 deleted = cur.fetchone()
                 if not deleted:
-                    return JSONResponse({"status": "error", "message": "Không tìm thấy bài viết"}, status_code=404)
+                    return JSONResponse({"status": "error", "message": "Không tìm thấy bài viết hoặc bạn không có quyền xóa."}, status_code=404)
 
         # Delete image files on disk
-        MediaService.delete_photo_files(photo_paths)
+        if photo_paths:
+            MediaService.delete_photo_files(photo_paths)
 
-        return JSONResponse({"status": "success", "message": "Đã xóa bài viết thành công.", "id": entry_id})
+        return JSONResponse({"status": "success", "message": "Đã xóa bài viết thành công. 🌸", "id": entry_id})
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 async def toggle_pin_entry(request: Request) -> JSONResponse:
-    """Toggle is_pinned status of an entry."""
+    """Toggle is_pinned status of an entry strictly owned by current user."""
+    user, err_resp = require_auth(request)
+    if err_resp:
+        return err_resp
+
+    user_id = user["id"]
     entry_id = request.path_params.get("id")
     try:
         entry_id = int(entry_id)
@@ -254,12 +289,12 @@ async def toggle_pin_entry(request: Request) -> JSONResponse:
                 cur.execute("""
                     UPDATE entries 
                     SET is_pinned = NOT is_pinned, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = %s
+                    WHERE id = %s AND user_id = %s
                     RETURNING id, is_pinned;
-                """, (entry_id,))
+                """, (entry_id, user_id))
                 res = cur.fetchone()
                 if not res:
-                    return JSONResponse({"status": "error", "message": "Không tìm thấy bài viết"}, status_code=404)
+                    return JSONResponse({"status": "error", "message": "Không tìm thấy bài viết hoặc bạn không có quyền ghim."}, status_code=404)
                 
                 is_pinned = res[1]
 
@@ -273,17 +308,23 @@ async def toggle_pin_entry(request: Request) -> JSONResponse:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 async def get_stats(request: Request) -> JSONResponse:
-    """Calculate summary statistics for dashboard."""
+    """Calculate summary statistics strictly scoped to the authenticated user."""
+    user, err_resp = require_auth(request)
+    if err_resp:
+        return err_resp
+
+    user_id = user["id"]
     try:
         with get_cursor() as cur:
-            cur.execute("SELECT count(*) as total FROM entries;")
+            cur.execute("SELECT count(*) as total FROM entries WHERE user_id = %s;", (user_id,))
             total = cur.fetchone()["total"]
 
             cur.execute("""
                 SELECT mood, count(*) as count 
                 FROM entries 
+                WHERE user_id = %s
                 GROUP BY mood;
-            """)
+            """, (user_id,))
             mood_counts = {r["mood"]: r["count"] for r in cur.fetchall()}
 
             serene_count = mood_counts.get("serene", 0)

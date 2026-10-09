@@ -53,11 +53,14 @@
   - [x] Cập nhật `static/js/app.js` nạp dữ liệu từ PostgreSQL, bộ lọc đồng bộ API, và Toast notification Soft Sakura pastel.
 - [x] Viết bộ kiểm thử tích hợp tự động (`tests/test_api_upload.py`) đạt 100% PASS và kiểm thử trực quan qua browser.
 
-### 🔹 Giai đoạn 3: Tích Hợp Đăng Nhập Google Account (Google OAuth 2.0)
-- [ ] Cấu hình Google Identity Services (GIS) trên giao diện PWA (Google Sign-In button & One Tap).
-- [ ] Backend xác thực Google ID Token thông qua thư viện `google.auth.jwt`.
-- [ ] Quản lý phiên đăng nhập an toàn bằng JWT Bearer Token / HttpOnly Cookie.
-- [ ] Phân quyền dữ liệu độc lập: Mỗi tài khoản Google sở hữu không gian nhật ký và kho ảnh riêng tư tuyệt đối.
+### 🔹 Giai đoạn 3: Tích Hợp Đăng Nhập Google Identity Services & Phân Quyền Dữ Liệu
+- [x] Cấu hình Google Identity Services (GIS) trên giao diện PWA (`static/js/auth.js`) và Google Sign-In button container.
+- [x] Backend xác thực Google ID Token thông qua thư viện `google-auth` (`verify_oauth2_token` trong `app/auth.py`).
+- [x] Cơ chế Hybrid Auth linh hoạt: Hỗ trợ tài khoản Google thực tế và Mock Dev Profile (`Aria Tanaka`, `Kenji Sato`) với 1-click switcher.
+- [x] Quản lý phiên đăng nhập an toàn bằng JWT Bearer Token & HttpOnly Session Cookie (`kokoro_session`).
+- [x] Phân quyền dữ liệu độc lập & Cô lập tuyệt đối: Mọi endpoint `GET`, `POST`, `DELETE`, `PATCH /pin`, `GET /stats` gắn chặt điều kiện `WHERE user_id = :current_user_id`.
+- [x] Giao diện Header nâng cấp: Profile Pill tròn, Menu dropdown chuyển đổi tài khoản, nút Đăng xuất, và Welcome / Login overlay dạng kính mờ Soft Sakura.
+- [x] Bộ kiểm thử tích hợp bảo mật tự động (`tests/test_auth_isolation.py`) đạt 100% PASS và kiểm thử trực quan trình duyệt.
 
 ### 🔹 Giai đoạn 4: Tính Năng Nâng Cao & Trải Nghiệm Ngoại Tuyến (Offline PWA)
 - [ ] Lưu trữ bản nháp nhật ký ngoại tuyến (Offline Drafts qua `localStorage` / `IndexedDB`).

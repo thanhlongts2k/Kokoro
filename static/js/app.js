@@ -19,9 +19,38 @@ const KokoroApp = {
 
     this.setupEventListeners();
 
-    // Fetch live entries from PostgreSQL
-    await this.loadEntries();
-    await this.loadStats();
+    // Initialize Auth & Session
+    let user = null;
+    if (window.KokoroAuth) {
+      user = await window.KokoroAuth.init();
+    }
+
+    if (user) {
+      await this.onUserChanged(user);
+    }
+  },
+
+  async onUserChanged(user) {
+    this.activeMoodFilter = 'all';
+    this.activeTagFilter = null;
+    this.activeDateFilter = null;
+
+    // Dynamic greeting
+    const greetingEl = document.querySelector('.timeline-feed h1');
+    if (greetingEl) {
+      const firstName = user ? user.name.split(' ')[0] : 'bạn';
+      greetingEl.textContent = `Chào ${firstName}, hôm nay bạn cảm thấy thế nào? 🌸`;
+    }
+
+    if (user) {
+      await this.loadEntries();
+      await this.loadStats();
+    } else {
+      this.entries = [];
+      this.renderTimeline();
+      this.renderCalendar();
+      this.renderStats();
+    }
   },
 
   setupEventListeners() {
@@ -88,10 +117,10 @@ const KokoroApp = {
       }
     } catch (err) {
       console.warn('[KokoroApp] Lỗi tải dữ liệu từ API:', err);
-      // Fallback to mock data if API completely unreachable
-      if (this.entries.length === 0 && window.KOKORO_MOCK_ENTRIES) {
-        this.entries = [...window.KOKORO_MOCK_ENTRIES];
+      if (err.message && (err.message.includes('401') || err.message.includes('đăng nhập'))) {
+        if (window.KokoroAuth) window.KokoroAuth.showLoginModal();
       }
+      this.entries = [];
     } finally {
       this.isLoading = false;
       this.renderTimeline();

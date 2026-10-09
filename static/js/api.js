@@ -98,9 +98,46 @@ const KokoroAPI = (() => {
       return await request('/stats/summary', { method: 'GET' });
     },
 
+    // -----------------------------------------------------------------------
+    // AUTHENTICATION API
+    // -----------------------------------------------------------------------
+
+    // GET /api/auth/config
+    async getAuthConfig() {
+      return await request('/auth/config', { method: 'GET' });
+    },
+
     // GET /api/auth/me
     async getCurrentUser() {
       return await request('/auth/me', { method: 'GET' });
+    },
+
+    // GET /api/auth/mock-users
+    async getMockUsers() {
+      return await request('/auth/mock-users', { method: 'GET' });
+    },
+
+    // POST /api/auth/mock-login
+    async mockLogin(userId) {
+      return await request('/auth/mock-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId })
+      });
+    },
+
+    // POST /api/auth/google
+    async googleLogin(credential) {
+      return await request('/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential })
+      });
+    },
+
+    // POST /api/auth/logout
+    async logout() {
+      return await request('/auth/logout', { method: 'POST' });
     }
   };
 })();

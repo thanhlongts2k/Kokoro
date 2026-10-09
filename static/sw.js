@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kokoro-cache-v2';
+const CACHE_NAME = 'kokoro-cache-v3';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -7,6 +7,8 @@ const STATIC_ASSETS = [
   './css/glass.css',
   './css/layout.css',
   './js/mock-data.js',
+  './js/api.js',
+  './js/auth.js',
   './js/app.js',
   './js/editor.js',
   './js/lightbox.js',
@@ -36,11 +38,11 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: Cache-First for static assets, Network-First for APIs
+// Fetch: Cache-First for static assets, Network-First for APIs & Navigation
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // API calls: Network-First (Supports subpaths like /kokoro/api/)
+  // API calls: Network-First
   if (url.pathname.includes('/api/')) {
     event.respondWith(
       fetch(event.request).catch(() => {
@@ -48,6 +50,20 @@ self.addEventListener('fetch', (event) => {
           headers: { 'Content-Type': 'application/json' }
         });
       })
+    );
+    return;
+  }
+
+  // HTML navigation: Network-First with cache fallback
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(() => caches.match('./index.html'))
     );
     return;
   }
