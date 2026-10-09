@@ -13,6 +13,7 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from starlette.requests import Request
 
+from psycopg2.extras import RealDictCursor
 from app.config import Config
 from app.database import get_db, get_cursor
 
@@ -57,20 +58,36 @@ def verify_google_id_token(credential: str) -> Dict[str, Any]:
 def upsert_user(google_id: str, email: str, name: str, avatar_url: Optional[str] = None) -> Dict[str, Any]:
     """
     Insert or update user details in PostgreSQL users table upon Google login.
+    Safely handles both google_id and email matching using RealDictCursor.
     """
     with get_db() as conn:
-        with conn.cursor() as cur:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            # 1. Check if user already exists by google_id or email
             cur.execute("""
-                INSERT INTO users (google_id, email, name, avatar_url, last_login)
-                VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
-                ON CONFLICT (google_id) DO UPDATE SET
-                    email = EXCLUDED.email,
-                    name = EXCLUDED.name,
-                    avatar_url = COALESCE(EXCLUDED.avatar_url, users.avatar_url),
-                    last_login = CURRENT_TIMESTAMP
-                RETURNING id, google_id, email, name, avatar_url, created_at, last_login;
-            """, (google_id, email, name, avatar_url))
-            user = cur.fetchone()
+                SELECT id FROM users WHERE google_id = %s OR email = %s LIMIT 1;
+            """, (google_id, email))
+            existing = cur.fetchone()
+
+            if existing:
+                cur.execute("""
+                    UPDATE users 
+                    SET google_id = %s,
+                        email = %s,
+                        name = %s,
+                        avatar_url = COALESCE(%s, avatar_url),
+                        last_login = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                    RETURNING id, google_id, email, name, avatar_url, created_at, last_login;
+                """, (google_id, email, name, avatar_url, existing["id"]))
+                user = cur.fetchone()
+            else:
+                cur.execute("""
+                    INSERT INTO users (google_id, email, name, avatar_url, last_login)
+                    VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    RETURNING id, google_id, email, name, avatar_url, created_at, last_login;
+                """, (google_id, email, name, avatar_url))
+                user = cur.fetchone()
+
             user_dict = dict(user)
             if user_dict.get("created_at"):
                 user_dict["created_at"] = user_dict["created_at"].isoformat()

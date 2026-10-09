@@ -16,7 +16,10 @@ from http.cookiejar import CookieJar
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
-BASE_URL = "http://localhost:5050/api"
+# Ensure app package is importable
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+BASE_URL = "http://127.0.0.1:5050/api"
 
 def create_client():
     """Create a urllib opener with dedicated CookieJar to simulate a browser session."""
@@ -188,6 +191,28 @@ def run_auth_tests():
     assert me_after_logout["authenticated"] is False
     print("  -> Session cleared successfully! User is now unauthenticated.")
     print("  [PASS] Dang xuat thanh cong!")
+
+    # 10. Test Google Auth Endpoint & upsert_user
+    print("\n[Step 10] Kiem tra Google Auth endpoint & upsert_user...")
+    status_missing, res_missing = request_json(client_unauth, "POST", "/auth/google", {})
+    assert status_missing == 400 and res_missing["status"] == "error"
+    print(f"  -> Missing credential returned {status_missing}: {res_missing['message']}")
+
+    status_invalid, res_invalid = request_json(client_unauth, "POST", "/auth/google", {"credential": "invalid_token_xyz"})
+    assert status_invalid == 401 and res_invalid["status"] == "error"
+    print(f"  -> Invalid credential returned {status_invalid}: {res_invalid['message']}")
+
+    from app.auth import upsert_user
+    test_u = upsert_user("g_test_verify", "g_test@kokoro.me", "Google Tester", "https://img.test")
+    assert test_u["google_id"] == "g_test_verify"
+    assert test_u["email"] == "g_test@kokoro.me"
+    print(f"  -> upsert_user succeeded for user id {test_u['id']}: {test_u['name']}")
+
+    # Clean up test user
+    from app.database import get_cursor
+    with get_cursor() as cur:
+        cur.execute("DELETE FROM users WHERE google_id = %s;", ("g_test_verify",))
+    print("  [PASS] Google Auth endpoint va upsert_user hoat dong chinh xac 100%!")
 
     print("\n=================================================================")
     print("  ALL PHASE 3 AUTH & ISOLATION TESTS PASSED 100%! EXCELLENT!")

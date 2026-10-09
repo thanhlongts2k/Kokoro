@@ -30,15 +30,36 @@ const KokoroAPI = (() => {
   };
 
   /**
+   * Safe response parser that protects against Safari WebKit SyntaxError:
+   * "The string did not match the expected pattern" when server returns non-JSON or HTML error.
+   */
+  const parseResponse = async (response) => {
+    const text = await response.text();
+    let data;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (e) {
+      // If server returned HTML/plain text error page
+      const cleanText = text.replace(/<[^>]*>?/gm, '').trim();
+      const snippet = cleanText.length > 120 ? cleanText.substring(0, 120) + '...' : cleanText;
+      data = { message: snippet || `Lỗi máy chủ (HTTP ${response.status})` };
+    }
+    return data;
+  };
+
+  /**
    * Universal fetch with error handling
    */
   const request = async (endpoint, options = {}) => {
     const url = `${API_BASE}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
     try {
-      const response = await fetch(url, options);
-      const data = await response.json();
+      const response = await fetch(url, {
+        credentials: 'same-origin',
+        ...options,
+      });
+      const data = await parseResponse(response);
       if (!response.ok) {
-        throw new Error(data.message || `Lỗi yêu cầu (HTTP ${response.status})`);
+        throw new Error(data.message || data.error || `Lỗi yêu cầu (HTTP ${response.status})`);
       }
       return data;
     } catch (err) {
@@ -70,11 +91,12 @@ const KokoroAPI = (() => {
       try {
         const response = await fetch(url, {
           method: 'POST',
+          credentials: 'same-origin',
           body: formData
         });
-        const data = await response.json();
+        const data = await parseResponse(response);
         if (!response.ok) {
-          throw new Error(data.message || `Lỗi khi lưu bài viết (HTTP ${response.status})`);
+          throw new Error(data.message || data.error || `Lỗi khi lưu bài viết (HTTP ${response.status})`);
         }
         return data;
       } catch (err) {

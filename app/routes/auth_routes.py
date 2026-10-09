@@ -9,9 +9,12 @@ Endpoints:
 - POST /api/auth/logout      (Clear session cookie)
 """
 
+import logging
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
+
+logger = logging.getLogger("kokoro.auth")
 
 from app.config import Config
 from app.database import get_cursor
@@ -117,9 +120,13 @@ async def google_login(request: Request) -> JSONResponse:
     if not google_id or not email:
         return JSONResponse({"status": "error", "message": "Google Token không chứa email hoặc sub"}, status_code=400)
 
-    # Upsert user in PostgreSQL
-    user = upsert_user(google_id, email, name, avatar_url)
-    token = create_session_token(user["id"], user["email"], user["name"])
+    # Upsert user in PostgreSQL & create session token
+    try:
+        user = upsert_user(google_id, email, name, avatar_url)
+        token = create_session_token(user["id"], user["email"], user["name"])
+    except Exception as e:
+        logger.error(f"[Auth] Lỗi lưu người dùng Google vào PostgreSQL: {e}", exc_info=True)
+        return JSONResponse({"status": "error", "message": f"Không thể lưu thông tin tài khoản: {e}"}, status_code=500)
 
     response = JSONResponse({
         "status": "success",

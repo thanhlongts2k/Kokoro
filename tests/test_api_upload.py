@@ -91,7 +91,7 @@ def run_tests():
     body_bytes, ct_header = build_multipart_body(fields, files)
 
     req = urllib.request.Request(
-        "http://localhost:5050/api/entries",
+        "http://127.0.0.1:5050/api/entries",
         data=body_bytes,
         headers={"Content-Type": ct_header, "Authorization": f"Bearer {token}"},
         method="POST"
@@ -162,7 +162,7 @@ def run_tests():
 
     # 5. Verify GET /api/entries
     print("\n[Step 5] Kiem tra endpoint GET /api/entries...")
-    get_req = urllib.request.Request("http://localhost:5050/api/entries", headers=auth_header)
+    get_req = urllib.request.Request("http://127.0.0.1:5050/api/entries", headers=auth_header)
     with urllib.request.urlopen(get_req) as resp:
         get_data = json.loads(resp.read().decode("utf-8"))
 
@@ -177,7 +177,7 @@ def run_tests():
 
     # 6. Test PATCH /api/entries/{id}/pin
     print(f"\n[Step 6] Test PATCH /api/entries/{entry_id}/pin...")
-    pin_req = urllib.request.Request(f"http://localhost:5050/api/entries/{entry_id}/pin", headers=auth_header, method="PATCH")
+    pin_req = urllib.request.Request(f"http://127.0.0.1:5050/api/entries/{entry_id}/pin", headers=auth_header, method="PATCH")
     with urllib.request.urlopen(pin_req) as resp:
         pin_data = json.loads(resp.read().decode("utf-8"))
     assert pin_data["status"] == "success"
@@ -187,7 +187,7 @@ def run_tests():
 
     # 7. Test GET /api/stats/summary
     print("\n[Step 7] Test GET /api/stats/summary...")
-    stats_req = urllib.request.Request("http://localhost:5050/api/stats/summary", headers=auth_header)
+    stats_req = urllib.request.Request("http://127.0.0.1:5050/api/stats/summary", headers=auth_header)
     with urllib.request.urlopen(stats_req) as resp:
         stats_data = json.loads(resp.read().decode("utf-8"))
     assert stats_data["status"] == "success"
