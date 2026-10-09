@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#fdf2f4">
+  <meta name="description" content="Kokoro (心) — Sổ tay nhật ký cảm xúc & lưu giữ khoảnh khắc cá nhân phong cách Soft Sakura chữa lành">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Kokoro">
+
+  <title>Kokoro (心) — Nhật Ký Cảm Xúc & Kỷ Niệm</title>
+
+  <!-- Auto Trailing Slash Guard for Nginx subpath reverse proxy -->
+  <script>
+    if (!window.location.pathname.endsWith('/') && !window.location.pathname.includes('.')) {
+      window.location.replace(window.location.pathname + '/' + window.location.search + window.location.hash);
+    }
+  </script>
+
+  <!-- PWA Manifest & Favicon -->
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="./icons/sakura.svg">
+  <link rel="apple-touch-icon" href="./icons/sakura.svg">
+
+  <!-- Google Typography: Outfit & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap Icons CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <!-- Stylesheets (Relative paths for Nginx reverse proxy subpath support) -->
+  <link rel="stylesheet" href="./css/tokens.css">
+  <link rel="stylesheet" href="./css/glass.css">
+  <link rel="stylesheet" href="./css/layout.css">
+</head>
+<body>
+
+  <!-- Soft Ambient Floating Glowing Orbs -->
+  <div class="ambient-orb ambient-orb-1"></div>
+  <div class="ambient-orb ambient-orb-2"></div>
+
+  <div id="app-root">
+
+    <!-- ====================================================================
+         1. TOP NAVIGATION HEADER
+         ==================================================================== -->
+    <header class="app-header">
+      <div class="brand-container" onclick="window.KokoroApp && window.KokoroApp.clearFilters()">
+        <img src="./icons/sakura.svg" alt="Kokoro Logo" class="brand-logo" />
+        <div>
+          <div class="brand-title">Kokoro <span style="font-weight: 500; font-size: 16px;">心</span></div>
+          <div class="brand-subtitle">Nhật ký cảm xúc</div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <!-- PWA Install Button (Dynamic) -->
+        <button id="pwa-install-btn" class="btn-pwa-install" title="Cài đặt Kokoro PWA">
+          <i class="bi bi-download"></i> Cài app
+        </button>
+
+        <!-- Header Add Entry Button (Desktop) -->
+        <button id="header-add-entry-btn" class="btn-sakura" style="display: none; @media(min-width: 768px){display:inline-flex;}">
+          <i class="bi bi-pencil-square"></i> Viết bài
+        </button>
+
+        <!-- User Profile Pill -->
+        <div class="header-profile-pill" id="user-profile-pill" title="Tài khoản Google (Mock Auth)">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" alt="Avatar" class="profile-avatar" />
+          <span class="profile-name">Aria Tanaka</span>
+          <i class="bi bi-chevron-down" style="font-size: 11px; color: var(--text-muted);"></i>
+        </div>
+      </div>
+    </header>
+
+    <!-- ====================================================================
+         2. MAIN WRAPPER (ADAPTIVE 3-COLUMN / 1-COLUMN)
+         ==================================================================== -->
+    <main class="main-wrapper">
+
+      <!-- Mobile Horizontal Quick Mood Filter -->
+      <div class="mobile-mood-scroll">
+        <button class="btn-glass active" data-filter-mood="all">Tất cả 🌸</button>
+        <button class="btn-glass" data-filter-mood="serene">Bình yên 🌸</button>
+        <button class="btn-glass" data-filter-mood="cozy">Ấm áp ☕</button>
+        <button class="btn-glass" data-filter-mood="reflective">Chiêm nghiệm 🌙</button>
+        <button class="btn-glass" data-filter-mood="grateful">Biết ơn 🍵</button>
+      </div>
+
+      <!-- 2.1. LEFT SIDEBAR (CALENDAR & MOOD FILTERS) -->
+      <aside class="sidebar-left">
+        <!-- Interactive Mini Calendar -->
+        <div class="glass-panel calendar-widget">
+          <div class="cal-header">
+            <span class="cal-title" id="cal-month-title">Tháng 10 2026</span>
+            <div style="display: flex; gap: 4px;">
+              <button class="action-icon-btn" style="width: 28px; height: 28px;" title="Tháng trước"><i class="bi bi-chevron-left"></i></button>
+              <button class="action-icon-btn" style="width: 28px; height: 28px;" title="Tháng sau"><i class="bi bi-chevron-right"></i></button>
+            </div>
+          </div>
+          <div class="cal-grid" id="mini-calendar-grid">
+            <!-- Injected by app.js -->
+          </div>
+          <div style="margin-top: 14px; font-size: 11px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--sakura-500);"></span>
+            <span>Ngày có lưu giữ khoảnh khắc</span>
+          </div>
+        </div>
+
+        <!-- Emotional Mood Filters -->
+        <div class="glass-panel" style="padding: 20px;">
+          <h4 style="font-size: 13px; font-weight: 800; margin: 0 0 14px 0; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;">
+            <i class="bi bi-emoji-smile" style="color: var(--sakura-500); margin-right: 6px;"></i> Cảm xúc chủ đạo
+          </h4>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn-glass active" data-filter-mood="all" style="justify-content: flex-start; width: 100%; border-radius: var(--radius-sm);">
+              <i class="bi bi-grid"></i> Tất cả bài viết
+            </button>
+            <button class="btn-glass" data-filter-mood="serene" style="justify-content: flex-start; width: 100%; border-radius: var(--radius-sm);">
+              <span>🌸</span> Thanh bình (Serene)
+            </button>
+            <button class="btn-glass" data-filter-mood="cozy" style="justify-content: flex-start; width: 100%; border-radius: var(--radius-sm);">
+              <span>☕</span> Ấm áp (Cozy)
+            </button>
+            <button class="btn-glass" data-filter-mood="reflective" style="justify-content: flex-start; width: 100%; border-radius: var(--radius-sm);">
+              <span>🌙</span> Chiêm nghiệm (Reflective)
+            </button>
+            <button class="btn-glass" data-filter-mood="grateful" style="justify-content: flex-start; width: 100%; border-radius: var(--radius-sm);">
+              <span>🍵</span> Biết ơn (Grateful)
+            </button>
+          </div>
+        </div>
+
+        <!-- Popular Tags Widget -->
+        <div class="glass-panel" style="padding: 20px;">
+          <h4 style="font-size: 13px; font-weight: 800; margin: 0 0 12px 0; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;">
+            <i class="bi bi-tags" style="color: var(--sakura-500); margin-right: 6px;"></i> Thẻ chủ đề
+          </h4>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            <span class="tag-pill" data-tag="#healing">#healing</span>
+            <span class="tag-pill" data-tag="#sakura">#sakura</span>
+            <span class="tag-pill" data-tag="#matcha">#matcha</span>
+            <span class="tag-pill" data-tag="#reading">#reading</span>
+            <span class="tag-pill" data-tag="#morning">#morning</span>
+            <span class="tag-pill" data-tag="#gratitude">#gratitude</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 2.2. CENTER TIMELINE FEED -->
+      <section class="timeline-feed">
+        <!-- Welcoming Healing Card -->
+        <div class="glass-panel" style="padding: 20px 24px; background: linear-gradient(135deg, rgba(253, 242, 248, 0.9) 0%, rgba(255, 255, 255, 0.8) 100%); display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+          <div>
+            <h1 style="font-size: 20px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-primary); letter-spacing: -0.3px;">
+              Chào Aria, hôm nay bạn cảm thấy thế nào? 🌸
+            </h1>
+            <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">
+              Lắng đọng tâm trí và lưu giữ những khoảnh khắc nhẹ nhàng của ngày hôm nay.
+            </p>
+          </div>
+          <button class="btn-sakura" onclick="window.Editor && window.Editor.open()" style="flex-shrink: 0;">
+            <i class="bi bi-plus-lg"></i> Viết nhật ký
+          </button>
+        </div>
+
+        <!-- Feed Cards Container -->
+        <div id="timeline-feed-container" style="display: flex; flex-direction: column; gap: 20px;">
+          <!-- Injected dynamically by app.js -->
+        </div>
+      </section>
+
+      <!-- 2.3. RIGHT SIDEBAR (STATS & ZEN HEALING QUOTES) -->
+      <aside class="sidebar-right">
+        <!-- Statistics Card -->
+        <div class="glass-panel" style="padding: 20px;">
+          <h4 style="font-size: 13px; font-weight: 800; margin: 0 0 16px 0; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;">
+            <i class="bi bi-graph-up-arrow" style="color: var(--sakura-500); margin-right: 6px;"></i> Hành trình cảm xúc
+          </h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div class="glass-panel-subtle" style="padding: 14px; text-align: center;">
+              <div style="font-size: 26px; font-weight: 900; color: var(--sakura-600);" id="stat-total-entries">4</div>
+              <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-top: 2px;">Khoảnh khắc</div>
+            </div>
+            <div class="glass-panel-subtle" style="padding: 14px; text-align: center;">
+              <div style="font-size: 26px; font-weight: 900; color: var(--mood-cozy);" id="stat-writing-streak">7 ngày</div>
+              <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-top: 2px;">Chuỗi liên tiếp</div>
+            </div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px;">
+              <span>Tỷ lệ tâm trạng thanh bình:</span>
+              <span id="stat-serene-percent" style="color: var(--sakura-600);">50%</span>
+            </div>
+            <div style="width: 100%; height: 8px; background: rgba(244, 114, 182, 0.15); border-radius: var(--radius-pill); overflow: hidden;">
+              <div style="width: 50%; height: 100%; background: linear-gradient(90deg, var(--sakura-400), var(--sakura-500)); border-radius: var(--radius-pill);"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Zen & Healing Philosophy Card -->
+        <div class="glass-panel" style="padding: 22px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(254, 242, 244, 0.85) 100%);">
+          <div style="font-size: 24px; color: var(--sakura-400); margin-bottom: 8px;">🍵</div>
+          <p style="font-style: italic; font-size: 13px; line-height: 1.6; color: var(--text-secondary); margin: 0 0 10px 0;">
+            "Hạnh phúc không phải là đích đến rực rỡ, mà là sự bình an trong từng nhịp thở bình dị mỗi sớm mai."
+          </p>
+          <div style="font-size: 11px; font-weight: 700; color: var(--sakura-600); text-align: right;">
+            — Kokoro Zen Journal
+          </div>
+        </div>
+      </aside>
+
+    </main>
+
+    <!-- ====================================================================
+         3. FLOATING ACTION BUTTON (+ GHI NHẬT KÝ)
+         ==================================================================== -->
+    <button class="fab-create" id="fab-create-btn" title="Viết nhật ký mới">
+      <i class="bi bi-pencil-fill"></i>
+      <span>+ Ghi nhật ký</span>
+    </button>
+
+    <!-- ====================================================================
+         4. MOBILE BOTTOM NAVIGATION (THUMB ZONE)
+         ==================================================================== -->
+    <nav class="mobile-bottom-nav">
+      <button class="bottom-nav-item active" data-tab="timeline">
+        <i class="bi bi-journal-richtext"></i>
+        <span>Nhật ký</span>
+      </button>
+      <button class="bottom-nav-item" data-tab="calendar" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+        <i class="bi bi-calendar-heart"></i>
+        <span>Lịch</span>
+      </button>
+      <button class="bottom-nav-item" data-tab="editor">
+        <i class="bi bi-plus-circle-fill" style="color: var(--sakura-500); font-size: 24px;"></i>
+        <span>Viết bài</span>
+      </button>
+      <button class="bottom-nav-item" data-tab="memories" onclick="alert('Tính năng Album Kỷ Niệm đang được đồng bộ! 🌸')">
+        <i class="bi bi-images"></i>
+        <span>Kỷ niệm</span>
+      </button>
+      <button class="bottom-nav-item" data-tab="profile" onclick="alert('Aria Tanaka — Mock Account Active (Local Dev Mode)')">
+        <i class="bi bi-person-circle"></i>
+        <span>Cá nhân</span>
+      </button>
+    </nav>
+
+    <!-- ====================================================================
+         5. DIARY ENTRY EDITOR MODAL (DESKTOP) / BOTTOM SHEET (MOBILE)
+         ==================================================================== -->
+    <div class="modal-overlay" id="editor-modal-overlay">
+      <div class="editor-dialog" id="editor-dialog">
+        <!-- Mobile Bottom Sheet Handle -->
+        <div class="sheet-handle"></div>
+
+        <div class="editor-header">
+          <h3 class="editor-title">Ghi Lại Khoảnh Khắc 🌸</h3>
+          <button class="action-icon-btn" id="editor-close-btn" title="Đóng">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <div class="editor-body">
+          <!-- Mood Selection -->
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;">
+              Tâm trạng lúc này
+            </label>
+            <div class="mood-picker-list">
+              <button type="button" class="mood-option-chip selected" data-mood="serene" data-label="Serene 🌸">🌸 Thanh bình</button>
+              <button type="button" class="mood-option-chip" data-mood="cozy" data-label="Cozy ☕">☕ Ấm áp</button>
+              <button type="button" class="mood-option-chip" data-mood="reflective" data-label="Reflective 🌙">🌙 Chiêm nghiệm</button>
+              <button type="button" class="mood-option-chip" data-mood="grateful" data-label="Grateful 🍵">🍵 Biết ơn</button>
+              <button type="button" class="mood-option-chip" data-mood="energetic" data-label="Energetic ⚡">⚡ Năng lượng</button>
+            </div>
+          </div>
+
+          <!-- Title Input -->
+          <div>
+            <input type="text" id="editor-title-input" class="editor-input" placeholder="Tiêu đề nhật ký (ví dụ: Buổi sáng ngắm hoa anh đào...)" />
+          </div>
+
+          <!-- Content Textarea -->
+          <div>
+            <textarea id="editor-content-input" class="editor-input editor-textarea" placeholder="Chia sẻ cảm xúc, suy nghĩ hoặc một điều nhỏ bé khiến bạn mỉm cười hôm nay..."></textarea>
+          </div>
+
+          <!-- Tags Input -->
+          <div>
+            <input type="text" id="editor-tag-input" class="editor-input" placeholder="Thẻ chủ đề cách nhau bởi dấu cách (ví dụ: #healing #spring #matcha)" />
+          </div>
+
+          <!-- Photo Upload Dropzone -->
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;">
+              Album ảnh đính kèm
+            </label>
+            <div class="photo-uploader-dropzone" id="editor-dropzone">
+              <i class="bi bi-cloud-arrow-up text-sakura" style="font-size: 28px;"></i>
+              <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-top: 6px;">
+                Nhấp để chọn ảnh hoặc kéo thả vào đây
+              </div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                Hỗ trợ tải nhiều ảnh JPG, PNG, WebP
+              </div>
+              <input type="file" id="editor-file-input" multiple accept="image/*" style="display: none;" />
+            </div>
+
+            <!-- Uploaded Previews Grid -->
+            <div class="uploaded-previews-grid" id="editor-previews-grid"></div>
+          </div>
+        </div>
+
+        <div class="editor-footer">
+          <button type="button" class="btn-glass" id="editor-cancel-btn">Hủy bỏ</button>
+          <button type="button" class="btn-sakura" id="editor-save-btn">
+            <i class="bi bi-check2-circle"></i> Lưu nhật ký
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         6. FULLSCREEN PHOTO LIGHTBOX MODAL
+         ==================================================================== -->
+    <div class="lightbox-modal" id="lightbox-modal">
+      <button class="lightbox-close-btn" id="lightbox-close-btn" title="Đóng ảnh">
+        <i class="bi bi-x-lg"></i>
+      </button>
+      <div class="lightbox-img-wrapper">
+        <img id="lightbox-img" src="" alt="Zoomed Photo" />
+      </div>
+    </div>
+
+    <!-- Soft Pastel Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+  </div>
+
+  <!-- Scripts Execution (Relative paths for reverse proxy subpath) -->
+  <script src="./js/mock-data.js"></script>
+  <script src="./js/api.js"></script>
+  <script src="./js/lightbox.js"></script>
+  <script src="./js/editor.js"></script>
+  <script src="./js/pwa.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>

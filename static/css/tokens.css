@@ -1,0 +1,78 @@
+:root {
+  /* ==========================================================================
+     KOKORO DESIGN TOKENS — SOFT SAKURA PASTEL & HEALING PALETTE
+     ========================================================================== */
+
+  /* Ambient Backgrounds */
+  --bg-primary: #fff5f7;
+  --bg-secondary: #fdf0f3;
+  --bg-tertiary: #fae8eb;
+  --bg-ambient-gradient: radial-gradient(circle at 10% 10%, #fff7f9 0%, #fdf0f4 50%, #fbeef2 100%);
+  --bg-sakura-mist: radial-gradient(circle at 80% 20%, rgba(251, 207, 232, 0.35) 0%, rgba(255, 245, 247, 0) 60%);
+
+  /* Frosted Glass Surfaces */
+  --surface-glass-navbar: rgba(255, 255, 255, 0.85);
+  --surface-glass-card: rgba(255, 255, 255, 0.78);
+  --surface-glass-modal: rgba(255, 255, 255, 0.92);
+  --surface-glass-subtle: rgba(255, 255, 255, 0.55);
+  --surface-glass-hover: rgba(255, 255, 255, 0.92);
+
+  /* Glass Borders & Highlights */
+  --border-glass: rgba(244, 114, 182, 0.22);
+  --border-glass-subtle: rgba(244, 114, 182, 0.12);
+  --border-glass-hover: rgba(244, 114, 182, 0.45);
+  --border-glass-highlight: rgba(255, 255, 255, 0.95);
+
+  /* Sakura Color Scale */
+  --sakura-50: #fdf2f8;
+  --sakura-100: #fce7f3;
+  --sakura-200: #fbcfe8;
+  --sakura-300: #f9a8d4;
+  --sakura-400: #f472b6;
+  --sakura-500: #ec4899;
+  --sakura-600: #db2777;
+
+  /* Emotional Mood Palette */
+  --mood-serene: #f472b6;       /* 🌸 Serene Sakura */
+  --mood-serene-bg: #fdf2f8;
+  --mood-cozy: #f59e0b;         /* ☕ Cozy Amber */
+  --mood-cozy-bg: #fffbeb;
+  --mood-reflective: #a855f7;   /* 🌙 Reflective Lavender */
+  --mood-reflective-bg: #faf5ff;
+  --mood-grateful: #10b981;     /* 🍵 Grateful Matcha */
+  --mood-grateful-bg: #ecfdf5;
+  --mood-energetic: #38bdf8;    /* ⚡ Energetic Sky */
+  --mood-energetic-bg: #f0f9ff;
+  --mood-melancholy: #64748b;   /* 🌧️ Melancholy Mist */
+  --mood-melancholy-bg: #f8fafc;
+
+  /* Typography Colors */
+  --text-primary: #1e293b;      /* Slate 800 - Clear, elegant */
+  --text-secondary: #475569;    /* Slate 600 - Soothing contrast */
+  --text-muted: #94a3b8;        /* Slate 400 - Subdued metadata */
+  --text-sakura: #db2777;       /* Deep Sakura Rose */
+
+  /* Shadows (Soft Pink Diffuse Glow) */
+  --shadow-sm: 0 2px 8px rgba(244, 114, 182, 0.06);
+  --shadow-md: 0 8px 24px rgba(244, 114, 182, 0.08), 0 2px 6px rgba(0, 0, 0, 0.02);
+  --shadow-lg: 0 16px 40px rgba(244, 114, 182, 0.12), 0 4px 12px rgba(0, 0, 0, 0.03);
+  --shadow-hover: 0 14px 36px rgba(244, 114, 182, 0.18), 0 4px 12px rgba(0, 0, 0, 0.04);
+  --shadow-fab: 0 10px 30px rgba(236, 72, 153, 0.35);
+
+  /* Border Radii */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+  --radius-pill: 9999px;
+
+  /* Touch & Viewport Constraints */
+  --touch-target-min: 44px;
+  --header-height: 68px;
+  --bottom-nav-height: 64px;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 350ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}

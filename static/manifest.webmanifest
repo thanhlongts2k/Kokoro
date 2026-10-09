@@ -1,0 +1,21 @@
+{
+  "name": "Kokoro — Nhật Ký Cảm Xúc & Kỷ Niệm",
+  "short_name": "Kokoro",
+  "description": "Sổ tay nhật ký cá nhân & album ảnh phong cách Soft Sakura chữa lành Á Đông",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff5f7",
+  "theme_color": "#fdf2f4",
+  "lang": "vi",
+  "categories": ["lifestyle", "productivity"],
+  "icons": [
+    {
+      "src": "./icons/sakura.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
