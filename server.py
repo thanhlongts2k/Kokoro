@@ -38,6 +38,7 @@ async def api_health(request):
     return JSONResponse({
         "status": "online",
         "app": "Kokoro (心) PWA Journal",
+        "version": Config.APP_VERSION,
         "theme": "Soft Sakura Pastel / Healing Light Frosted Glass",
         "port": Config.PORT,
         "database": f"PostgreSQL 18 ({db_status})",

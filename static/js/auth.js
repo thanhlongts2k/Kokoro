@@ -17,6 +17,10 @@ const KokoroAuth = {
       const cfgRes = await window.KokoroAPI.getAuthConfig();
       if (cfgRes && cfgRes.status === 'success') {
         this.config = cfgRes;
+        if (cfgRes.version) {
+          const vBadge = document.getElementById('app-version-badge');
+          if (vBadge) vBadge.textContent = cfgRes.version;
+        }
       }
     } catch (e) {
       console.warn('[KokoroAuth] Không thể tải auth config:', e);

@@ -822,3 +822,87 @@
     display: inline-flex;
   }
 }
+
+/* --------------------------------------------------------------------------
+   2.4. APP FOOTER (SOFT SAKURA GLASS)
+   -------------------------------------------------------------------------- */
+.app-footer {
+  margin-top: auto;
+  padding: 36px 20px calc(88px + env(safe-area-inset-bottom, 0px));
+  text-align: center;
+  border-top: 1px solid var(--border-glass-subtle);
+  background: linear-gradient(180deg, rgba(255, 245, 247, 0.45) 0%, rgba(253, 242, 244, 0.85) 100%);
+  position: relative;
+  z-index: 2;
+}
+
+@media (min-width: 768px) {
+  .app-footer {
+    padding-bottom: calc(36px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.footer-content {
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.footer-logo {
+  width: 24px;
+  height: 24px;
+  filter: drop-shadow(0 2px 4px rgba(244, 114, 182, 0.3));
+}
+
+.footer-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.footer-version-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: rgba(244, 114, 182, 0.15);
+  color: var(--sakura-600);
+  border: 1px solid rgba(244, 114, 182, 0.3);
+  letter-spacing: 0.2px;
+}
+
+.footer-tagline {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.footer-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.footer-dot {
+  color: var(--sakura-300);
+  opacity: 0.6;
+}
+

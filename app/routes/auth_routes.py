@@ -32,6 +32,7 @@ async def auth_config(request: Request) -> JSONResponse:
     """Return public auth settings for client GIS and UI initialization."""
     return JSONResponse({
         "status": "success",
+        "version": Config.APP_VERSION,
         "google_client_id": Config.GOOGLE_CLIENT_ID,
         "mock_auth": Config.MOCK_AUTH
     })

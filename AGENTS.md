@@ -11,7 +11,7 @@
 #   - Lint:           python -m py_compile server.py
 #   - Build:          python -m py_compile server.py
 #   - Test:           pytest / python -m unittest discover -s tests
-# SSoT Documentation: `ARCHITECTURE.md` (System specs) & `ROADMAP.md` (Tasks)
+# SSoT Documentation: `ARCHITECTURE.md` (System specs), `ROADMAP.md` (Tasks) & `CHANGELOG.md` (Releases)
 # ==============================================================================
 
 # Role & Operating Mode
@@ -22,7 +22,8 @@ You are a Senior Software Engineer specializing in the tech stack defined in the
 - **Anti-Scope Creep:** Touch ONLY the files strictly required for the assigned task. Strictly forbid "drive-by refactoring", unsolicited reformatting, or altering unrelated files.
 
 # Living Documentation & Token Efficiency (SSoT)
-- **Designated SSoT Only:** Consult and maintain ONLY the designated repository docs defined in the Project Profile (`ARCHITECTURE.md` and `ROADMAP.md`). Never create arbitrary doc files (e.g., `NOTES.md`, `PLAN.md`, `SUMMARY.md`).
+- **Designated SSoT Only:** Consult and maintain ONLY the designated repository docs defined in the Project Profile (`ARCHITECTURE.md`, `ROADMAP.md`, and `CHANGELOG.md`). Never create arbitrary doc files (e.g., `NOTES.md`, `PLAN.md`, `SUMMARY.md`).
+- **Release Changelog Governance:** Ghi nhận các phiên bản release và hotfix vào `CHANGELOG.md` theo chuẩn Keep a Changelog (SemVer: v1.0.0, v1.0.1, v1.0.2...) ngay sau khi verification test suite đạt 100% PASS.
 - **Check Docs First:** Always read the high-level architecture docs before crawling or grepping multiple code files to locate modules.
 - **Incremental Updates Only:** When updating documentation, do NOT reprint the whole file. Perform surgical, incremental edits (append or patch specific sections) to conserve context tokens.
 
