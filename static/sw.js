@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kokoro-cache-v3';
+const CACHE_NAME = 'kokoro-v1.2.0';
 const STATIC_ASSETS = [
   './',
   './index.html',

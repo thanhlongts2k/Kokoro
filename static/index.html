@@ -94,6 +94,10 @@
             <button class="dropdown-item" id="export-backup-btn" style="color: var(--text-primary);">
               <i class="bi bi-cloud-arrow-down text-sakura"></i> Sao lưu dữ liệu (JSON)
             </button>
+            <button class="dropdown-item" id="import-backup-btn" style="color: var(--text-primary);">
+              <i class="bi bi-cloud-arrow-up text-sakura"></i> Khôi phục dữ liệu (JSON)
+            </button>
+            <input type="file" id="backup-file-input" accept=".json,application/json" style="display: none;" />
             <div class="dropdown-divider"></div>
             <button class="dropdown-item text-danger" id="logout-btn">
               <i class="bi bi-box-arrow-right"></i> Đăng xuất
@@ -263,7 +267,7 @@
         <div class="footer-brand">
           <img src="./icons/sakura.svg" alt="Kokoro Logo" class="footer-logo" />
           <span class="footer-title">Kokoro <span style="font-weight: 500; font-size: 14px; color: var(--sakura-500);">心</span></span>
-          <span class="footer-version-badge" id="app-version-badge">v1.1.0</span>
+          <span class="footer-version-badge" id="app-version-badge">v1.2.0</span>
         </div>
         <p class="footer-tagline">
           Lắng đọng tâm trí & lưu giữ những khoảnh khắc nhẹ nhàng trong không gian an yên.

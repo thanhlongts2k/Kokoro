@@ -11,6 +11,8 @@ THUMBNAILS_DIR = Config.UPLOAD_DIR / "thumbnails"
 ORIGINALS_DIR.mkdir(parents=True, exist_ok=True)
 THUMBNAILS_DIR.mkdir(parents=True, exist_ok=True)
 
+Image.MAX_IMAGE_PIXELS = None
+
 class MediaService:
     MAX_DIMENSION: int = 1600
     THUMB_DIMENSION: int = 400
@@ -29,8 +31,13 @@ class MediaService:
         import io
         img = Image.open(io.BytesIO(file_bytes))
 
-        # Auto-rotate based on EXIF data
-        img = ImageOps.exif_transpose(img)
+        # Auto-rotate based on EXIF data safely
+        try:
+            transposed = ImageOps.exif_transpose(img)
+            if transposed is not None:
+                img = transposed
+        except Exception as e:
+            print(f"[MediaService] EXIF orientation warning: {e}")
 
         # Convert palette/CMYK to RGB/RGBA for safe WebP encoding
         if img.mode in ("P", "CMYK"):

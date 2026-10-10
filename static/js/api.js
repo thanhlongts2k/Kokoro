@@ -146,6 +146,16 @@ const KokoroAPI = (() => {
       }
     },
 
+    // POST /api/entries/import (Upload JSON backup file)
+    async importEntries(file) {
+      const formData = new FormData();
+      formData.append('backup_file', file);
+      return await request('/entries/import', {
+        method: 'POST',
+        body: formData
+      });
+    },
+
     // -----------------------------------------------------------------------
     // OFFLINE STORAGE & INDEXEDDB QUEUE (SAFE FOR LARGE BLOBS/FILES)
     // -----------------------------------------------------------------------

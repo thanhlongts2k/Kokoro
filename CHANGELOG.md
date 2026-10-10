@@ -4,6 +4,23 @@ Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal 
 
 ---
 
+## [1.2.0] - 2026-10-10
+### Added
+- **Tối Ưu Bộ Nhớ Đệm & Header Caching:**
+  - Áp dụng cấu hình `ImmutableStaticFiles` cho toàn bộ media tải lên trong `uploads/originals/` và `uploads/thumbnails/` với header `Cache-Control: public, max-age=31536000, immutable`.
+  - Cấu hình `AppStaticFiles` thiết lập `Cache-Control: no-cache, must-revalidate` cho file HTML để đảm bảo client luôn nhận phiên bản giao diện mới nhất, kết hợp cache 24h cho các asset tĩnh (`.css`, `.js`, `.svg`).
+  - Nâng cấp Service Worker cache name lên `kokoro-v1.2.0` trong `static/sw.js`.
+- **Tối Ưu Nginx Reverse Proxy & CORS:**
+  - Bổ sung `ProxyHeadersMiddleware` tin cậy và xử lý đúng `X-Forwarded-Proto` (HTTPS) và `X-Forwarded-Prefix` (hỗ trợ sub-path `/kokoro/`).
+  - Mở rộng CORS Middleware hỗ trợ đầy đủ các phương thức HTTP và phơi bày header `Access-Control-Expose-Headers: Content-Disposition` phục vụ tải file đính kèm.
+- **Tính Năng Khôi Phục Dữ Liệu (Import Backup JSON):**
+  - Endpoint `POST /api/entries/import`: Tiếp nhận file JSON backup hoặc payload, khôi phục toàn bộ bài viết, tâm trạng, thời gian, tags và ảnh liên kết vào tài khoản người dùng hiện tại trong một database transaction an toàn.
+  - Giao diện người dùng: Tích hợp nút "Khôi phục dữ liệu (JSON)" và input file ẩn trong Profile Dropdown menu, tự động reload feed và thống kê sau khi import thành công.
+- **Stress Test & Xử Lý Ảnh Lớn (EXIF Orientation):**
+  - Bổ sung `tests/test_phase5_stress.py`: Kiểm thử tải đồng thời 4 ảnh độ phân giải 4000x3000 kèm EXIF orientation tag 6 (xoay 90 độ), xác nhận ảnh được xoay đúng chiều chân dung, resize về max 1600px và nén WebP giảm dung lượng đến 98.4%.
+
+---
+
 ## [1.1.0] - 2026-10-10
 ### Added
 - **Offline Storage & Auto-Save:**

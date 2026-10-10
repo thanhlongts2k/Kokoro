@@ -127,6 +127,32 @@ const KokoroApp = {
         }
       });
     }
+
+    // Backup Import Button in Profile Dropdown
+    const importBtn = document.getElementById('import-backup-btn');
+    const backupFileInput = document.getElementById('backup-file-input');
+    if (importBtn && backupFileInput) {
+      importBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        backupFileInput.value = '';
+        backupFileInput.click();
+      });
+
+      backupFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        try {
+          this.showToast('Đang khôi phục dữ liệu từ tệp sao lưu... 🌸');
+          const result = await window.KokoroAPI.importEntries(file);
+          this.showToast(result.message || 'Khôi phục nhật ký thành công! ✨');
+          await this.loadEntries();
+          await this.loadStats();
+        } catch (err) {
+          this.showToast('Lỗi khôi phục dữ liệu: ' + err.message, 'error');
+        }
+      });
+    }
   },
 
   /**

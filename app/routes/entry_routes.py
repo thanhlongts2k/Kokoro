@@ -436,6 +436,115 @@ async def export_entries(request: Request) -> Response:
     except Exception as e:
         return JSONResponse({"status": "error", "message": f"Lỗi xuất dữ liệu: {e}"}, status_code=500)
 
+async def import_entries(request: Request) -> JSONResponse:
+    """
+    Import entries from a JSON backup file or payload into current user's account.
+    Accepts:
+    - multipart/form-data with file field 'backup_file' or 'file'
+    - application/json with backup JSON payload
+    """
+    user, err_resp = require_auth(request)
+    if err_resp:
+        return err_resp
+
+    user_id = user["id"]
+    try:
+        content_type = request.headers.get("content-type", "")
+        payload = None
+
+        if "multipart/form-data" in content_type:
+            form = await request.form()
+            upload_file = form.get("backup_file") or form.get("file")
+            if not upload_file:
+                return JSONResponse({"status": "error", "message": "Vui lòng chọn tệp sao lưu JSON 🌸"}, status_code=400)
+            file_bytes = await upload_file.read()
+            payload = json.loads(file_bytes.decode("utf-8"))
+        elif "application/json" in content_type:
+            payload = await request.json()
+        else:
+            body_bytes = await request.body()
+            if body_bytes:
+                payload = json.loads(body_bytes.decode("utf-8"))
+
+        if not payload:
+            return JSONResponse({"status": "error", "message": "Dữ liệu sao lưu trống hoặc không hợp lệ"}, status_code=400)
+
+        entries_to_import = []
+        if isinstance(payload, dict) and "entries" in payload:
+            entries_to_import = payload["entries"]
+        elif isinstance(payload, list):
+            entries_to_import = payload
+        else:
+            return JSONResponse({"status": "error", "message": "Định dạng tệp sao lưu không đúng chuẩn Kokoro JSON"}, status_code=400)
+
+        if not entries_to_import:
+            return JSONResponse({"status": "success", "message": "Không có bài viết nào cần nhập", "imported_count": 0})
+
+        imported_count = 0
+        with get_cursor() as cur:
+            for item in entries_to_import:
+                title = item.get("title") or "Nhật ký không tên"
+                content = item.get("content") or ""
+                mood = item.get("mood") or "serene"
+                weather = item.get("weather") or ""
+                entry_date = item.get("entry_date") or datetime.now().date().isoformat()
+                is_pinned = bool(item.get("is_pinned", False))
+
+                cur.execute("""
+                    INSERT INTO entries (user_id, title, content, mood, weather, entry_date, is_pinned, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                    RETURNING id;
+                """, (user_id, title, content, mood, weather, entry_date, is_pinned))
+                new_entry_id = cur.fetchone()["id"]
+                imported_count += 1
+
+                tags = item.get("tags") or []
+                for t in tags:
+                    tag_name = t.strip()
+                    if not tag_name.startswith("#"):
+                        tag_name = f"#{tag_name}"
+                    cur.execute("""
+                        INSERT INTO tags (user_id, name)
+                        VALUES (%s, %s)
+                        ON CONFLICT (user_id, name) DO UPDATE SET name = EXCLUDED.name
+                        RETURNING id;
+                    """, (user_id, tag_name))
+                    tag_id = cur.fetchone()["id"]
+                    cur.execute("""
+                        INSERT INTO entry_tags (entry_id, tag_id)
+                        VALUES (%s, %s)
+                        ON CONFLICT DO NOTHING;
+                    """, (new_entry_id, tag_id))
+
+                photos = item.get("photos") or []
+                for p in photos:
+                    file_path = p.get("file_path")
+                    thumb_path = p.get("thumb_path")
+                    if file_path:
+                        cur.execute("""
+                            INSERT INTO entry_photos (entry_id, file_path, thumb_path, file_name, file_size, width, height, sort_order)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+                        """, (
+                            new_entry_id,
+                            file_path,
+                            thumb_path or file_path,
+                            p.get("file_name", "photo.webp"),
+                            p.get("file_size", 0),
+                            p.get("width", 0),
+                            p.get("height", 0),
+                            p.get("sort_order", 0)
+                        ))
+
+        return JSONResponse({
+            "status": "success",
+            "message": f"Đã khôi phục thành công {imported_count} bài viết! 🌸",
+            "imported_count": imported_count
+        })
+    except json.JSONDecodeError:
+        return JSONResponse({"status": "error", "message": "Tệp sao lưu không phải định dạng JSON hợp lệ"}, status_code=400)
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": f"Lỗi khôi phục dữ liệu: {e}"}, status_code=500)
+
 async def get_stats(request: Request) -> JSONResponse:
     """Calculate summary statistics strictly scoped to the authenticated user."""
     user, err_resp = require_auth(request)
@@ -502,6 +611,7 @@ entry_routes = [
     Route("/api/entries", get_entries, methods=["GET"]),
     Route("/api/entries", create_entry, methods=["POST"]),
     Route("/api/entries/export", export_entries, methods=["GET"]),
+    Route("/api/entries/import", import_entries, methods=["POST"]),
     Route("/api/entries/{id:int}", delete_entry, methods=["DELETE"]),
     Route("/api/entries/{id:int}/pin", toggle_pin_entry, methods=["PATCH"]),
     Route("/api/stats/summary", get_stats, methods=["GET"]),

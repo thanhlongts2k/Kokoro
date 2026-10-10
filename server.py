@@ -70,23 +70,69 @@ from app.routes.entry_routes import entry_routes
 from app.routes.auth_routes import auth_routes
 
 # --------------------------------------------------------------------------
-# APPLICATION ROUTING & MIDDLEWARE
+# APPLICATION ROUTING & STATIC CACHE OPTIMIZATION
 # --------------------------------------------------------------------------
+
+class ImmutableStaticFiles(StaticFiles):
+    """Serve uploaded media with aggressive immutable caching."""
+    async def get_response(self, path: str, scope) -> Response:
+        response = await super().get_response(path, scope)
+        if response.status_code == 200:
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
+
+class AppStaticFiles(StaticFiles):
+    """Serve app shell and static frontend assets with smart caching."""
+    async def get_response(self, path: str, scope) -> Response:
+        response = await super().get_response(path, scope)
+        if response.status_code == 200:
+            norm_path = path.replace("\\", "/").lower()
+            if norm_path.endswith(".html") or norm_path in ("", ".", "/", "index.html") or "index.html" in norm_path:
+                response.headers["Cache-Control"] = "no-cache, must-revalidate"
+            else:
+                response.headers["Cache-Control"] = "public, max-age=86400"
+        return response
 
 routes = [
     Route("/api/health", api_health, methods=["GET"]),
     *auth_routes,
     *entry_routes,
-    Mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads"),
-    Mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static"),
+    Mount("/uploads", ImmutableStaticFiles(directory=str(UPLOAD_DIR)), name="uploads"),
+    Mount("/", AppStaticFiles(directory=str(STATIC_DIR), html=True), name="static"),
 ]
 
+# --------------------------------------------------------------------------
+# PROXY & CORS MIDDLEWARE
+# --------------------------------------------------------------------------
+
+class ProxyHeadersMiddleware:
+    """
+    Handle reverse proxy headers from Nginx:
+    - X-Forwarded-Proto: updates scheme (http -> https)
+    - X-Forwarded-Prefix: handles subpaths (e.g. /kokoro)
+    """
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] in ("http", "websocket"):
+            headers = dict(scope.get("headers", []))
+            proto = headers.get(b"x-forwarded-proto")
+            if proto:
+                scope["scheme"] = proto.decode("latin1")
+            prefix = headers.get(b"x-forwarded-prefix")
+            if prefix:
+                scope["root_path"] = prefix.decode("latin1").rstrip("/")
+        await self.app(scope, receive, send)
+
 middleware = [
+    Middleware(ProxyHeadersMiddleware),
     Middleware(
         CORSMiddleware,
         allow_origins=["*"],
-        allow_methods=["*"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["*"],
+        expose_headers=["Content-Disposition"],
     )
 ]
 
@@ -103,5 +149,7 @@ if __name__ == "__main__":
         host=Config.HOST,
         port=Config.PORT,
         reload=False,
+        proxy_headers=True,
+        forwarded_allow_ips="*",
         log_level="info"
     )
