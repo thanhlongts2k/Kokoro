@@ -111,3 +111,20 @@
   - [x] Cập nhật số hiệu phiên bản `v1.4.0` đồng bộ trên Footer và `app/config.py`.
 - [x] Kiểm thử toàn diện & Nghiệm thu:
   - [x] Bổ sung test suite `tests/test_v14_features.py` đạt 100% PASS; toàn bộ 6 test suites của dự án đều đạt 100% PASS.
+
+### 🔹 Giai đoạn 8: Cảm Hứng & Chia Sẻ (v1.5.0 - Planned)
+- [ ] Gợi ý câu hỏi suy ngẫm mỗi ngày (Daily Zen Prompt):
+  - [ ] Bộ danh mục 60+ câu hỏi chánh niệm, triết lý sống Nhật Bản offline trong `static/js/daily-prompt.js`.
+  - [ ] Thuật toán chọn câu hỏi theo ngày (deterministic seed hash theo `YYYY-MM-DD`), offline 100%, bảo mật riêng tư tuyệt đối, tự đổi câu hỏi vào 00:00.
+  - [ ] Giao diện thẻ kính mờ Soft Sakura "Góc Suy Ngẫm Hôm Nay ✨" ở đầu Timeline Feed, hỗ trợ thu gọn/đóng trong ngày.
+  - [ ] Tương tác 1-click: Nhấp vào prompt tự động mở Editor Modal và chèn câu hỏi làm gợi ý viết bài.
+  - [ ] Nút "Đổi câu khác 🎲" xoay vòng câu hỏi ngẫu nhiên trong ngày.
+- [ ] Xuất bài viết thành ảnh thẻ kỷ niệm (Aesthetic Journal Card Export):
+  - [ ] Pure HTML5 Canvas 2D Engine (`static/js/card-export.js`) không dùng thư viện ngoài (0KB external dependency), 100% offline-first.
+  - [ ] Render ảnh thẻ độ phân giải cao 2K sắc nét cho thiết bị di động / màn hình Retina.
+  - [ ] Hỗ trợ 2 phong cách giao diện: Soft Sakura 🌸 (Hồng phấn thanh nhã) và Night Sakura 🌙 (Tím sương khói huyền bí).
+  - [ ] Hỗ trợ 2 tỉ lệ chuẩn mạng xã hội: Thẻ vuông 1:1 (1080x1080) và Story 9:16 (1080x1920).
+  - [ ] Bổ sung nút "Lưu ảnh kỷ niệm 📷" trên từng thẻ bài viết ở Timeline Feed.
+  - [ ] Modal xem trước tương tác (`#card-export-modal`) cho phép tùy chọn theme, tỉ lệ và bấm 1-click tải ảnh PNG về máy.
+- [ ] Nâng cấp Service Worker cache lên `kokoro-v1.5.0` và kiểm thử hồi quy toàn diện.
+

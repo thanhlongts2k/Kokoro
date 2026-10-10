@@ -4,6 +4,21 @@ Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal 
 
 ---
 
+## [Unreleased]
+### Planned (Kế hoạch v1.5.0 - Cảm Hứng & Chia Sẻ)
+- **Gợi Ý Câu Hỏi Suy Ngẫm Mỗi Ngày (Daily Zen Prompt):**
+  - Hiển thị thẻ gợi ý suy ngẫm/chữa lành nhẹ nhàng trên đầu Timeline ("Góc Suy Ngẫm Hôm Nay ✨").
+  - Thuật toán chọn câu hỏi theo ngày (deterministic seed hash theo `YYYY-MM-DD` từ danh sách 60+ câu hỏi chánh niệm/triết lý Nhật Bản offline), bảo mật riêng tư 100%, tự đổi mới vào 00:00.
+  - Tương tác: Bấm vào prompt tự động mở Editor Modal và chèn câu hỏi làm gợi ý viết bài, hỗ trợ nút "Đổi câu khác 🎲" và nút ẩn trong ngày.
+- **Xuất Bài Viết Thành Ảnh Thẻ Kỷ Niệm (Aesthetic Journal Card Export):**
+  - Bổ sung nút "Lưu ảnh kỷ niệm 📷" trên từng thẻ bài viết ở Timeline Feed.
+  - Sử dụng Pure HTML5 Canvas 2D Engine (0KB thư viện ngoài, 100% offline-first) render ảnh thẻ độ phân giải cao 2K.
+  - Hỗ trợ 2 phong cách giao diện: Soft Sakura 🌸 (Hồng phấn thanh nhã) và Night Sakura 🌙 (Tím huyền bí).
+  - Hỗ trợ 2 tỉ lệ chuẩn mạng xã hội: Thẻ vuông 1:1 (1080x1080) và Story 9:16 (1080x1920).
+  - Modal xem trước tương tác (`#card-export-modal`) cho phép tùy chọn theme, tỉ lệ và bấm 1-click tải ảnh PNG về máy.
+
+---
+
 ## [1.4.0] - 2026-10-10
 ### Added
 - **Khóa Bảo Mật Mã PIN 4 Số (Passcode Lock - WebCrypto SHA-256 + Salt):**
