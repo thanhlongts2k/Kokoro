@@ -1,8 +1,9 @@
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
+from app.config import Config
 from app.database import get_db, get_cursor
 from app.services.media_service import MediaService
 from app.auth import get_current_user
@@ -307,6 +308,134 @@ async def toggle_pin_entry(request: Request) -> JSONResponse:
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
+def calculate_streak_days(entry_dates: list) -> int:
+    """Calculate consecutive active writing streak based on distinct dates."""
+    if not entry_dates:
+        return 0
+
+    today = datetime.now().date()
+    date_set = set()
+    for d in entry_dates:
+        if isinstance(d, datetime):
+            date_set.add(d.date())
+        elif hasattr(d, "year"):
+            date_set.add(d)
+        elif isinstance(d, str):
+            try:
+                date_set.add(datetime.strptime(d[:10], "%Y-%m-%d").date())
+            except ValueError:
+                pass
+
+    if not date_set:
+        return 0
+
+    # If wrote today: streak starts today.
+    # If didn't write today but wrote yesterday: streak is still active, starting yesterday.
+    current_check = today
+    if current_check not in date_set:
+        current_check = today - timedelta(days=1)
+        if current_check not in date_set:
+            return 0
+
+    streak = 0
+    while current_check in date_set:
+        streak += 1
+        current_check -= timedelta(days=1)
+
+    return streak
+
+async def export_entries(request: Request) -> Response:
+    """
+    Export all journal entries belonging strictly to the authenticated user.
+    Returns JSON file attachment: kokoro_backup_{date}.json
+    """
+    user, err_resp = require_auth(request)
+    if err_resp:
+        return err_resp
+
+    user_id = user["id"]
+
+    try:
+        with get_cursor() as cur:
+            cur.execute("""
+                SELECT e.id, e.title, e.content, e.mood, e.weather,
+                       e.entry_date, e.is_pinned, e.created_at, e.updated_at,
+                       COALESCE(
+                           json_agg(
+                               json_build_object(
+                                   'id', ep.id,
+                                   'file_path', ep.file_path,
+                                   'thumb_path', ep.thumb_path,
+                                   'file_name', ep.file_name,
+                                   'file_size', ep.file_size,
+                                   'width', ep.width,
+                                   'height', ep.height,
+                                   'sort_order', ep.sort_order
+                               ) ORDER BY ep.sort_order
+                           ) FILTER (WHERE ep.id IS NOT NULL), '[]'
+                       ) AS photos
+                FROM entries e
+                LEFT JOIN entry_photos ep ON e.id = ep.entry_id
+                WHERE e.user_id = %s
+                GROUP BY e.id
+                ORDER BY e.entry_date DESC, e.id DESC;
+            """, (user_id,))
+            raw_entries = cur.fetchall()
+
+            cur.execute("""
+                SELECT et.entry_id, t.name as tag_name
+                FROM entry_tags et
+                JOIN tags t ON et.tag_id = t.id
+                JOIN entries e ON et.entry_id = e.id
+                WHERE e.user_id = %s;
+            """, (user_id,))
+            tag_rows = cur.fetchall()
+
+        tag_map = {}
+        for tr in tag_rows:
+            tag_map.setdefault(tr["entry_id"], []).append(tr["tag_name"])
+
+        entries_list = []
+        for r in raw_entries:
+            item = dict(r)
+            if item.get("entry_date"):
+                item["entry_date"] = str(item["entry_date"])
+            if item.get("created_at"):
+                item["created_at"] = item["created_at"].isoformat()
+            if item.get("updated_at"):
+                item["updated_at"] = item["updated_at"].isoformat()
+            item["tags"] = tag_map.get(item["id"], [])
+            entries_list.append(item)
+
+        export_data = {
+            "app": "Kokoro (心) — Nhật Ký Cảm Xúc & Kỷ Niệm",
+            "version": Config.APP_VERSION,
+            "export_version": "1.0",
+            "exported_at": datetime.now().isoformat(),
+            "user": {
+                "id": user["id"],
+                "name": user["name"],
+                "email": user["email"]
+            },
+            "total_entries": len(entries_list),
+            "entries": entries_list
+        }
+
+        today_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"kokoro_backup_{today_str}.json"
+
+        json_bytes = json.dumps(export_data, ensure_ascii=False, indent=2).encode("utf-8")
+        return Response(
+            content=json_bytes,
+            media_type="application/json",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Type": "application/json; charset=utf-8"
+            }
+        )
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": f"Lỗi xuất dữ liệu: {e}"}, status_code=500)
+
 async def get_stats(request: Request) -> JSONResponse:
     """Calculate summary statistics strictly scoped to the authenticated user."""
     user, err_resp = require_auth(request)
@@ -316,26 +445,55 @@ async def get_stats(request: Request) -> JSONResponse:
     user_id = user["id"]
     try:
         with get_cursor() as cur:
+            # 1. Total entries
             cur.execute("SELECT count(*) as total FROM entries WHERE user_id = %s;", (user_id,))
             total = cur.fetchone()["total"]
 
+            # 2. Total photos
+            cur.execute("""
+                SELECT count(*) as total_photos 
+                FROM entry_photos ep 
+                JOIN entries e ON ep.entry_id = e.id 
+                WHERE e.user_id = %s;
+            """, (user_id,))
+            total_photos = cur.fetchone()["total_photos"]
+
+            # 3. Mood breakdown for 5 standard moods
             cur.execute("""
                 SELECT mood, count(*) as count 
                 FROM entries 
                 WHERE user_id = %s
                 GROUP BY mood;
             """, (user_id,))
-            mood_counts = {r["mood"]: r["count"] for r in cur.fetchall()}
+            raw_moods = {r["mood"]: r["count"] for r in cur.fetchall()}
 
-            serene_count = mood_counts.get("serene", 0)
-            serene_percent = round((serene_count / total * 100)) if total > 0 else 0
+            all_moods = ["serene", "cozy", "reflective", "grateful", "energetic"]
+            mood_breakdown = {}
+            for m in all_moods:
+                cnt = raw_moods.get(m, 0)
+                pct = round((cnt / total * 100), 1) if total > 0 else 0
+                mood_breakdown[m] = {"count": cnt, "percent": pct}
+
+            serene_percent = mood_breakdown["serene"]["percent"]
+
+            # 4. Streak calculation
+            cur.execute("""
+                SELECT DISTINCT entry_date 
+                FROM entries 
+                WHERE user_id = %s 
+                ORDER BY entry_date DESC;
+            """, (user_id,))
+            entry_dates = [r["entry_date"] for r in cur.fetchall()]
+            streak_days = calculate_streak_days(entry_dates)
 
         return JSONResponse({
             "status": "success",
             "totalEntries": total,
-            "streakDays": min(total * 2, 7) if total > 0 else 0,
+            "totalPhotos": total_photos,
+            "streakDays": streak_days,
             "serenePercent": serene_percent,
-            "moodBreakdown": mood_counts
+            "moodBreakdown": mood_breakdown,
+            "moodCounts": raw_moods
         })
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -343,6 +501,7 @@ async def get_stats(request: Request) -> JSONResponse:
 entry_routes = [
     Route("/api/entries", get_entries, methods=["GET"]),
     Route("/api/entries", create_entry, methods=["POST"]),
+    Route("/api/entries/export", export_entries, methods=["GET"]),
     Route("/api/entries/{id:int}", delete_entry, methods=["DELETE"]),
     Route("/api/entries/{id:int}/pin", toggle_pin_entry, methods=["PATCH"]),
     Route("/api/stats/summary", get_stats, methods=["GET"]),

@@ -4,6 +4,24 @@ Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal 
 
 ---
 
+## [1.1.0] - 2026-10-10
+### Added
+- **Offline Storage & Auto-Save:**
+  - Tự động lưu bản nháp (Editor Drafts) với debounce 1s vào `localStorage` phân tách theo `user_id`. Tự động khôi phục bản nháp kèm banner trực quan và nút "Xóa bản nháp" khi mở lại modal/sheet.
+  - Hàng đợi ngoại tuyến (Offline Queue) qua `IndexedDB` (`kokoro_offline_db` / store `pending_entries`) lưu trữ an toàn các đối tượng `File`/`Blob` và bài viết chữ khi mất kết nối mạng, triệt tiêu hoàn toàn rủi ro tràn hạn mức 5MB của `localStorage`.
+  - Tự động lắng nghe sự kiện `window.addEventListener('online')` để duyệt hàng đợi gửi lên backend và hiển thị Toast thông báo: *"Đã đồng bộ bài viết ngoại tuyến thành công! 🌸"*.
+- **Backend API Export & Rich Stats (`app/routes/entry_routes.py`):**
+  - `GET /api/entries/export`: Xuất dữ liệu nhật ký của người dùng hiện tại dưới dạng file JSON đính kèm header `Content-Disposition: attachment; filename=kokoro_backup_{date}.json`, bao gồm đầy đủ metadata, danh sách tags và ảnh. Đảm bảo cô lập dữ liệu 100%.
+  - `GET /api/stats/summary`: Làm giàu số liệu thống kê với phân bổ chi tiết 5 tâm trạng (`serene`, `cozy`, `reflective`, `grateful`, `energetic`) gồm số lượng và tỷ lệ %, cùng thuật toán tính toán chuỗi ngày viết liên tiếp (Streak Days) thực tế dựa trên trường `entry_date`.
+- **Nâng Cấp Giao Diện Soft Sakura UI/UX:**
+  - Thẻ "Hành trình cảm xúc" trang bị thanh tiến trình đa phân đoạn (Multi-segment progress bar) phân bổ trực quan tỷ lệ 5 cảm xúc kèm các điểm chú thích (legend dots) màu pastel hài hòa.
+  - Bổ sung tùy chọn "Sao lưu dữ liệu (JSON)" vào Profile Dropdown menu ở Header.
+  - Tích hợp Toast thông báo trạng thái kết nối mạng khi chuyển đổi Online/Offline.
+- **Kiểm Thử Tự Động Toàn Diện:**
+  - Bộ test suite `tests/test_phase4_features.py` kiểm thử 6 bước: chặn xuất dữ liệu unauthenticated, xuất JSON backup, xác thực tính cô lập dữ liệu 2 chiều giữa các tài khoản, kiểm tra cấu trúc Rich Stats và thuật toán tính Streak Days (đạt 100% PASS).
+
+---
+
 ## [1.0.3] - 2026-10-09
 ### Fixed
 - **Google OAuth Upsert Crash:** Sửa lỗi `TypeError: object is not iterable` khi gọi `dict(user)` trong `app/auth.py` bằng cách chỉ định `cursor_factory=RealDictCursor`.

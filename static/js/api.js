@@ -120,6 +120,154 @@ const KokoroAPI = (() => {
       return await request('/stats/summary', { method: 'GET' });
     },
 
+    // GET /api/entries/export (JSON attachment download)
+    async exportEntries() {
+      const url = `${API_BASE}/entries/export`;
+      try {
+        const response = await fetch(url, { credentials: 'same-origin' });
+        if (!response.ok) {
+          const data = await parseResponse(response);
+          throw new Error(data.message || `Lỗi tải bản sao lưu (HTTP ${response.status})`);
+        }
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        a.download = `kokoro_backup_${today}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(downloadUrl);
+        return true;
+      } catch (err) {
+        console.error('[KokoroAPI] Error exporting entries:', err);
+        throw err;
+      }
+    },
+
+    // -----------------------------------------------------------------------
+    // OFFLINE STORAGE & INDEXEDDB QUEUE (SAFE FOR LARGE BLOBS/FILES)
+    // -----------------------------------------------------------------------
+    async openOfflineDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open('kokoro_offline_db', 1);
+        request.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('offline_entries')) {
+            db.createObjectStore('offline_entries', { keyPath: 'id', autoIncrement: true });
+          }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    },
+
+    async saveOfflineEntry(entryData) {
+      const db = await this.openOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('offline_entries', 'readwrite');
+        const store = tx.objectStore('offline_entries');
+        const req = store.add({
+          title: entryData.title,
+          content: entryData.content,
+          mood: entryData.mood,
+          weather: entryData.weather || 'sunny',
+          entry_date: entryData.entry_date,
+          tags: entryData.tags,
+          photos: entryData.photos || [], // Array of File/Blob objects
+          createdAt: new Date().toISOString()
+        });
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    },
+
+    async getOfflineEntries() {
+      const db = await this.openOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('offline_entries', 'readonly');
+        const store = tx.objectStore('offline_entries');
+        const req = store.getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      });
+    },
+
+    async deleteOfflineEntry(id) {
+      const db = await this.openOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('offline_entries', 'readwrite');
+        const store = tx.objectStore('offline_entries');
+        const req = store.delete(id);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    },
+
+    async syncOfflineQueue() {
+      const pending = await this.getOfflineEntries();
+      if (!pending || pending.length === 0) return 0;
+
+      let syncedCount = 0;
+      for (const item of pending) {
+        try {
+          const formData = new FormData();
+          formData.append('title', item.title || 'Khoảnh khắc tĩnh lặng');
+          formData.append('content', item.content || '');
+          formData.append('mood', item.mood || 'serene');
+          formData.append('weather', item.weather || 'sunny');
+          formData.append('entry_date', item.entry_date || new Date().toISOString().slice(0, 10));
+          formData.append('tags', item.tags || '');
+
+          if (item.photos && item.photos.length > 0) {
+            for (const file of item.photos) {
+              formData.append('photos', file);
+            }
+          }
+
+          await this.createEntry(formData);
+          await this.deleteOfflineEntry(item.id);
+          syncedCount++;
+        } catch (err) {
+          console.warn(`[KokoroOffline] Lỗi khi đồng bộ bài viết ${item.id}:`, err);
+        }
+      }
+      return syncedCount;
+    },
+
+    // -----------------------------------------------------------------------
+    // LOCALSTORAGE DRAFT MANAGEMENT
+    // -----------------------------------------------------------------------
+    saveDraft(userId, draft) {
+      try {
+        const key = `kokoro_draft_${userId || 'guest'}`;
+        localStorage.setItem(key, JSON.stringify({
+          ...draft,
+          savedAt: new Date().toISOString()
+        }));
+      } catch (e) {
+        console.warn('[KokoroAPI] Lỗi lưu bản nháp vào localStorage:', e);
+      }
+    },
+
+    getDraft(userId) {
+      try {
+        const key = `kokoro_draft_${userId || 'guest'}`;
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    },
+
+    clearDraft(userId) {
+      try {
+        const key = `kokoro_draft_${userId || 'guest'}`;
+        localStorage.removeItem(key);
+      } catch (e) {}
+    },
+
     // -----------------------------------------------------------------------
     // AUTHENTICATION API
     // -----------------------------------------------------------------------

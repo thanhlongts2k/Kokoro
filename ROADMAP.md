@@ -64,10 +64,12 @@
 - [x] Bộ kiểm thử tích hợp bảo mật tự động (`tests/test_auth_isolation.py`) đạt 100% PASS và kiểm thử trực quan trình duyệt.
 
 ### 🔹 Giai đoạn 4: Tính Năng Nâng Cao & Trải Nghiệm Ngoại Tuyến (Offline PWA)
-- [ ] Lưu trữ bản nháp nhật ký ngoại tuyến (Offline Drafts qua `localStorage` / `IndexedDB`).
-- [ ] Tự động đồng bộ bản nháp lên server khi có mạng trở lại.
-- [ ] Biểu đồ thống kê tâm trạng (Mood & Writing Streak Stats).
-- [ ] Tính năng Xuất dữ liệu nhật ký dự phòng (Export Backup dạng JSON/ZIP kèm ảnh).
+- [x] Lưu trữ bản nháp nhật ký ngoại tuyến (Offline Drafts qua `localStorage` với debounce 1s theo `user_id` kèm nút xóa bản nháp).
+- [x] Hàng đợi ngoại tuyến (Offline Queue qua `IndexedDB` lưu Blob/File an toàn, tự động đồng bộ khi có mạng trở lại qua sự kiện `online`).
+- [x] Biểu đồ thống kê tâm trạng đa phân đoạn (Multi-segment Mood Progress Bar) & Tính toán chuỗi ngày viết liên tiếp (Streak Days).
+- [x] Tính năng Xuất dữ liệu nhật ký dự phòng cô lập theo người dùng (`GET /api/entries/export` file JSON attachment).
+- [x] Tích hợp mục "Sao lưu dữ liệu (JSON)" vào Profile Dropdown Header và Toast thông báo trạng thái mạng Online/Offline.
+- [x] Viết bộ kiểm thử tích hợp tự động `tests/test_phase4_features.py` đạt 100% PASS và kiểm thử trực quan trình duyệt.
 
 ### 🔹 Giai đoạn 5: Tối Ưu Hóa, Kiểm Thử & Chạy Production
 - [ ] Kiểm thử tải ảnh dung lượng lớn (10MB+, nhiều ảnh cùng lúc).

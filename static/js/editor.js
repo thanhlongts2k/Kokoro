@@ -1,7 +1,8 @@
 /**
  * KOKORO (心) — DIARY ENTRY EDITOR (MODAL & BOTTOM SHEET)
  * Handles client-side photo previews, form data packaging,
- * and multipart/form-data upload to PostgreSQL via KokoroAPI.
+ * multipart upload, auto-save drafts (localStorage),
+ * and safe offline queueing (IndexedDB).
  */
 
 const Editor = {
@@ -13,10 +14,18 @@ const Editor = {
   fileInput: null,
   previewsContainer: null,
   saveBtn: null,
+  draftBannerEl: null,
+  draftTextEl: null,
+  discardDraftBtn: null,
 
   selectedMood: 'serene',
   selectedMoodLabel: 'Serene 🌸',
   selectedFiles: [], // Array of real File objects to be uploaded
+  draftTimeout: null,
+
+  getCurrentUserId() {
+    return window.KokoroAuth && window.KokoroAuth.currentUser ? window.KokoroAuth.currentUser.id : null;
+  },
 
   init() {
     this.overlayEl = document.getElementById('editor-modal-overlay');
@@ -27,6 +36,9 @@ const Editor = {
     this.fileInput = document.getElementById('editor-file-input');
     this.previewsContainer = document.getElementById('editor-previews-grid');
     this.saveBtn = document.getElementById('editor-save-btn');
+    this.draftBannerEl = document.getElementById('editor-draft-banner');
+    this.draftTextEl = document.getElementById('editor-draft-text');
+    this.discardDraftBtn = document.getElementById('editor-discard-draft-btn');
 
     if (!this.overlayEl) return;
 
@@ -49,14 +61,26 @@ const Editor = {
         chip.classList.add('selected');
         this.selectedMood = chip.dataset.mood;
         this.selectedMoodLabel = chip.dataset.label;
+        this.scheduleDraftSave();
       });
     });
+
+    // Auto-save listeners on input changes (Debounce 1s)
+    [this.titleInput, this.contentInput, this.tagInput].forEach((input) => {
+      if (input) {
+        input.addEventListener('input', () => this.scheduleDraftSave());
+      }
+    });
+
+    // Discard draft button
+    if (this.discardDraftBtn) {
+      this.discardDraftBtn.addEventListener('click', () => this.discardDraft());
+    }
 
     // File input change
     if (this.fileInput) {
       this.fileInput.addEventListener('change', (e) => {
         this.handleFiles(e.target.files);
-        // Reset file input value so re-selecting same file fires change event
         this.fileInput.value = '';
       });
     }
@@ -86,18 +110,81 @@ const Editor = {
     }
   },
 
+  scheduleDraftSave() {
+    clearTimeout(this.draftTimeout);
+    this.draftTimeout = setTimeout(() => {
+      const title = this.titleInput ? this.titleInput.value.trim() : '';
+      const content = this.contentInput ? this.contentInput.value.trim() : '';
+      const tags = this.tagInput ? this.tagInput.value.trim() : '';
+
+      if (content || title) {
+        const userId = this.getCurrentUserId();
+        window.KokoroAPI.saveDraft(userId, {
+          title,
+          content,
+          mood: this.selectedMood,
+          tags
+        });
+        if (this.draftBannerEl && this.draftTextEl) {
+          this.draftBannerEl.style.display = 'flex';
+          const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          this.draftTextEl.textContent = `Đã tự động lưu nháp lúc ${timeStr} 🌸`;
+        }
+      }
+    }, 1000);
+  },
+
+  checkAndRestoreDraft() {
+    const userId = this.getCurrentUserId();
+    const draft = window.KokoroAPI.getDraft(userId);
+
+    if (draft && (draft.content || draft.title)) {
+      if (this.titleInput) this.titleInput.value = draft.title || '';
+      if (this.contentInput) this.contentInput.value = draft.content || '';
+      if (this.tagInput) this.tagInput.value = draft.tags || '';
+
+      if (draft.mood) {
+        const chip = document.querySelector(`.mood-option-chip[data-mood="${draft.mood}"]`);
+        if (chip) chip.click();
+      }
+
+      if (this.draftBannerEl && this.draftTextEl) {
+        this.draftBannerEl.style.display = 'flex';
+        this.draftTextEl.textContent = 'Đã tự động khôi phục bản nháp chưa lưu ✨';
+      }
+      return true;
+    } else {
+      if (this.draftBannerEl) this.draftBannerEl.style.display = 'none';
+      return false;
+    }
+  },
+
+  discardDraft() {
+    const userId = this.getCurrentUserId();
+    window.KokoroAPI.clearDraft(userId);
+    this.resetForm();
+    if (this.draftBannerEl) this.draftBannerEl.style.display = 'none';
+    if (window.KokoroApp) {
+      window.KokoroApp.showToast('Đã xóa bản nháp thành công 🌸');
+    }
+  },
+
   open() {
     if (!this.overlayEl) return;
     this.resetForm();
+    this.checkAndRestoreDraft();
     this.overlayEl.classList.add('active');
     document.body.style.overflow = 'hidden';
     setTimeout(() => {
-      if (this.titleInput) this.titleInput.focus();
+      if (this.contentInput && !this.contentInput.value) {
+        if (this.titleInput) this.titleInput.focus();
+      }
     }, 150);
   },
 
   close() {
     if (!this.overlayEl) return;
+    clearTimeout(this.draftTimeout);
     this.overlayEl.classList.remove('active');
     document.body.style.overflow = '';
   },
@@ -109,10 +196,10 @@ const Editor = {
     this.selectedFiles = [];
     this.renderPreviews();
 
-    // Reset mood to serene
     const defaultChip = document.querySelector('.mood-option-chip[data-mood="serene"]');
     if (defaultChip) defaultChip.click();
 
+    if (this.draftBannerEl) this.draftBannerEl.style.display = 'none';
     this.setLoading(false);
   },
 
@@ -139,8 +226,6 @@ const Editor = {
       img.alt = file.name;
       const objectUrl = URL.createObjectURL(file);
       img.src = objectUrl;
-
-      // Clean up objectUrl once image loads to prevent memory leaks
       img.onload = () => URL.revokeObjectURL(objectUrl);
 
       const removeBtn = document.createElement('button');
@@ -164,7 +249,7 @@ const Editor = {
     if (!this.saveBtn) return;
     if (isLoading) {
       this.saveBtn.disabled = true;
-      this.saveBtn.innerHTML = `<span class="btn-spinner"></span> Đang tải ảnh & lưu...`;
+      this.saveBtn.innerHTML = `<span class="btn-spinner"></span> Đang xử lý...`;
     } else {
       this.saveBtn.disabled = false;
       this.saveBtn.innerHTML = `<i class="bi bi-check2-circle"></i> Lưu nhật ký`;
@@ -188,7 +273,39 @@ const Editor = {
     const rawTags = this.tagInput ? this.tagInput.value.trim() : '';
     const today = new Date().toISOString().split('T')[0];
 
-    // Build FormData for multipart POST request
+    // CASE 1: OFFLINE MODE (No Internet Connection)
+    if (!navigator.onLine) {
+      this.setLoading(true);
+      try {
+        await window.KokoroAPI.saveOfflineEntry({
+          title: title || 'Khoảnh khắc tĩnh lặng',
+          content,
+          mood: this.selectedMood,
+          weather: 'sunny',
+          entry_date: today,
+          tags: rawTags,
+          photos: this.selectedFiles // Safely preserved as native Blobs in IndexedDB
+        });
+
+        const userId = this.getCurrentUserId();
+        window.KokoroAPI.clearDraft(userId);
+
+        if (window.KokoroApp) {
+          window.KokoroApp.showToast('Đang ngoại tuyến. Bài viết đã được lưu vào hàng đợi và sẽ tự động đồng bộ khi có mạng! 🌸', 'info');
+        }
+        this.close();
+      } catch (err) {
+        console.error('[Editor] Lưu ngoại tuyến thất bại:', err);
+        if (window.KokoroApp) {
+          window.KokoroApp.showToast('Lỗi lưu ngoại tuyến: ' + err.message, 'error');
+        }
+      } finally {
+        this.setLoading(false);
+      }
+      return;
+    }
+
+    // CASE 2: ONLINE MODE (Normal Multipart Upload)
     const formData = new FormData();
     formData.append('title', title || 'Khoảnh khắc tĩnh lặng');
     formData.append('content', content);
@@ -197,7 +314,6 @@ const Editor = {
     formData.append('entry_date', today);
     formData.append('tags', rawTags);
 
-    // Append real photo files
     this.selectedFiles.forEach((file) => {
       formData.append('photos', file);
     });
@@ -205,16 +321,51 @@ const Editor = {
     try {
       this.setLoading(true);
 
-      const result = await window.KokoroAPI.createEntry(formData);
+      await window.KokoroAPI.createEntry(formData);
+
+      // Successfully saved on backend -> clear draft!
+      const userId = this.getCurrentUserId();
+      window.KokoroAPI.clearDraft(userId);
 
       if (window.KokoroApp) {
         window.KokoroApp.showToast('Đã lưu nhật ký thành công! ✨');
         await window.KokoroApp.loadEntries();
+        await window.KokoroApp.loadStats();
       }
 
       this.close();
     } catch (err) {
       console.error('[Editor] Lưu nhật ký thất bại:', err);
+
+      // Network fallback: If network dropped mid-request, save to IndexedDB queue safely
+      const isNetworkError = !navigator.onLine || 
+                             err.message.includes('Failed to fetch') || 
+                             err.message.includes('Network') ||
+                             err.message.includes('Load failed');
+
+      if (isNetworkError) {
+        try {
+          await window.KokoroAPI.saveOfflineEntry({
+            title: title || 'Khoảnh khắc tĩnh lặng',
+            content,
+            mood: this.selectedMood,
+            weather: 'sunny',
+            entry_date: today,
+            tags: rawTags,
+            photos: this.selectedFiles
+          });
+          const userId = this.getCurrentUserId();
+          window.KokoroAPI.clearDraft(userId);
+          if (window.KokoroApp) {
+            window.KokoroApp.showToast('Mất kết nối máy chủ. Bài viết đã được chuyển vào hàng đợi ngoại tuyến an toàn! 🌸', 'warning');
+          }
+          this.close();
+          return;
+        } catch (offlineErr) {
+          console.error('[Editor] Fallback offline save error:', offlineErr);
+        }
+      }
+
       if (window.KokoroApp) {
         window.KokoroApp.showToast(err.message || 'Lỗi khi lưu bài viết', 'error');
       } else {

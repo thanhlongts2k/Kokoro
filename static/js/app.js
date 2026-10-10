@@ -93,6 +93,40 @@ const KokoroApp = {
         }
       });
     });
+
+    // Network status & auto-sync offline queue
+    window.addEventListener('online', async () => {
+      this.showToast('Đã kết nối Internet trở lại! Đang kiểm tra dữ liệu ngoại tuyến... ✨');
+      try {
+        const synced = await window.KokoroAPI.syncOfflineQueue();
+        if (synced > 0) {
+          this.showToast(`Đã đồng bộ ${synced} bài viết ngoại tuyến thành công! 🌸`);
+          await this.loadEntries();
+          await this.loadStats();
+        }
+      } catch (e) {
+        console.warn('[KokoroApp] Lỗi đồng bộ khi online:', e);
+      }
+    });
+
+    window.addEventListener('offline', () => {
+      this.showToast('Bạn đang ở chế độ ngoại tuyến (Offline). Các bài viết sẽ được lưu an toàn 🍃', 'warning');
+    });
+
+    // Backup Export Button in Profile Dropdown
+    const exportBtn = document.getElementById('export-backup-btn');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        try {
+          this.showToast('Đang trích xuất và tải bản sao lưu nhật ký... 🌸');
+          await window.KokoroAPI.exportEntries();
+          this.showToast('Đã tải bản sao lưu JSON thành công! ✨');
+        } catch (err) {
+          this.showToast('Lỗi tải bản sao lưu: ' + err.message, 'error');
+        }
+      });
+    }
   },
 
   /**
@@ -138,15 +172,52 @@ const KokoroApp = {
       if (res && res.status === 'success') {
         const totalEl = document.getElementById('stat-total-entries');
         const streakEl = document.getElementById('stat-writing-streak');
-        const sereneEl = document.getElementById('stat-serene-percent');
+        const photosEl = document.getElementById('stat-photos-count');
 
         if (totalEl) totalEl.textContent = res.totalEntries;
-        if (streakEl) streakEl.textContent = `${res.streakDays || 1} ngày`;
-        if (sereneEl) sereneEl.textContent = `${res.serenePercent}%`;
+        if (streakEl) streakEl.textContent = `${res.streakDays || 0} ngày`;
+        if (photosEl) photosEl.innerHTML = `<i class="bi bi-camera text-sakura"></i> ${res.totalPhotos || 0} ảnh`;
+
+        this.renderMoodBreakdown(res.moodBreakdown, res.totalEntries);
       }
     } catch (err) {
       console.warn('[KokoroApp] Không thể tải stats:', err);
     }
+  },
+
+  renderMoodBreakdown(breakdown, total) {
+    const multiBar = document.getElementById('stat-mood-multibar');
+    if (!multiBar) return;
+
+    if (!total || total === 0) {
+      multiBar.innerHTML = `<div class="mood-segment segment-serene" style="width: 100%; opacity: 0.3;" title="Chưa có dữ liệu"></div>`;
+      ['serene', 'cozy', 'reflective', 'grateful', 'energetic'].forEach((m) => {
+        const el = document.getElementById(`leg-${m}`);
+        if (el) el.textContent = '0%';
+      });
+      return;
+    }
+
+    const moods = [
+      { key: 'serene', cls: 'segment-serene', label: 'Thanh bình' },
+      { key: 'cozy', cls: 'segment-cozy', label: 'Ấm áp' },
+      { key: 'reflective', cls: 'segment-reflective', label: 'Chiêm nghiệm' },
+      { key: 'grateful', cls: 'segment-grateful', label: 'Biết ơn' },
+      { key: 'energetic', cls: 'segment-energetic', label: 'Năng lượng' },
+    ];
+
+    let html = '';
+    moods.forEach((m) => {
+      const info = breakdown && breakdown[m.key] ? breakdown[m.key] : { percent: 0, count: 0 };
+      const pct = info.percent || 0;
+      if (pct > 0) {
+        html += `<div class="mood-segment ${m.cls}" style="width: ${pct}%;" title="${m.label}: ${pct}% (${info.count} bài)"></div>`;
+      }
+      const el = document.getElementById(`leg-${m.key}`);
+      if (el) el.textContent = `${Math.round(pct)}%`;
+    });
+
+    multiBar.innerHTML = html || `<div class="mood-segment segment-serene" style="width: 100%;"></div>`;
   },
 
   async setMoodFilter(mood) {
@@ -451,14 +522,23 @@ const KokoroApp = {
     const countEl = document.getElementById('stat-total-entries');
     if (countEl) countEl.textContent = this.entries.length;
 
-    const streakEl = document.getElementById('stat-writing-streak');
-    if (streakEl) streakEl.textContent = `${Math.min(this.entries.length * 2, 7)} ngày`;
+    const total = this.entries.length;
+    const moodCounts = { serene: 0, cozy: 0, reflective: 0, grateful: 0, energetic: 0 };
+    this.entries.forEach((e) => {
+      if (e.mood && moodCounts.hasOwnProperty(e.mood)) {
+        moodCounts[e.mood]++;
+      }
+    });
 
-    const sereneCount = this.entries.filter((e) => e.mood === 'serene').length;
-    const serenePercentEl = document.getElementById('stat-serene-percent');
-    if (serenePercentEl && this.entries.length > 0) {
-      serenePercentEl.textContent = `${Math.round((sereneCount / this.entries.length) * 100)}%`;
+    const breakdown = {};
+    for (const [m, count] of Object.entries(moodCounts)) {
+      breakdown[m] = {
+        count,
+        percent: total > 0 ? (count / total) * 100 : 0
+      };
     }
+
+    this.renderMoodBreakdown(breakdown, total);
   },
 
   /**
