@@ -4,6 +4,34 @@ Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal 
 
 ---
 
+## [1.4.0] - 2026-10-10
+### Added
+- **Khóa Bảo Mật Mã PIN 4 Số (Passcode Lock - WebCrypto SHA-256 + Salt):**
+  - Bảo mật phía Client: Ứng dụng WebCrypto API tiêu chuẩn (`window.crypto.subtle.digest('SHA-256', ...)`) kết hợp Salt 128-bit ngẫu nhiên (`crypto.getRandomValues`) lưu trữ tại `localStorage`, triệt tiêu hoàn toàn nguy cơ tấn công Rainbow Table.
+  - Giao diện Màn hình khóa Soft Sakura Kính mờ (`#passcode-lock-overlay`): Nền blur cao (`backdrop-filter: blur(32px)`) che mờ hoàn toàn nội dung nhật ký, 4 chấm PIN bo tròn dạng hoa anh đào đổi màu và phát quang hồng pastel khi nhập.
+  - Bàn phím số ảo 0-9 mượt mà, hỗ trợ cả bàn phím vật lý từ máy tính (hỗ trợ Backspace, Enter, Esc), hiệu ứng rung lắc (shake animation) khi nhập sai PIN.
+  - Cơ chế tự khóa tạm 30 giây khi nhập sai liên tiếp quá 5 lần để phòng chống tấn công brute-force.
+  - Quản lý phiên mở khóa an toàn qua `sessionStorage`, đi kèm bộ hẹn giờ tự động khóa khi không tương tác (Inactivity Timer: 2 phút / 5 phút / Không bao giờ) và khóa ngay lập tức khi chuyển tab (`visibilitychange`).
+  - Tích hợp menu tùy chọn trong Profile Dropdown: Bật/Tắt khóa PIN, Đổi mã PIN, cài đặt thời gian tự khóa, và nút "Khóa màn hình ngay 🔒".
+- **Bộ Phát Âm Thanh Thư Giãn (Zen Ambient Sound Player):**
+  - Bổ sung 4 bản âm thanh ambient chất lượng cao, nén nhẹ chuẩn 64kbps trong `static/audio/` (tổng dung lượng ~627KB):
+    * `rain.mp3` (Mưa rơi êm đềm — 145.1 KB)
+    * `furin.mp3` (Chuông gió Nhật Bản — 160.7 KB)
+    * `waves.mp3` (Sóng biển đêm — 176.4 KB)
+    * `stream.mp3` (Suối thiền Zen — 145.1 KB)
+  - Kiến trúc phát âm thanh: Vòng lặp liền mạch (`seamless loop`), tự động chuyển bài mượt mà, hỗ trợ hiệu ứng chuyển âm tăng/giảm từ từ (smooth volume fading).
+  - Thanh điều chỉnh âm lượng (Volume Slider) mượt mà kèm nút bật/tắt tiếng (Mute toggle) và ghi nhớ âm lượng qua `localStorage`.
+  - Widget Mini Player tinh tế tại Header với icon sóng âm hoạt họa (`soundwave bars`) phát quang khi đang phát âm thanh, bảng điều khiển mở rộng dạng popover kính mờ.
+  - Tương thích 100% với chính sách Autoplay Policy của trình duyệt và hỗ trợ đường dẫn tương đối động (`dynamic base path`).
+- **Nâng Cấp Service Worker & Cache Ngoại Tuyến (Offline PWA):**
+  - Nâng cấp phiên bản cache Service Worker lên `kokoro-v1.4.0` trong `static/sw.js`.
+  - Nạp trước toàn bộ 4 file âm thanh trong `static/audio/` cùng các file kịch bản mới (`passcode.js`, `zen-audio.js`), cho phép trải nghiệm phát nhạc thiền hoàn toàn ngoại tuyến khi mất mạng.
+  - Cập nhật số hiệu phiên bản ứng dụng `v1.4.0` đồng bộ trên Footer và `app/config.py`.
+- **Kiểm Thử Tự Động & Hồi Quy:**
+  - Bổ sung test suite `tests/test_v14_features.py` kiểm thử 5 bước: Kiểm tra version endpoint `GET /api/health`, tính toàn vẹn 4 file audio trên đĩa và phục vụ qua HTTP, thuật toán mã hóa SHA-256 + 128-bit salt, và kiểm tra hồi quy CRUD; đạt 100% PASS trên tất cả các bộ test suite.
+
+---
+
 ## [1.3.0] - 2026-10-10
 ### Added
 - **Tính Năng Chỉnh Sửa Nhật Ký (Edit Entry - PUT /api/entries/{id}):**

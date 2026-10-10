@@ -91,3 +91,23 @@
   - [x] Bộ token CSS `[data-theme="dark"]` trong `tokens.css`: Tím than / đen sương khói dịu mắt (`#0f1016` ~ `#161622`), kính mờ tối (`rgba(26, 25, 40, 0.78)`), chữ xám ngọc trai (`#f8fafc`) và phát quang hồng neon pastel (`#f472b6`).
   - [x] Nút Sun/Moon trên Header chuyển đổi mượt mà, lưu trạng thái lâu dài qua `localStorage('kokoro_theme')`.
 - [x] Kiểm thử toàn diện: Bổ sung `tests/test_edit_and_ux.py` đạt 100% PASS; toàn bộ 5 test suites của dự án đều đạt 100% PASS.
+
+### 🔹 Giai đoạn 7: Bảo Mật & Không Gian Chữa Lành (v1.4.0 Release)
+- [x] Khóa bảo mật mã PIN 4 số (`static/js/passcode.js`):
+  - [x] Mã hóa mật khẩu phía client chuẩn WebCrypto API SHA-256 kết hợp 128-bit random salt, lưu trữ an toàn trong `localStorage`.
+  - [x] Giao diện màn hình khóa kính mờ Soft Sakura (`#passcode-lock-overlay`, `backdrop-filter: blur(32px)`), 4 chấm PIN hoa anh đào phát quang khi nhập.
+  - [x] Bàn phím số ảo 0-9 mượt mà, hỗ trợ cả bàn phím vật lý từ máy tính (phím số, Backspace, Esc, Enter), hiệu ứng rung lắc (shake animation) khi sai PIN.
+  - [x] Cơ chế tự động khóa tạm 30 giây khi nhập sai liên tiếp quá 5 lần để phòng chống brute-force.
+  - [x] Quản lý phiên mở khóa an toàn qua `sessionStorage`, bộ đếm thời gian tự khóa khi không tương tác (Inactivity Timer: 2m/5m) và khóa tức thì khi chuyển tab/ẩn ứng dụng.
+  - [x] Tích hợp cài đặt trong Profile Menu: Bật/Tắt khóa PIN, Đổi mã PIN, cài đặt thời gian tự khóa, và nút Khóa màn hình tức thì.
+- [x] Bộ phát âm thanh thư giãn Zen Ambient Sound Player (`static/js/zen-audio.js`):
+  - [x] Bổ sung 4 bản âm thanh ambient nhẹ nhàng, nén nhẹ chuẩn 64kbps trong `static/audio/` (tổng ~627KB): `rain.mp3`, `furin.mp3`, `waves.mp3`, `stream.mp3`.
+  - [x] Vòng lặp liền mạch (`seamless loop`), tự động chuyển bài mượt mà, hỗ trợ hiệu ứng chuyển âm tăng/giảm từ từ (smooth volume fading).
+  - [x] Thanh điều chỉnh âm lượng (Volume Slider), nút bật/tắt tiếng (Mute toggle) và ghi nhớ mức âm lượng qua `localStorage`.
+  - [x] Widget Mini Player tinh tế tại Header với icon sóng âm hoạt họa (`soundwave bars`) phát quang khi phát, bảng điều khiển mở rộng dạng popover kính mờ.
+  - [x] Hỗ trợ đường dẫn tương đối động (`dynamic base path`) chống bẫy sub-path Nginx và tuân thủ Autoplay Policy.
+- [x] Nâng cấp Service Worker & Cache ngoại tuyến:
+  - [x] Cập nhật cache name lên `kokoro-v1.4.0` trong `static/sw.js`, nạp trước 4 file audio cho trải nghiệm phát nhạc hoàn toàn ngoại tuyến.
+  - [x] Cập nhật số hiệu phiên bản `v1.4.0` đồng bộ trên Footer và `app/config.py`.
+- [x] Kiểm thử toàn diện & Nghiệm thu:
+  - [x] Bổ sung test suite `tests/test_v14_features.py` đạt 100% PASS; toàn bộ 6 test suites của dự án đều đạt 100% PASS.

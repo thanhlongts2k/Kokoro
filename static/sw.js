@@ -1,18 +1,24 @@
-const CACHE_NAME = 'kokoro-v1.3.0';
+const CACHE_NAME = 'kokoro-v1.4.0';
 const STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './css/tokens.css?v=1.3.0',
-  './css/glass.css?v=1.3.0',
-  './css/layout.css?v=1.3.0',
-  './js/mock-data.js?v=1.3.0',
-  './js/api.js?v=1.3.0',
-  './js/auth.js?v=1.3.0',
-  './js/app.js?v=1.3.0',
-  './js/editor.js?v=1.3.0',
-  './js/lightbox.js?v=1.3.0',
-  './js/pwa.js?v=1.3.0',
+  './css/tokens.css?v=1.4.0',
+  './css/glass.css?v=1.4.0',
+  './css/layout.css?v=1.4.0',
+  './js/mock-data.js?v=1.4.0',
+  './js/api.js?v=1.4.0',
+  './js/auth.js?v=1.4.0',
+  './js/app.js?v=1.4.0',
+  './js/editor.js?v=1.4.0',
+  './js/zen-audio.js?v=1.4.0',
+  './js/passcode.js?v=1.4.0',
+  './js/lightbox.js?v=1.4.0',
+  './js/pwa.js?v=1.4.0',
+  './audio/rain.mp3',
+  './audio/furin.mp3',
+  './audio/waves.mp3',
+  './audio/stream.mp3',
   './icons/sakura.svg'
 ];
 

@@ -35,9 +35,9 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <!-- Stylesheets (Relative paths for Nginx reverse proxy subpath support) -->
-  <link rel="stylesheet" href="./css/tokens.css?v=1.3.0">
-  <link rel="stylesheet" href="./css/glass.css?v=1.3.0">
-  <link rel="stylesheet" href="./css/layout.css?v=1.3.0">
+  <link rel="stylesheet" href="./css/tokens.css?v=1.4.0">
+  <link rel="stylesheet" href="./css/glass.css?v=1.4.0">
+  <link rel="stylesheet" href="./css/layout.css?v=1.4.0">
 </head>
 <body>
 
@@ -60,6 +60,36 @@
       </div>
 
       <div style="display: flex; align-items: center; gap: 10px;">
+        <!-- Zen Ambient Sound Mini Player -->
+        <div class="zen-player-container" id="zen-player-container">
+          <button type="button" id="zen-toggle-btn" class="zen-mini-btn" title="Phát âm thanh thư giãn Zen">
+            <i class="bi bi-play-fill" id="zen-toggle-icon"></i>
+            <div class="soundwave-bars" id="zen-soundwave">
+              <span></span><span></span><span></span>
+            </div>
+          </button>
+          <button type="button" id="zen-expand-btn" class="zen-expand-btn" title="Tùy chỉnh không gian âm thanh">
+            <span id="zen-current-track-name" style="font-size: 12px; font-weight: 600;">🌧️ Mưa rơi</span>
+            <i class="bi bi-chevron-down" style="font-size: 10px; color: var(--text-muted);"></i>
+          </button>
+
+          <!-- Dropdown Panel -->
+          <div class="glass-panel zen-player-panel" id="zen-player-panel">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">
+              <i class="bi bi-soundwave text-sakura"></i> Không Gian Thiền Zen
+            </div>
+            <div class="zen-track-chips-grid" id="zen-track-chips">
+              <!-- Rendered dynamically by zen-audio.js -->
+            </div>
+            <div class="zen-volume-row">
+              <button type="button" id="zen-mute-btn" class="action-icon-btn" style="width: 28px; height: 28px;" title="Tắt / Bật tiếng">
+                <i class="bi bi-volume-up-fill text-sakura" id="zen-mute-icon"></i>
+              </button>
+              <input type="range" id="zen-volume-slider" min="0" max="100" value="50" class="zen-vol-slider" title="Âm lượng" />
+            </div>
+          </div>
+        </div>
+
         <!-- Night Sakura Theme Toggle (Sun/Moon) -->
         <button id="theme-toggle-btn" class="action-icon-btn" title="Chuyển chế độ sáng/tối (Night Sakura)" style="font-size: 16px; width: 38px; height: 38px;">
           <i class="bi bi-moon-stars" id="theme-toggle-icon"></i>
@@ -103,6 +133,17 @@
               <i class="bi bi-cloud-arrow-up text-sakura"></i> Khôi phục dữ liệu (JSON)
             </button>
             <input type="file" id="backup-file-input" accept=".json,application/json" style="display: none;" />
+            <div class="dropdown-divider"></div>
+            <!-- Passcode Security in Profile Menu -->
+            <button class="dropdown-item" id="lock-screen-now-btn" style="color: var(--text-primary);">
+              <i class="bi bi-shield-lock text-sakura"></i> Khóa màn hình ngay
+            </button>
+            <button class="dropdown-item" id="passcode-settings-btn" style="color: var(--text-primary); justify-content: space-between;">
+              <span style="display: flex; align-items: center; gap: 8px;">
+                <i class="bi bi-key text-sakura"></i> Bảo mật mã PIN
+              </span>
+              <span id="profile-lock-badge" class="badge-pill badge-inactive">Chưa bật</span>
+            </button>
             <div class="dropdown-divider"></div>
             <button class="dropdown-item text-danger" id="logout-btn">
               <i class="bi bi-box-arrow-right"></i> Đăng xuất
@@ -490,15 +531,106 @@
     <!-- Soft Pastel Toast Notification Container -->
     <div id="toast-container" class="toast-container"></div>
 
+    <!-- ====================================================================
+         8. SOFT SAKURA PASSCODE PRIVACY LOCK OVERLAY
+         ==================================================================== -->
+    <div class="modal-overlay" id="passcode-lock-overlay">
+      <div class="glass-panel passcode-card" id="passcode-card">
+        <div class="passcode-icon-wrapper">
+          <i class="bi bi-shield-lock-fill"></i>
+        </div>
+        <h3 id="passcode-title" style="font-size: 19px; font-weight: 800; color: var(--text-primary); margin: 0 0 6px;">
+          Mở Khóa Nhật Ký 🌸
+        </h3>
+        <p id="passcode-subtitle" style="font-size: 13px; color: var(--text-secondary); margin: 0 0 16px;">
+          Vui lòng nhập mã PIN 4 số của bạn
+        </p>
+
+        <!-- 4 Sakura Indicator Dots -->
+        <div class="passcode-dots" id="passcode-dots">
+          <div class="pin-dot"></div>
+          <div class="pin-dot"></div>
+          <div class="pin-dot"></div>
+          <div class="pin-dot"></div>
+        </div>
+
+        <!-- Virtual Numpad Grid -->
+        <div class="numpad-grid">
+          <button type="button" class="numpad-btn" data-passcode-digit="1">1</button>
+          <button type="button" class="numpad-btn" data-passcode-digit="2">2</button>
+          <button type="button" class="numpad-btn" data-passcode-digit="3">3</button>
+          <button type="button" class="numpad-btn" data-passcode-digit="4">4</button>
+          <button type="button" class="numpad-btn" data-passcode-digit="5">5</button>
+          <button type="button" class="numpad-btn" data-passcode-digit="6">6</button>
+          <button type="button" class="numpad-btn" data-passcode-digit="7">7</button>
+          <button type="button" class="numpad-btn" data-passcode-digit="8">8</button>
+          <button type="button" class="numpad-btn" data-passcode-digit="9">9</button>
+          <button type="button" class="numpad-btn action" id="passcode-cancel-setup-btn" title="Hủy bỏ">
+            <i class="bi bi-x-lg"></i>
+          </button>
+          <button type="button" class="numpad-btn" data-passcode-digit="0">0</button>
+          <button type="button" class="numpad-btn action" id="passcode-backspace-btn" title="Xóa lùi">
+            <i class="bi bi-backspace-fill"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         9. PASSCODE SETTINGS MODAL
+         ==================================================================== -->
+    <div class="modal-overlay" id="passcode-settings-modal">
+      <div class="glass-panel" style="max-width: 420px; width: 90%; padding: 26px; border-radius: var(--radius-xl);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+          <h3 style="font-size: 17px; font-weight: 800; color: var(--text-primary); margin: 0;">
+            <i class="bi bi-shield-lock text-sakura"></i> Khóa Bảo Mật Mã PIN
+          </h3>
+          <button type="button" class="action-icon-btn" id="passcode-close-settings-btn" style="width: 32px; height: 32px;" title="Đóng">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 18px;">
+          <!-- Enable Toggle -->
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--surface-glass-subtle); border-radius: var(--radius-md); border: 1px solid var(--border-glass-subtle);">
+            <div>
+              <div style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);">Bảo vệ bằng mã PIN 4 số</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Yêu cầu nhập PIN khi mở lại ứng dụng</div>
+            </div>
+            <input type="checkbox" id="passcode-toggle-switch" style="width: 20px; height: 20px; accent-color: var(--sakura-500); cursor: pointer;" />
+          </div>
+
+          <!-- Inactivity timeout -->
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <label style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+              Tự động khóa khi không tương tác
+            </label>
+            <select id="passcode-timeout-select" class="editor-input" style="padding: 8px 12px; font-size: 13px;">
+              <option value="2">Sau 2 phút không hoạt động</option>
+              <option value="5">Sau 5 phút không hoạt động (Mặc định)</option>
+              <option value="0">Chỉ khóa khi đóng/mở lại tab</option>
+            </select>
+          </div>
+
+          <!-- Change PIN button -->
+          <button type="button" class="btn-glass" id="passcode-change-btn" style="width: 100%; padding: 10px; justify-content: center; gap: 8px;">
+            <i class="bi bi-pencil-square text-sakura"></i> Đổi mã PIN mới
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- Scripts Execution (Relative paths for reverse proxy subpath) -->
-  <script src="./js/mock-data.js?v=1.3.0"></script>
-  <script src="./js/api.js?v=1.3.0"></script>
-  <script src="./js/auth.js?v=1.3.0"></script>
-  <script src="./js/lightbox.js?v=1.3.0"></script>
-  <script src="./js/editor.js?v=1.3.0"></script>
-  <script src="./js/pwa.js?v=1.3.0"></script>
-  <script src="./js/app.js?v=1.3.0"></script>
+  <script src="./js/mock-data.js?v=1.4.0"></script>
+  <script src="./js/api.js?v=1.4.0"></script>
+  <script src="./js/auth.js?v=1.4.0"></script>
+  <script src="./js/lightbox.js?v=1.4.0"></script>
+  <script src="./js/editor.js?v=1.4.0"></script>
+  <script src="./js/zen-audio.js?v=1.4.0"></script>
+  <script src="./js/passcode.js?v=1.4.0"></script>
+  <script src="./js/pwa.js?v=1.4.0"></script>
+  <script src="./js/app.js?v=1.4.0"></script>
 </body>
 </html>

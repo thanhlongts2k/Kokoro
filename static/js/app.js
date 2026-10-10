@@ -19,6 +19,8 @@ const KokoroApp = {
     // Initialize submodules
     if (window.Lightbox) window.Lightbox.init();
     if (window.Editor) window.Editor.init();
+    if (window.ZenAudio) window.ZenAudio.init();
+    if (window.PasscodeLock) window.PasscodeLock.init();
     if (window.PWA) window.PWA.init();
 
     this.setupEventListeners();
@@ -47,6 +49,9 @@ const KokoroApp = {
     }
 
     if (user) {
+      if (window.PasscodeLock) {
+        window.PasscodeLock.onUserChanged(user.id);
+      }
       await this.loadEntries();
       await this.loadStats();
     } else {
@@ -203,12 +208,61 @@ const KokoroApp = {
       });
     }
 
-    // Escape key listener for confirm modal
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && this.pendingDeleteId) {
-        this.closeDeleteConfirm();
-      }
-    });
+    // Passcode Lock Menu & Settings events
+    const lockNowBtn = document.getElementById('lock-screen-now-btn');
+    if (lockNowBtn) {
+      lockNowBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (window.PasscodeLock) window.PasscodeLock.lockNow();
+      });
+    }
+
+    const passcodeSettingsBtn = document.getElementById('passcode-settings-btn');
+    if (passcodeSettingsBtn) {
+      passcodeSettingsBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (window.PasscodeLock) window.PasscodeLock.openSetupModal();
+      });
+    }
+
+    const closePasscodeSettingsBtn = document.getElementById('passcode-close-settings-btn');
+    if (closePasscodeSettingsBtn) {
+      closePasscodeSettingsBtn.addEventListener('click', () => {
+        if (window.PasscodeLock) window.PasscodeLock.closeSetupModal();
+      });
+    }
+
+    const passcodeToggleSwitch = document.getElementById('passcode-toggle-switch');
+    if (passcodeToggleSwitch) {
+      passcodeToggleSwitch.addEventListener('change', (e) => {
+        if (!window.PasscodeLock) return;
+        if (e.target.checked) {
+          window.PasscodeLock.startSetNewPinFlow();
+        } else {
+          window.PasscodeLock.disablePin();
+          window.PasscodeLock.updateSettingsModalState();
+          window.PasscodeLock.updateProfileMenuUi();
+          this.showToast('Đã tắt khóa bảo mật mã PIN 🌸');
+        }
+      });
+    }
+
+    const passcodeChangeBtn = document.getElementById('passcode-change-btn');
+    if (passcodeChangeBtn) {
+      passcodeChangeBtn.addEventListener('click', () => {
+        if (window.PasscodeLock) window.PasscodeLock.startSetNewPinFlow();
+      });
+    }
+
+    const passcodeTimeoutSelect = document.getElementById('passcode-timeout-select');
+    if (passcodeTimeoutSelect) {
+      passcodeTimeoutSelect.addEventListener('change', (e) => {
+        if (window.PasscodeLock) {
+          localStorage.setItem(`kokoro_pin_timeout_${window.PasscodeLock.currentUserId}`, e.target.value);
+          this.showToast('Đã cập nhật thời gian tự động khóa ✨');
+        }
+      });
+    }
   },
 
   /**
