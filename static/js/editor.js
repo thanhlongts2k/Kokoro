@@ -17,7 +17,10 @@ const Editor = {
   draftBannerEl: null,
   draftTextEl: null,
   discardDraftBtn: null,
+  modalTitleEl: null,
+  saveBtnTextEl: null,
 
+  editingEntryId: null,
   selectedMood: 'serene',
   selectedMoodLabel: 'Serene 🌸',
   selectedFiles: [], // Array of real File objects to be uploaded
@@ -39,6 +42,8 @@ const Editor = {
     this.draftBannerEl = document.getElementById('editor-draft-banner');
     this.draftTextEl = document.getElementById('editor-draft-text');
     this.discardDraftBtn = document.getElementById('editor-discard-draft-btn');
+    this.modalTitleEl = document.getElementById('editor-modal-title');
+    this.saveBtnTextEl = document.getElementById('editor-save-btn-text');
 
     if (!this.overlayEl) return;
 
@@ -111,6 +116,7 @@ const Editor = {
   },
 
   scheduleDraftSave() {
+    if (this.editingEntryId) return; // Do not auto-save draft when editing an existing entry
     clearTimeout(this.draftTimeout);
     this.draftTimeout = setTimeout(() => {
       const title = this.titleInput ? this.titleInput.value.trim() : '';
@@ -169,22 +175,61 @@ const Editor = {
     }
   },
 
-  open() {
+  open(entry = null) {
     if (!this.overlayEl) return;
     this.resetForm();
-    this.checkAndRestoreDraft();
+
+    if (entry) {
+      // EDIT MODE
+      this.editingEntryId = entry.id;
+      this.editingEntryDate = entry.entryDate || entry.entry_date || null;
+      if (this.modalTitleEl) this.modalTitleEl.textContent = 'Chỉnh Sửa Nhật Ký 🌸';
+      if (this.saveBtnTextEl) this.saveBtnTextEl.textContent = 'Cập nhật bài viết ✨';
+
+      if (this.titleInput) this.titleInput.value = entry.title || '';
+      if (this.contentInput) this.contentInput.value = entry.content || '';
+      if (this.tagInput) this.tagInput.value = (entry.tags || []).join(' ');
+
+      if (entry.mood) {
+        const chip = document.querySelector(`.mood-option-chip[data-mood="${entry.mood}"]`);
+        if (chip) chip.click();
+      }
+
+      if (this.draftBannerEl) this.draftBannerEl.style.display = 'none';
+
+      // Previews of existing photos
+      if (entry.photos && entry.photos.length > 0 && this.previewsContainer) {
+        this.previewsContainer.innerHTML = entry.photos.map((p) => {
+          const thumbUrl = window.KokoroAPI.resolveMediaUrl(p.thumbUrl || p.url);
+          return `
+            <div class="preview-item" title="Ảnh đã lưu" style="position: relative;">
+              <img src="${thumbUrl}" alt="Existing Photo" />
+              <div style="position: absolute; bottom: 2px; right: 4px; font-size: 9px; background: rgba(0,0,0,0.65); color: white; border-radius: 4px; padding: 1px 4px;">Đã lưu</div>
+            </div>
+          `;
+        }).join('');
+      }
+    } else {
+      // CREATE MODE
+      this.editingEntryId = null;
+      this.editingEntryDate = null;
+      if (this.modalTitleEl) this.modalTitleEl.textContent = 'Ghi Lại Khoảnh Khắc 🌸';
+      if (this.saveBtnTextEl) this.saveBtnTextEl.textContent = 'Lưu nhật ký ✨';
+      this.checkAndRestoreDraft();
+    }
+
     this.overlayEl.classList.add('active');
     document.body.style.overflow = 'hidden';
     setTimeout(() => {
-      if (this.contentInput && !this.contentInput.value) {
-        if (this.titleInput) this.titleInput.focus();
-      }
+      if (this.contentInput) this.contentInput.focus();
     }, 150);
   },
 
   close() {
     if (!this.overlayEl) return;
     clearTimeout(this.draftTimeout);
+    this.editingEntryId = null;
+    this.editingEntryDate = null;
     this.overlayEl.classList.remove('active');
     document.body.style.overflow = '';
   },
@@ -252,7 +297,9 @@ const Editor = {
       this.saveBtn.innerHTML = `<span class="btn-spinner"></span> Đang xử lý...`;
     } else {
       this.saveBtn.disabled = false;
-      this.saveBtn.innerHTML = `<i class="bi bi-check2-circle"></i> Lưu nhật ký`;
+      const btnText = this.editingEntryId ? 'Cập nhật bài viết ✨' : 'Lưu nhật ký ✨';
+      this.saveBtn.innerHTML = `<i class="bi bi-check2-circle"></i> <span id="editor-save-btn-text">${btnText}</span>`;
+      this.saveBtnTextEl = document.getElementById('editor-save-btn-text');
     }
   },
 
@@ -272,6 +319,7 @@ const Editor = {
 
     const rawTags = this.tagInput ? this.tagInput.value.trim() : '';
     const today = new Date().toISOString().split('T')[0];
+    const targetDate = this.editingEntryId && this.editingEntryDate ? this.editingEntryDate : today;
 
     // CASE 1: OFFLINE MODE (No Internet Connection)
     if (!navigator.onLine) {
@@ -282,7 +330,7 @@ const Editor = {
           content,
           mood: this.selectedMood,
           weather: 'sunny',
-          entry_date: today,
+          entry_date: targetDate,
           tags: rawTags,
           photos: this.selectedFiles // Safely preserved as native Blobs in IndexedDB
         });
@@ -311,7 +359,7 @@ const Editor = {
     formData.append('content', content);
     formData.append('mood', this.selectedMood);
     formData.append('weather', 'sunny');
-    formData.append('entry_date', today);
+    formData.append('entry_date', targetDate);
     formData.append('tags', rawTags);
 
     this.selectedFiles.forEach((file) => {
@@ -321,16 +369,22 @@ const Editor = {
     try {
       this.setLoading(true);
 
-      await window.KokoroAPI.createEntry(formData);
-
-      // Successfully saved on backend -> clear draft!
-      const userId = this.getCurrentUserId();
-      window.KokoroAPI.clearDraft(userId);
-
-      if (window.KokoroApp) {
-        window.KokoroApp.showToast('Đã lưu nhật ký thành công! ✨');
-        await window.KokoroApp.loadEntries();
-        await window.KokoroApp.loadStats();
+      if (this.editingEntryId) {
+        await window.KokoroAPI.updateEntry(this.editingEntryId, formData);
+        if (window.KokoroApp) {
+          window.KokoroApp.showToast('Đã cập nhật bài viết thành công! ✨');
+          await window.KokoroApp.loadEntries();
+          await window.KokoroApp.loadStats();
+        }
+      } else {
+        await window.KokoroAPI.createEntry(formData);
+        const userId = this.getCurrentUserId();
+        window.KokoroAPI.clearDraft(userId);
+        if (window.KokoroApp) {
+          window.KokoroApp.showToast('Đã lưu nhật ký thành công! ✨');
+          await window.KokoroApp.loadEntries();
+          await window.KokoroApp.loadStats();
+        }
       }
 
       this.close();

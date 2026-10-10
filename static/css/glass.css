@@ -21,6 +21,7 @@ html, body {
   touch-action: manipulation; /* Eliminate 300ms tap delay on mobile devices */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background 0.35s ease, color 0.35s ease;
 }
 
 /* Frosted Glass Base */

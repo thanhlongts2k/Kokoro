@@ -9,9 +9,13 @@ const KokoroApp = {
   activeMoodFilter: 'all',
   activeTagFilter: null,
   activeDateFilter: null,
+  searchQuery: '',
+  pendingDeleteId: null,
   isLoading: false,
 
   async init() {
+    this.initTheme();
+
     // Initialize submodules
     if (window.Lightbox) window.Lightbox.init();
     if (window.Editor) window.Editor.init();
@@ -153,6 +157,58 @@ const KokoroApp = {
         }
       });
     }
+
+    // Live Search input (Debounce 300ms)
+    const searchInput = document.getElementById('search-input');
+    const searchClearBtn = document.getElementById('search-clear-btn');
+    let searchDebounceTimer = null;
+
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const val = e.target.value;
+        if (searchClearBtn) {
+          searchClearBtn.style.display = val.length > 0 ? 'inline-flex' : 'none';
+        }
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+          this.searchQuery = val.trim();
+          this.loadEntries();
+        }, 300);
+      });
+    }
+
+    if (searchClearBtn && searchInput) {
+      searchClearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        searchClearBtn.style.display = 'none';
+        this.searchQuery = '';
+        this.loadEntries();
+        searchInput.focus();
+      });
+    }
+
+    // Custom Delete Confirm Modal events
+    const cancelDeleteBtn = document.getElementById('confirm-cancel-btn');
+    const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+    const deleteModal = document.getElementById('delete-confirm-modal');
+    if (cancelDeleteBtn) {
+      cancelDeleteBtn.addEventListener('click', () => this.closeDeleteConfirm());
+    }
+    if (confirmDeleteBtn) {
+      confirmDeleteBtn.addEventListener('click', () => this.executeDelete());
+    }
+    if (deleteModal) {
+      deleteModal.addEventListener('click', (e) => {
+        if (e.target === deleteModal) this.closeDeleteConfirm();
+      });
+    }
+
+    // Escape key listener for confirm modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.pendingDeleteId) {
+        this.closeDeleteConfirm();
+      }
+    });
   },
 
   /**
@@ -167,6 +223,9 @@ const KokoroApp = {
       }
       if (this.activeTagFilter) {
         filters.tag = this.activeTagFilter;
+      }
+      if (this.searchQuery) {
+        filters.search = this.searchQuery;
       }
 
       const res = await window.KokoroAPI.getEntries(filters);
@@ -291,16 +350,61 @@ const KokoroApp = {
     await this.loadEntries();
   },
 
-  async deleteEntry(id) {
-    if (confirm('Bạn có chắc muốn xóa khoảnh khắc nhật ký này không? 🌸')) {
-      try {
-        await window.KokoroAPI.deleteEntry(id);
-        this.showToast('Đã xóa bài viết thành công 🌸');
-        await this.loadEntries();
-        await this.loadStats();
-      } catch (err) {
-        this.showToast('Lỗi khi xóa bài viết: ' + err.message, 'error');
-      }
+  initTheme() {
+    const savedTheme = localStorage.getItem('kokoro_theme') || 'light';
+    this.applyTheme(savedTheme);
+
+    const toggleBtn = document.getElementById('theme-toggle-btn');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        this.applyTheme(newTheme);
+      });
+    }
+  },
+
+  applyTheme(theme) {
+    if (theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('kokoro_theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('kokoro_theme', 'light');
+    }
+    const icon = document.getElementById('theme-toggle-icon');
+    if (icon) {
+      icon.className = theme === 'dark' ? 'bi bi-sun-fill text-warning' : 'bi bi-moon-stars-fill text-sakura';
+    }
+  },
+
+  openDeleteConfirm(id) {
+    this.pendingDeleteId = id;
+    const modal = document.getElementById('delete-confirm-modal');
+    if (modal) {
+      modal.classList.add('active');
+    }
+  },
+
+  closeDeleteConfirm() {
+    this.pendingDeleteId = null;
+    const modal = document.getElementById('delete-confirm-modal');
+    if (modal) {
+      modal.classList.remove('active');
+    }
+  },
+
+  async executeDelete() {
+    if (!this.pendingDeleteId) return;
+    const id = this.pendingDeleteId;
+    this.closeDeleteConfirm();
+    try {
+      await window.KokoroAPI.deleteEntry(id);
+      this.showToast('Đã buông bỏ khoảnh khắc nhật ký 🌸');
+      await this.loadEntries();
+      await this.loadStats();
+    } catch (err) {
+      this.showToast('Lỗi khi xóa bài viết: ' + err.message, 'error');
     }
   },
 
@@ -364,10 +468,20 @@ const KokoroApp = {
       });
     });
 
+    feedEl.querySelectorAll('[data-action="edit"]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const id = Number(e.currentTarget.dataset.id);
+        const entry = this.entries.find((item) => item.id === id);
+        if (entry && window.Editor) {
+          window.Editor.open(entry);
+        }
+      });
+    });
+
     feedEl.querySelectorAll('[data-action="delete"]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const id = Number(e.currentTarget.dataset.id);
-        this.deleteEntry(id);
+        this.openDeleteConfirm(id);
       });
     });
 
@@ -452,6 +566,9 @@ const KokoroApp = {
           <div class="card-actions">
             <button class="action-icon-btn" data-action="pin" data-id="${entry.id}" title="${entry.isPinned ? 'Bỏ ghim' : 'Ghim bài'}">
               <i class="bi ${entry.isPinned ? 'bi-pin-fill text-sakura' : 'bi-pin'}"></i>
+            </button>
+            <button class="action-icon-btn" data-action="edit" data-id="${entry.id}" title="Chỉnh sửa bài">
+              <i class="bi bi-pencil"></i>
             </button>
             <button class="action-icon-btn" data-action="delete" data-id="${entry.id}" title="Xóa bài">
               <i class="bi bi-trash3"></i>

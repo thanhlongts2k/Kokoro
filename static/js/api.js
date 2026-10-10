@@ -105,6 +105,26 @@ const KokoroAPI = (() => {
       }
     },
 
+    // PUT /api/entries/{id}
+    async updateEntry(id, formData) {
+      const url = `${API_BASE}/entries/${id}`;
+      try {
+        const response = await fetch(url, {
+          method: 'PUT',
+          body: formData,
+          credentials: 'same-origin'
+        });
+        const data = await parseResponse(response);
+        if (!response.ok) {
+          throw new Error(data.message || `Lỗi cập nhật nhật ký (HTTP ${response.status})`);
+        }
+        return data;
+      } catch (err) {
+        console.error(`[KokoroAPI] Error updating entry ${id}:`, err);
+        throw err;
+      }
+    },
+
     // DELETE /api/entries/{id}
     async deleteEntry(id) {
       return await request(`/entries/${id}`, { method: 'DELETE' });

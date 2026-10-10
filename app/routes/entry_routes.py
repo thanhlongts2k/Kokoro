@@ -73,8 +73,10 @@ async def get_entries(request: Request) -> JSONResponse:
         params.append(month)
 
     if search:
-        sql += " AND (e.title ILIKE %s OR e.content ILIKE %s)"
-        params.extend([f"%{search}%", f"%{search}%"])
+        clean_search = search.strip()
+        tag_search = clean_search if clean_search.startswith("#") else f"#{clean_search}"
+        sql += " AND (e.title ILIKE %s OR e.content ILIKE %s OR t.name ILIKE %s OR t.name ILIKE %s)"
+        params.extend([f"%{clean_search}%", f"%{clean_search}%", f"%{clean_search}%", f"%{tag_search}%"])
 
     sql += """
         GROUP BY e.id
@@ -226,6 +228,121 @@ async def create_entry(request: Request) -> JSONResponse:
             MediaService.delete_photo_files([p["file_path"] for p in processed_photos])
             MediaService.delete_photo_files([p["thumb_path"] for p in processed_photos])
         return JSONResponse({"status": "error", "message": f"Database save error: {e}"}, status_code=500)
+
+async def update_entry(request: Request) -> JSONResponse:
+    """
+    Update an existing entry, strictly scoped to current user.
+    Accepts multipart/form-data:
+    - title, content, mood, weather, entry_date, tags
+    - photos (optional additional photos)
+    """
+    user, err_resp = require_auth(request)
+    if err_resp:
+        return err_resp
+
+    user_id = user["id"]
+    entry_id = request.path_params.get("id")
+    try:
+        entry_id = int(entry_id)
+    except (ValueError, TypeError):
+        return JSONResponse({"status": "error", "message": "ID không hợp lệ"}, status_code=400)
+
+    # Verify ownership
+    with get_cursor() as cur:
+        cur.execute("SELECT id FROM entries WHERE id = %s AND user_id = %s;", (entry_id, user_id))
+        if not cur.fetchone():
+            return JSONResponse({"status": "error", "message": "Không tìm thấy bài viết hoặc bạn không có quyền sửa."}, status_code=404)
+
+    form = await request.form()
+    title = form.get("title", "").strip() or "Khoảnh khắc tĩnh lặng"
+    content = form.get("content", "").strip()
+    if not content:
+        return JSONResponse({"status": "error", "message": "Nội dung nhật ký không được để trống"}, status_code=400)
+
+    mood = form.get("mood", "serene").strip()
+    weather = form.get("weather", "sunny").strip()
+    entry_date_str = form.get("entry_date", "").strip()
+    entry_date = datetime.now().date()
+    if entry_date_str:
+        try:
+            entry_date = datetime.strptime(entry_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+
+    raw_tags = form.get("tags", "")
+    tag_list = []
+    if raw_tags:
+        for t in raw_tags.replace(",", " ").split():
+            clean = t.strip()
+            if clean:
+                tag_list.append(clean if clean.startswith("#") else f"#{clean}")
+
+    # Process any newly uploaded photo files
+    photo_files = form.getlist("photos")
+    processed_photos = []
+    for idx, photo_item in enumerate(photo_files):
+        if hasattr(photo_item, "read") and hasattr(photo_item, "filename") and photo_item.filename:
+            file_bytes = await photo_item.read()
+            if len(file_bytes) > 0:
+                rel_path, thumb_path, size, w, h = MediaService.process_and_save_image(
+                    file_bytes, photo_item.filename
+                )
+                processed_photos.append({
+                    "file_path": rel_path,
+                    "thumb_path": thumb_path,
+                    "file_name": photo_item.filename,
+                    "file_size": size,
+                    "width": w,
+                    "height": h,
+                    "sort_order": idx
+                })
+
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                # 1. Update entry metadata
+                cur.execute("""
+                    UPDATE entries
+                    SET title = %s, content = %s, mood = %s, weather = %s, entry_date = %s, updated_at = NOW()
+                    WHERE id = %s AND user_id = %s;
+                """, (title, content, mood, weather, entry_date, entry_id, user_id))
+
+                # 2. Append new photos if provided
+                if processed_photos:
+                    cur.execute("SELECT COALESCE(MAX(sort_order), 0) + 1 FROM entry_photos WHERE entry_id = %s;", (entry_id,))
+                    base_sort = cur.fetchone()[0] or 0
+                    for p in processed_photos:
+                        cur.execute("""
+                            INSERT INTO entry_photos (entry_id, file_path, thumb_path, file_name, file_size, width, height, sort_order)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+                        """, (entry_id, p["file_path"], p["thumb_path"], p["file_name"], p["file_size"], p["width"], p["height"], base_sort + p["sort_order"]))
+
+                # 3. Update tags: Remove old links and add new tags
+                cur.execute("DELETE FROM entry_tags WHERE entry_id = %s;", (entry_id,))
+                for t_name in tag_list:
+                    cur.execute("""
+                        INSERT INTO tags (user_id, name)
+                        VALUES (%s, %s)
+                        ON CONFLICT (user_id, name) DO UPDATE SET name = EXCLUDED.name
+                        RETURNING id;
+                    """, (user_id, t_name))
+                    tag_id = cur.fetchone()[0]
+                    cur.execute("""
+                        INSERT INTO entry_tags (entry_id, tag_id)
+                        VALUES (%s, %s)
+                        ON CONFLICT DO NOTHING;
+                    """, (entry_id, tag_id))
+
+        return JSONResponse({
+            "status": "success",
+            "message": "Đã cập nhật bài viết thành công! ✨",
+            "entry_id": entry_id
+        })
+    except Exception as e:
+        if processed_photos:
+            MediaService.delete_photo_files([p["file_path"] for p in processed_photos])
+            MediaService.delete_photo_files([p["thumb_path"] for p in processed_photos])
+        return JSONResponse({"status": "error", "message": f"Lỗi cập nhật bài viết: {e}"}, status_code=500)
 
 async def delete_entry(request: Request) -> JSONResponse:
     """Delete an entry and all its associated photos, verifying user ownership."""
@@ -612,6 +729,7 @@ entry_routes = [
     Route("/api/entries", create_entry, methods=["POST"]),
     Route("/api/entries/export", export_entries, methods=["GET"]),
     Route("/api/entries/import", import_entries, methods=["POST"]),
+    Route("/api/entries/{id:int}", update_entry, methods=["PUT"]),
     Route("/api/entries/{id:int}", delete_entry, methods=["DELETE"]),
     Route("/api/entries/{id:int}/pin", toggle_pin_entry, methods=["PATCH"]),
     Route("/api/stats/summary", get_stats, methods=["GET"]),

@@ -4,6 +4,23 @@ Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal 
 
 ---
 
+## [1.3.0] - 2026-10-10
+### Added
+- **Tính Năng Chỉnh Sửa Nhật Ký (Edit Entry - PUT /api/entries/{id}):**
+  - Backend: Thêm endpoint `PUT /api/entries/{id:int}` phân quyền nghiêm ngặt theo `current_user_id`, cập nhật metadata (`title`, `content`, `mood`, `weather`, `entry_date`, `tags`, `updated_at`) và hỗ trợ bổ sung ảnh mới nén WebP bằng Pillow.
+  - Client: Bổ sung phương thức `KokoroAPI.updateEntry(id, formData)`, thêm nút icon bút chì (`data-action="edit"`) trên từng thẻ bài viết, nạp sẵn dữ liệu cũ (prefill) vào Editor modal và đổi nhãn nút lưu thành "Cập nhật bài viết ✨".
+- **Hộp Thoại Xác Nhận Xóa Tùy Biến (Soft Sakura Confirm Modal):**
+  - Loại bỏ hoàn toàn `window.confirm()` mặc định của trình duyệt; xây dựng `#delete-confirm-modal` phong cách kính mờ Soft Sakura với icon hoa rơi, thông điệp chữa lành *"Bạn có chắc muốn buông bỏ khoảnh khắc này không? 🍃"*, hai nút bo tròn "Giữ lại" và "Xác nhận xóa", hỗ trợ phím tắt `Esc` và click backdrop.
+- **Tìm Kiếm Tức Thì (Debounced Live Search 300ms):**
+  - Tích hợp thanh tìm kiếm `#search-input` với kỹ thuật debounce 300ms, tự động lọc danh sách bài viết theo tiêu đề, nội dung và thẻ chủ đề mà không cần bấm Enter; có nút xóa nhanh `[x]`.
+- **Chế Độ Ban Đêm "Night Sakura" (Dark Theme Toggle 🌙🌸):**
+  - Thiết lập bảng màu Dark Mode `[data-theme="dark"]` trong `tokens.css`: Nền tối tím than / đen sương khói dịu mắt (`#0f1016` ~ `#161622`), thẻ bài viết kính mờ tối (`rgba(26, 25, 40, 0.78)`), chữ xám ngọc trai (`#f8fafc`), viền và điểm nhấn phát quang hồng neon pastel nhẹ nhàng (`#f472b6`).
+  - Thêm nút Sun/Moon trên Header, tự động lưu và khôi phục theme qua `localStorage('kokoro_theme')`.
+- **Kiểm Thử Tự Động (Test Suite):**
+  - Bổ sung `tests/test_edit_and_ux.py` kiểm thử 11 bước bao gồm tính cô lập dữ liệu khi sửa bài, cập nhật ảnh, validation nội dung rỗng và tìm kiếm từ khóa, đạt 100% PASS. Toàn bộ 5 test suites của dự án đều đạt 100% PASS.
+
+---
+
 ## [1.2.0] - 2026-10-10
 ### Added
 - **Tối Ưu Bộ Nhớ Đệm & Header Caching:**

@@ -78,3 +78,16 @@
 - [x] Tối ưu hóa Reverse Proxy: Middleware ASGI xử lý `X-Forwarded-Proto`, `X-Forwarded-Prefix`, tin cậy proxy IP và mở rộng CORS `Content-Disposition`.
 - [x] Tính năng Khôi phục Dữ liệu (`POST /api/entries/import`): Hỗ trợ nhập lại file sao lưu JSON an toàn vào tài khoản người dùng kèm UI 1-click.
 - [x] Toàn bộ 4 bộ test suite (`test_api_upload`, `test_auth_isolation`, `test_phase4_features`, `test_phase5_stress`) đạt 100% PASS.
+
+### 🔹 Giai đoạn 6: Hoàn Thiện Trải Nghiệm & Core CRUD (v1.3.0 Release)
+- [x] Tính năng Chỉnh sửa Nhật ký (`PUT /api/entries/{id}`):
+  - [x] Backend Starlette: Xác thực quyền sở hữu `user_id`, cập nhật `title`, `content`, `mood`, `weather`, `entry_date`, `tags`, và đính kèm thêm ảnh WebP qua Pillow.
+  - [x] Frontend Editor: Nút icon bút chì trên thẻ bài viết, nạp sẵn dữ liệu cũ (prefill) và nút bấm "Cập nhật bài viết ✨".
+- [x] Hộp thoại xác nhận xóa tùy biến (Soft Sakura Confirm Modal):
+  - [x] Loại bỏ hoàn toàn `window.confirm()` mặc định; xây dựng modal `#delete-confirm-modal` kính mờ Soft Sakura với icon hoa anh đào, thông điệp "Buông Bỏ Khoảnh Khắc 🍃", 2 nút bấm bo tròn "Giữ lại" và "Xác nhận xóa", hỗ trợ phím `Esc` và click backdrop.
+- [x] Tìm kiếm tức thì (Debounced Live Search 300ms):
+  - [x] Tự động lọc realtime bài viết theo tiêu đề, nội dung và hashtag mà không cần bấm Enter; có nút `[x]` xóa nhanh từ khóa.
+- [x] Chế độ ban đêm "Night Sakura" (Dark Theme Toggle 🌙🌸):
+  - [x] Bộ token CSS `[data-theme="dark"]` trong `tokens.css`: Tím than / đen sương khói dịu mắt (`#0f1016` ~ `#161622`), kính mờ tối (`rgba(26, 25, 40, 0.78)`), chữ xám ngọc trai (`#f8fafc`) và phát quang hồng neon pastel (`#f472b6`).
+  - [x] Nút Sun/Moon trên Header chuyển đổi mượt mà, lưu trạng thái lâu dài qua `localStorage('kokoro_theme')`.
+- [x] Kiểm thử toàn diện: Bổ sung `tests/test_edit_and_ux.py` đạt 100% PASS; toàn bộ 5 test suites của dự án đều đạt 100% PASS.

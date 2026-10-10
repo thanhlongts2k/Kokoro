@@ -1,18 +1,18 @@
-const CACHE_NAME = 'kokoro-v1.2.0';
+const CACHE_NAME = 'kokoro-v1.3.0';
 const STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './css/tokens.css',
-  './css/glass.css',
-  './css/layout.css',
-  './js/mock-data.js',
-  './js/api.js',
-  './js/auth.js',
-  './js/app.js',
-  './js/editor.js',
-  './js/lightbox.js',
-  './js/pwa.js',
+  './css/tokens.css?v=1.3.0',
+  './css/glass.css?v=1.3.0',
+  './css/layout.css?v=1.3.0',
+  './js/mock-data.js?v=1.3.0',
+  './js/api.js?v=1.3.0',
+  './js/auth.js?v=1.3.0',
+  './js/app.js?v=1.3.0',
+  './js/editor.js?v=1.3.0',
+  './js/lightbox.js?v=1.3.0',
+  './js/pwa.js?v=1.3.0',
   './icons/sakura.svg'
 ];
 
