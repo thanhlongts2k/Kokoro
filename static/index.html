@@ -709,6 +709,22 @@
             </div>
           </div>
 
+          <!-- Category Selection (v1.6.0) -->
+          <div class="editor-category-section" style="margin-top: 4px; margin-bottom: 6px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+              <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin: 0;">
+                Danh mục bài viết
+              </label>
+              <button type="button" id="editor-manage-categories-link" style="background: none; border: none; font-size: 12px; font-weight: 600; color: var(--sakura-500); cursor: pointer; text-decoration: underline; padding: 2px 4px;">
+                Quản lý danh mục 📁
+              </button>
+            </div>
+            <div class="category-picker-scroll" id="editor-category-picker-list" style="display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px;">
+              <!-- Dynamically populated category chips -->
+            </div>
+            <input type="hidden" id="editor-category-id-input" value="" />
+          </div>
+
           <!-- Date & Time Picker Trigger -->
           <div class="editor-datetime-section" style="margin-top: 4px; margin-bottom: 6px;">
             <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">
@@ -1006,19 +1022,19 @@
     </div>
 
     <!-- ====================================================================
-         CATEGORY & TAG MANAGER MODAL (V1.5.5)
+         CATEGORY & TAG MANAGER MODAL (V1.6.0)
          ==================================================================== -->
     <div class="modal-overlay" id="category-tag-manager-modal" style="display: none; align-items: center; justify-content: center; z-index: 9998;">
-      <div class="glass-panel" style="width: 92%; max-width: 520px; max-height: 85vh; border-radius: var(--radius-xl); padding: 22px; display: flex; flex-direction: column; gap: 14px; box-shadow: var(--shadow-glass-lg); overflow: hidden;">
+      <div class="glass-panel" style="width: 92%; max-width: 540px; max-height: 88vh; border-radius: var(--radius-xl); padding: 22px; display: flex; flex-direction: column; gap: 14px; box-shadow: var(--shadow-glass-lg); overflow: hidden;">
         <!-- Header -->
         <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-glass-subtle); padding-bottom: 12px;">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(244, 63, 94, 0.12); display: flex; align-items: center; justify-content: center;">
-              <i class="bi bi-tags text-sakura" style="font-size: 18px;"></i>
+            <div style="width: 38px; height: 38px; border-radius: 50%; background: rgba(244, 63, 94, 0.12); display: flex; align-items: center; justify-content: center;">
+              <i class="bi bi-folder2-open text-sakura" style="font-size: 19px;"></i>
             </div>
             <div>
               <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-primary);">Quản Lý Danh Mục & Thẻ</h3>
-              <p style="margin: 2px 0 0; font-size: 12px; color: var(--text-muted);">Quản trị hệ thống cảm xúc và nhãn hashtag</p>
+              <p style="margin: 2px 0 0; font-size: 12px; color: var(--text-muted);">Quản trị danh mục cảm xúc (Moods) &amp; thẻ nhãn chủ đề</p>
             </div>
           </div>
           <button type="button" class="action-icon-btn" id="cat-tag-modal-close" style="width: 32px; height: 32px;" title="Đóng"><i class="bi bi-x-lg"></i></button>
@@ -1026,32 +1042,84 @@
 
         <!-- Tabs Nav -->
         <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--border-glass-subtle); padding-bottom: 10px;">
-          <button type="button" class="btn-glass mood-chip-pill active" id="tab-btn-cat-moods" style="padding: 6px 14px; font-size: 12px;">
-            <span class="chip-icon">🌸</span> Cảm xúc & Tâm trạng
+          <button type="button" class="btn-glass mood-chip-pill active" id="tab-btn-cat-categories" style="padding: 6px 14px; font-size: 12.5px;">
+            <span class="chip-icon">🌸</span> Cảm xúc &amp; Tâm trạng
           </button>
-          <button type="button" class="btn-glass mood-chip-pill" id="tab-btn-cat-tags" style="padding: 6px 14px; font-size: 12px;">
+          <button type="button" class="btn-glass mood-chip-pill" id="tab-btn-cat-tags" style="padding: 6px 14px; font-size: 12.5px;">
             <span class="chip-icon">🏷️</span> Thẻ chủ đề (Hashtags)
           </button>
         </div>
 
-        <!-- Tab 1: Moods Content -->
-        <div id="cat-tab-content-moods" style="display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: 52vh; padding-right: 4px;">
-          <div style="font-size: 12px; color: var(--text-muted);">
-            Thống kê số lượng và tỷ lệ bài viết theo từng cung bậc cảm xúc trong nhật ký của bạn:
+        <!-- Tab 1: Categories Content (v1.6.0) -->
+        <div id="cat-tab-content-categories" style="display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: 55vh; padding-right: 4px;">
+          <!-- Top Create Category Form -->
+          <div class="glass-panel" style="padding: 12px 14px; border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 10px; background: var(--surface-glass-subtle);">
+            <div style="font-size: 12px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+              <i class="bi bi-plus-circle text-sakura"></i> Tạo cảm xúc / danh mục mới
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <!-- Emoji Picker Trigger -->
+              <div style="position: relative;">
+                <button type="button" id="cat-create-emoji-btn" class="btn-glass" style="height: 38px; min-width: 52px; padding: 0 8px; border-radius: 19px; font-size: 17px; display: inline-flex; align-items: center; justify-content: center; gap: 3px;" title="Chọn biểu tượng icon">
+                  <span id="cat-create-selected-emoji">🌸</span>
+                  <i class="bi bi-chevron-down" style="font-size: 10px; opacity: 0.6;"></i>
+                </button>
+                <!-- Emoji Popover Grid -->
+                <div id="cat-emoji-popover" style="display: none; position: absolute; top: calc(100% + 6px); left: 0; background: var(--surface-glass); backdrop-filter: blur(20px); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 8px; gap: 6px; grid-template-columns: repeat(4, 1fr); z-index: 10000; box-shadow: var(--shadow-glass-lg);">
+                  <!-- Populated in JS: 🌸, ☕, 🌙, 🍵, ⚡, 🥰, 🌈, 🌧️... -->
+                </div>
+              </div>
+              <!-- Category Name Input -->
+              <input type="text" id="cat-create-name-input" class="search-input-field" placeholder="Tên cảm xúc mới (ví dụ: Hạnh phúc, Yêu đời...)" style="flex: 1; height: 38px; font-size: 13px; border-radius: 19px; padding: 0 14px;" />
+              <!-- Submit Button -->
+              <button type="button" id="cat-create-submit-btn" class="btn-sakura" style="height: 38px; padding: 0 14px; font-size: 12.5px; border-radius: 19px; white-space: nowrap; flex-shrink: 0;">
+                <i class="bi bi-plus-lg"></i> Thêm
+              </button>
+            </div>
+            <!-- Color Selector Palette -->
+            <div style="display: flex; align-items: center; gap: 8px; padding-left: 2px;">
+              <span style="font-size: 11px; color: var(--text-muted);">Màu sắc:</span>
+              <div id="cat-color-palette" style="display: flex; gap: 8px; align-items: center;">
+                <button type="button" class="cat-color-swatch active" data-color="#ec4899" style="width: 22px; height: 22px; border-radius: 50%; background: #ec4899; border: 2px solid #fff; cursor: pointer; outline: 2px solid #ec4899; box-sizing: border-box;"></button>
+                <button type="button" class="cat-color-swatch" data-color="#3b82f6" style="width: 20px; height: 20px; border-radius: 50%; background: #3b82f6; border: none; cursor: pointer;"></button>
+                <button type="button" class="cat-color-swatch" data-color="#f43f5e" style="width: 20px; height: 20px; border-radius: 50%; background: #f43f5e; border: none; cursor: pointer;"></button>
+                <button type="button" class="cat-color-swatch" data-color="#10b981" style="width: 20px; height: 20px; border-radius: 50%; background: #10b981; border: none; cursor: pointer;"></button>
+                <button type="button" class="cat-color-swatch" data-color="#8b5cf6" style="width: 20px; height: 20px; border-radius: 50%; background: #8b5cf6; border: none; cursor: pointer;"></button>
+                <button type="button" class="cat-color-swatch" data-color="#f59e0b" style="width: 20px; height: 20px; border-radius: 50%; background: #f59e0b; border: none; cursor: pointer;"></button>
+                <button type="button" class="cat-color-swatch" data-color="#06b6d4" style="width: 20px; height: 20px; border-radius: 50%; background: #06b6d4; border: none; cursor: pointer;"></button>
+              </div>
+            </div>
           </div>
-          <div id="cat-moods-list-container" style="display: flex; flex-direction: column; gap: 10px;">
+
+          <!-- Categories List -->
+          <div id="cat-categories-list-container" style="display: flex; flex-direction: column; gap: 8px;">
             <!-- Dynamically populated -->
           </div>
         </div>
 
-        <!-- Tab 2: Tags Content -->
-        <div id="cat-tab-content-tags" style="display: none; flex-direction: column; gap: 12px; overflow-y: auto; max-height: 52vh; padding-right: 4px;">
+        <!-- Tab 2: Tags Content (v1.6.0) -->
+        <div id="cat-tab-content-tags" style="display: none; flex-direction: column; gap: 12px; overflow-y: auto; max-height: 55vh; padding-right: 4px;">
+          <!-- Top Create Tag Form -->
+          <div class="glass-panel" style="padding: 12px 14px; border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 8px; background: var(--surface-glass-subtle);">
+            <div style="font-size: 12px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+              <i class="bi bi-tag text-sakura"></i> Tạo thẻ chủ đề mới
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input type="text" id="tag-create-name-input" class="search-input-field" placeholder="#Nhập tên thẻ mới (ví dụ: #sakura)..." style="flex: 1; height: 38px; font-size: 13px; border-radius: 19px; padding: 0 14px;" />
+              <button type="button" id="tag-create-submit-btn" class="btn-sakura" style="height: 38px; padding: 0 14px; font-size: 12.5px; border-radius: 19px; white-space: nowrap; flex-shrink: 0;">
+                <i class="bi bi-plus-lg"></i> Tạo Thẻ
+              </button>
+            </div>
+          </div>
+
+          <!-- Tags List Header -->
           <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
             <span id="cat-total-tags-label" style="font-size: 12.5px; font-weight: 700; color: var(--text-secondary);">Tổng cộng: 0 thẻ</span>
             <button type="button" class="btn-glass" id="cat-cleanup-orphans-btn" style="font-size: 11.5px; padding: 4px 10px; border-radius: var(--radius-pill); color: var(--text-muted);">
               <i class="bi bi-trash3 text-sakura"></i> Dọn dẹp thẻ 0 bài
             </button>
           </div>
+          <!-- Tags List Container -->
           <div id="cat-tags-list-container" style="display: flex; flex-direction: column; gap: 8px;">
             <!-- Dynamically populated -->
           </div>
@@ -1069,17 +1137,17 @@
   </div>
 
   <!-- Scripts Execution (Relative paths for reverse proxy subpath) -->
-  <script src="./js/mock-data.js?v=1.5.6"></script>
-  <script src="./js/api.js?v=1.5.6"></script>
-  <script src="./js/auth.js?v=1.5.6"></script>
-  <script src="./js/toast.js?v=1.5.6"></script>
-  <script src="./js/datetime-picker.js?v=1.5.6"></script>
-  <script src="./js/tag-manager.js?v=1.5.6"></script>
-  <script src="./js/lightbox.js?v=1.5.6"></script>
-  <script src="./js/editor.js?v=1.5.6"></script>
-  <script src="./js/zen-audio.js?v=1.5.6"></script>
-  <script src="./js/passcode.js?v=1.5.6"></script>
-  <script src="./js/pwa.js?v=1.5.6"></script>
-  <script src="./js/app.js?v=1.5.6"></script>
+  <script src="./js/mock-data.js?v=1.6.0"></script>
+  <script src="./js/api.js?v=1.6.0"></script>
+  <script src="./js/auth.js?v=1.6.0"></script>
+  <script src="./js/toast.js?v=1.6.0"></script>
+  <script src="./js/datetime-picker.js?v=1.6.0"></script>
+  <script src="./js/tag-manager.js?v=1.6.0"></script>
+  <script src="./js/lightbox.js?v=1.6.0"></script>
+  <script src="./js/editor.js?v=1.6.0"></script>
+  <script src="./js/zen-audio.js?v=1.6.0"></script>
+  <script src="./js/passcode.js?v=1.6.0"></script>
+  <script src="./js/pwa.js?v=1.6.0"></script>
+  <script src="./js/app.js?v=1.6.0"></script>
 </body>
 </html>

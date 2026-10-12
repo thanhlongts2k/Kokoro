@@ -4,6 +4,24 @@ Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal 
 
 ---
 
+## [1.6.0-beta.2] - 2026-10-12
+### Added & Enhanced (Category & Tag Manager Modal UI, Emoji Picker & iOS PWA Diagonal Drag Fix)
+- **Thiết Kế Lại Toàn Diện Modal Quản Lý Danh Mục & Thẻ (`static/index.html`, `static/css/components.css`):**
+  - **Tab 1 — Cảm xúc & Tâm trạng (Moods/Categories Manager):**
+    * Thanh tạo mới: Ô nhập tên cảm xúc mới + Nút chọn Icon Emoji (popover 20 icon tinh tế: 🌸, ☕, 🌙, 🍵, ⚡, 🥰, 🌈, 🌧️...) + Bảng 7 màu Pastel nhận diện + Nút `[ + Thêm ]`.
+    * Danh sách danh mục cảm xúc dạng thẻ kính mờ: Hiển thị badge pill với icon lớn, tên, màu sắc, số lượng bài viết (`usage_count`), nút `[ ✏️ Đổi tên / Sửa icon ]`, và nút `[ 🗑️ Xóa danh mục ]` an toàn.
+  - **Tab 2 — Thẻ chủ đề (Hashtags Manager):**
+    * Thanh tạo thẻ chủ động: Ô nhập `#Nhập tên thẻ mới...` + Nút `[ + Tạo Thẻ ]` chuẩn hóa hashtag.
+    * Thống kê tổng số lượng thẻ, nút `[ 🧹 Dọn dẹp thẻ 0 bài ]`, nút đổi tên và xóa thẻ.
+- **Khắc Phục Dứt Điểm Bug Kéo Chéo / Xô Lệch Trên iOS PWA (`static/css/layout.css`, `static/css/components.css`):**
+  - Áp dụng cơ chế khóa cứng trục Y (Strict Y-axis Locking): `overflow-y: hidden !important; touch-action: pan-x !important; overscroll-behavior-x: contain !important; overscroll-behavior-y: none !important; -webkit-overflow-scrolling: touch !important;` trên `.mobile-mood-scroll`, `#mobile-mood-chips`, `.memories-mood-scroll`, `.memories-tags-scroll`, và `.category-picker-scroll`.
+  - Triệt tiêu 100% hiện tượng rung lắc xô lệch chéo (diagonal rubber-band dragging) khi người dùng lướt ngón tay ngang trên màn hình cảm ứng iPhone.
+- **Bộ Điều Khiển Tương Tác Phía Client (`static/js/tag-manager.js`):**
+  - Kết nối trọn vẹn các phương thức REST API `KokoroAPI.getCategories()`, `createCategory()`, `updateCategory()`, `deleteCategory()`, `createTag()`.
+  - Cơ chế đồng bộ phản ứng tức thì (Reactive Callback): Khi thêm/sửa/xóa danh mục hoặc thẻ, tự động thông báo và làm mới giao diện Editor Modal và Dòng thời gian.
+- **Bộ Kiểm Thử Tự Động Giao Diện (`tests/test_v160_modal_client.py`):**
+  - Kiểm tra toàn vẹn cấu trúc DOM, các quy chuẩn CSS khóa trục Pan-X, kích thước vùng chạm WCAG 2.5.5 >= 44px và phương thức JS đạt 100% PASS.
+
 ## [1.6.0-beta.1] - 2026-10-12
 ### Added & Architected (Database Migration & Dynamic Moods / Categories REST API)
 - **Thiết Kế & Triển Khai Bảng `categories` & Khóa Ngoại `entries.category_id` (`app/database.py`):**

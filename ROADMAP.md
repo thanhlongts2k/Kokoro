@@ -218,12 +218,12 @@
   - [x] Cập nhật API bài viết: `GET /api/entries`, `POST /api/entries`, `PUT /api/entries/{id}` hỗ trợ `category_id`.
   - [x] Chuẩn hóa token precedence trong `app/auth.py` và bổ sung phương thức client trong `static/js/api.js`.
   - [x] Viết bộ kiểm thử tích hợp tự động `tests/test_v160_backend_api.py` đạt 100% PASS (7/7 tests).
-- [ ] **Giai đoạn 8.2 (v1.6.0-beta.2) — Modal Quản Lý Danh Mục & Thẻ Client UI:**
-  - [ ] Khắc phục triệt để lỗi kéo chéo / xô lệch thanh danh mục trên iOS PWA (`overflow-y: hidden`, `touch-action: pan-x`).
-  - [ ] Thiết kế lại Modal `#category-tag-manager-modal` với Tab 1 "📁 Danh mục cảm xúc" và Tab 2 "🏷️ Thẻ chủ đề".
-  - [ ] Bộ chọn Emoji Popover (20 icon tinh tế) và bảng 7 mã màu Pastel chữa lành.
-  - [ ] Bộ điều khiển `static/js/tag-manager.js` kết nối đầy đủ CRUD API cho cả danh mục và thẻ.
-  - [ ] Viết bộ kiểm thử giao diện `tests/test_v160_modal_client.py` đạt 100% PASS.
+- [x] **Giai đoạn 8.2 (v1.6.0-beta.2) — Modal Quản Lý Danh Mục & Thẻ Client UI:**
+  - [x] Khắc phục triệt để lỗi kéo chéo / xô lệch thanh danh mục trên iOS PWA (`overflow-y: hidden`, `touch-action: pan-x`).
+  - [x] Thiết kế lại Modal `#category-tag-manager-modal` với Tab 1 "📁 Danh mục cảm xúc" và Tab 2 "🏷️ Thẻ chủ đề".
+  - [x] Bộ chọn Emoji Popover (20 icon tinh tế) và bảng 7 mã màu Pastel chữa lành.
+  - [x] Bộ điều khiển `static/js/tag-manager.js` kết nối đầy đủ CRUD API cho cả danh mục và thẻ.
+  - [x] Viết bộ kiểm thử giao diện `tests/test_v160_modal_client.py` đạt 100% PASS.
 - [ ] **Giai đoạn 8.3 (v1.6.0 Release) — Tích Hợp Đồng Bộ Toàn Hệ Thống:**
   - [ ] Tích hợp bộ chọn Mood/Danh mục động vào Form Soạn thảo (`static/js/editor.js`).
   - [ ] Tích hợp bộ lọc Mood/Danh mục động ngoài Timeline Feed và Kho Kỷ niệm (`static/js/app.js`).

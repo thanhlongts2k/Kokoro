@@ -177,26 +177,34 @@ const KokoroTagManager = (() => {
   // =========================================================================
   // CATEGORY & TAG MANAGER MODAL (V1.5.5)
   // =========================================================================
+  // =========================================================================
+  // CATEGORY & TAG MANAGER MODAL (V1.6.0)
+  // =========================================================================
   let modalEl = null;
-  let tabMoodsBtn = null;
+  let tabCategoriesBtn = null;
   let tabTagsBtn = null;
-  let contentMoodsEl = null;
+  let contentCategoriesEl = null;
   let contentTagsEl = null;
-  let moodsListContainer = null;
+  let categoriesListContainer = null;
   let tagsListContainer = null;
   let totalTagsLabel = null;
   let cleanupOrphansBtn = null;
-  let currentActiveTab = 'moods';
+  let currentActiveTab = 'categories';
+
+  // Category creation form state
+  let selectedCategoryEmoji = '🌸';
+  let selectedCategoryColor = '#ec4899';
+  const AVAILABLE_EMOJIS = ['🌸', '☕', '🌙', '🍵', '⚡', '🥰', '🌈', '🌧️', '🌿', '💼', '💌', '✈️', '📚', '🏠', '💰', '🎨', '🎵', '🧘', '🍳', '⭐'];
 
   const initModal = () => {
     modalEl = document.getElementById('category-tag-manager-modal');
     if (!modalEl) return;
 
-    tabMoodsBtn = document.getElementById('tab-btn-cat-moods');
+    tabCategoriesBtn = document.getElementById('tab-btn-cat-categories');
     tabTagsBtn = document.getElementById('tab-btn-cat-tags');
-    contentMoodsEl = document.getElementById('cat-tab-content-moods');
+    contentCategoriesEl = document.getElementById('cat-tab-content-categories');
     contentTagsEl = document.getElementById('cat-tab-content-tags');
-    moodsListContainer = document.getElementById('cat-moods-list-container');
+    categoriesListContainer = document.getElementById('cat-categories-list-container');
     tagsListContainer = document.getElementById('cat-tags-list-container');
     totalTagsLabel = document.getElementById('cat-total-tags-label');
     cleanupOrphansBtn = document.getElementById('cat-cleanup-orphans-btn');
@@ -211,12 +219,18 @@ const KokoroTagManager = (() => {
       if (e.target === modalEl) closeManagerModal();
     });
 
-    if (tabMoodsBtn) {
-      tabMoodsBtn.addEventListener('click', () => switchTab('moods'));
+    if (tabCategoriesBtn) {
+      tabCategoriesBtn.addEventListener('click', () => switchTab('categories'));
     }
     if (tabTagsBtn) {
       tabTagsBtn.addEventListener('click', () => switchTab('tags'));
     }
+
+    // Setup Category Creation Controls
+    setupCategoryFormControls();
+
+    // Setup Tag Creation Controls
+    setupTagFormControls();
 
     if (cleanupOrphansBtn) {
       cleanupOrphansBtn.addEventListener('click', async () => {
@@ -241,65 +255,291 @@ const KokoroTagManager = (() => {
     // Attach to profile view trigger button
     const profileBtn = document.getElementById('profile-action-category-tags');
     if (profileBtn) {
-      profileBtn.addEventListener('click', () => openManagerModal('moods'));
+      profileBtn.addEventListener('click', () => openManagerModal('categories'));
+    }
+  };
+
+  const setupCategoryFormControls = () => {
+    const emojiBtn = document.getElementById('cat-create-emoji-btn');
+    const emojiPopover = document.getElementById('cat-emoji-popover');
+    const selectedEmojiSpan = document.getElementById('cat-create-selected-emoji');
+    const nameInput = document.getElementById('cat-create-name-input');
+    const submitBtn = document.getElementById('cat-create-submit-btn');
+    const colorSwatches = document.querySelectorAll('.cat-color-swatch');
+
+    // Populate Emoji Popover Grid
+    if (emojiPopover) {
+      emojiPopover.innerHTML = AVAILABLE_EMOJIS.map(
+        (em) => `<button type="button" class="btn-glass" data-emoji="${em}" style="font-size: 20px; padding: 6px; border-radius: var(--radius-sm); border: none; cursor: pointer;">${em}</button>`
+      ).join('');
+
+      emojiPopover.querySelectorAll('[data-emoji]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectedCategoryEmoji = btn.dataset.emoji;
+          if (selectedEmojiSpan) selectedEmojiSpan.textContent = selectedCategoryEmoji;
+          emojiPopover.style.display = 'none';
+        });
+      });
+    }
+
+    if (emojiBtn && emojiPopover) {
+      emojiBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isShown = emojiPopover.style.display === 'grid';
+        emojiPopover.style.display = isShown ? 'none' : 'grid';
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!emojiBtn.contains(e.target) && !emojiPopover.contains(e.target)) {
+          emojiPopover.style.display = 'none';
+        }
+      });
+    }
+
+    // Color Swatches
+    colorSwatches.forEach((swatch) => {
+      swatch.addEventListener('click', () => {
+        colorSwatches.forEach((s) => {
+          s.classList.remove('active');
+          s.style.outline = 'none';
+          s.style.border = 'none';
+          s.style.width = '20px';
+          s.style.height = '20px';
+        });
+        swatch.classList.add('active');
+        swatch.style.width = '22px';
+        swatch.style.height = '22px';
+        swatch.style.border = '2px solid #fff';
+        swatch.style.outline = `2px solid ${swatch.dataset.color}`;
+        selectedCategoryColor = swatch.dataset.color;
+      });
+    });
+
+    // Create Category Handler
+    const handleCreateCategory = async () => {
+      if (!nameInput) return;
+      const rawName = nameInput.value.trim();
+      if (!rawName) {
+        alert('Vui lòng nhập tên danh mục 🌸');
+        nameInput.focus();
+        return;
+      }
+
+      try {
+        const payload = {
+          name: rawName,
+          icon: selectedCategoryEmoji || '🌸',
+          color: selectedCategoryColor || '#ec4899'
+        };
+        const res = await window.KokoroAPI.createCategory(payload);
+        if (res && res.status === 'success') {
+          nameInput.value = '';
+          if (window.KokoroApp && window.KokoroApp.showToast) {
+            window.KokoroApp.showToast(`Đã tạo danh mục "${rawName}" thành công! 🌸`);
+          }
+          await renderCategoriesTab();
+          if (window.Editor && typeof window.Editor.loadCategories === 'function') {
+            await window.Editor.loadCategories();
+          }
+          if (window.KokoroApp && typeof window.KokoroApp.loadCategories === 'function') {
+            await window.KokoroApp.loadCategories();
+          }
+        }
+      } catch (err) {
+        alert('Lỗi tạo danh mục: ' + err.message);
+      }
+    };
+
+    if (submitBtn) {
+      submitBtn.addEventListener('click', handleCreateCategory);
+    }
+    if (nameInput) {
+      nameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleCreateCategory();
+        }
+      });
+    }
+  };
+
+  const setupTagFormControls = () => {
+    const tagNameInput = document.getElementById('tag-create-name-input');
+    const tagSubmitBtn = document.getElementById('tag-create-submit-btn');
+
+    const handleCreateTag = async () => {
+      if (!tagNameInput) return;
+      const rawName = tagNameInput.value.trim();
+      if (!rawName) {
+        alert('Vui lòng nhập tên thẻ 🏷️');
+        tagNameInput.focus();
+        return;
+      }
+
+      try {
+        const res = await window.KokoroAPI.createTag(rawName);
+        if (res && res.status === 'success') {
+          tagNameInput.value = '';
+          if (window.KokoroApp && window.KokoroApp.showToast) {
+            window.KokoroApp.showToast(res.message || `Đã tạo thẻ thành công! 🏷️`);
+          }
+          await renderTagsTab();
+          if (window.KokoroApp) await window.KokoroApp.loadPopularTags();
+        }
+      } catch (err) {
+        alert('Lỗi tạo thẻ: ' + err.message);
+      }
+    };
+
+    if (tagSubmitBtn) {
+      tagSubmitBtn.addEventListener('click', handleCreateTag);
+    }
+    if (tagNameInput) {
+      tagNameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleCreateTag();
+        }
+      });
     }
   };
 
   const switchTab = (tab) => {
     currentActiveTab = tab;
-    if (tab === 'moods') {
-      if (tabMoodsBtn) tabMoodsBtn.classList.add('active');
+    if (tab === 'categories') {
+      if (tabCategoriesBtn) tabCategoriesBtn.classList.add('active');
       if (tabTagsBtn) tabTagsBtn.classList.remove('active');
-      if (contentMoodsEl) contentMoodsEl.style.display = 'flex';
+      if (contentCategoriesEl) contentCategoriesEl.style.display = 'flex';
       if (contentTagsEl) contentTagsEl.style.display = 'none';
-      renderMoodsTab();
+      renderCategoriesTab();
     } else {
-      if (tabMoodsBtn) tabMoodsBtn.classList.remove('active');
+      if (tabCategoriesBtn) tabCategoriesBtn.classList.remove('active');
       if (tabTagsBtn) tabTagsBtn.classList.add('active');
-      if (contentMoodsEl) contentMoodsEl.style.display = 'none';
+      if (contentCategoriesEl) contentCategoriesEl.style.display = 'none';
       if (contentTagsEl) contentTagsEl.style.display = 'flex';
       renderTagsTab();
     }
   };
 
-  const renderMoodsTab = async () => {
-    if (!moodsListContainer) return;
+  const renderCategoriesTab = async () => {
+    if (!categoriesListContainer) return;
     try {
-      const stats = (window.KokoroApp && window.KokoroApp.stats) ? window.KokoroApp.stats : await window.KokoroAPI.getStats();
-      const breakdown = (stats && stats.moodBreakdown) || {};
-      const total = (stats && stats.totalEntries) || 0;
+      categoriesListContainer.innerHTML = `<div style="text-align: center; padding: 20px; font-size: 12px; color: var(--text-muted);">Đang tải danh mục... ✨</div>`;
+      const res = await window.KokoroAPI.getCategories();
+      const categories = (res && res.status === 'success' && Array.isArray(res.categories)) ? res.categories : [];
 
-      const moods = [
-        { key: 'serene', icon: '🌸', name: 'Thanh bình', color: 'var(--mood-serene)' },
-        { key: 'cozy', icon: '☕', name: 'Ấm áp', color: 'var(--mood-cozy)' },
-        { key: 'reflective', icon: '🌙', name: 'Chiêm nghiệm', color: 'var(--mood-reflective)' },
-        { key: 'grateful', icon: '🍵', name: 'Biết ơn', color: 'var(--mood-grateful)' },
-        { key: 'energetic', icon: '⚡', name: 'Năng lượng', color: 'var(--mood-energetic)' },
-      ];
+      if (categories.length === 0) {
+        categoriesListContainer.innerHTML = `
+          <div style="text-align: center; padding: 30px; font-size: 12.5px; color: var(--text-muted);">
+            📁 Chưa có danh mục nào.<br>Tạo danh mục mới ở ô bên trên để bắt đầu sắp xếp bài viết nhé!
+          </div>
+        `;
+        return;
+      }
 
-      moodsListContainer.innerHTML = moods.map((m) => {
-        const info = breakdown[m.key] || { count: 0, percent: 0 };
-        const count = info.count || 0;
-        const pct = info.percent || 0;
+      categoriesListContainer.innerHTML = categories.map((cat) => {
+        const safeName = window.escapeHtml(cat.name);
+        const safeIcon = window.escapeHtml(cat.icon || '📁');
+        const safeColor = window.escapeHtml(cat.color || '#ec4899');
+        const usageCount = cat.usage_count || 0;
+
         return `
-          <div class="glass-panel" style="padding: 12px 16px; border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 8px;">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-              <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--text-primary); font-size: 13.5px;">
-                <span>${m.icon}</span>
-                <span>${m.name}</span>
-              </div>
-              <div style="font-size: 12px; font-weight: 700; color: var(--text-secondary);">
-                ${count} bài viết <span style="opacity: 0.6; margin-left: 4px;">(${Math.round(pct)}%)</span>
-              </div>
+          <div class="glass-panel" style="padding: 10px 14px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+              <span class="category-badge-pill" style="--cat-color: ${safeColor}; font-size: 13px; padding: 4px 12px;">
+                <span>${safeIcon}</span>
+                <span>${safeName}</span>
+              </span>
+              <span style="font-size: 12px; color: var(--text-muted); white-space: nowrap;">
+                ${usageCount} bài viết
+              </span>
             </div>
-            <div style="height: 6px; border-radius: 3px; background: rgba(148, 163, 184, 0.15); overflow: hidden;">
-              <div style="height: 100%; width: ${pct}%; background: ${m.color}; border-radius: 3px; transition: width 0.4s ease;"></div>
+            <div style="display: flex; gap: 6px; flex-shrink: 0;">
+              <button type="button" class="action-icon-btn btn-edit-category" data-cat-id="${cat.id}" data-cat-name="${safeName}" data-cat-icon="${safeIcon}" data-cat-color="${safeColor}" style="width: 30px; height: 30px;" title="Chỉnh sửa danh mục">
+                <i class="bi bi-pencil" style="font-size: 12px;"></i>
+              </button>
+              <button type="button" class="action-icon-btn btn-delete-category text-danger" data-cat-id="${cat.id}" data-cat-name="${safeName}" style="width: 30px; height: 30px;" title="Xóa danh mục">
+                <i class="bi bi-trash" style="font-size: 12px;"></i>
+              </button>
             </div>
           </div>
         `;
       }).join('');
+
+      // Edit Category Handler
+      categoriesListContainer.querySelectorAll('.btn-edit-category').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          const catId = e.currentTarget.dataset.catId;
+          const oldName = e.currentTarget.dataset.catName;
+          const oldIcon = e.currentTarget.dataset.catIcon;
+          const oldColor = e.currentTarget.dataset.catColor;
+
+          const newName = prompt(`Đổi tên danh mục "${oldName}":`, oldName);
+          if (newName === null) return;
+          const trimmedName = newName.trim();
+          if (!trimmedName) {
+            alert('Tên danh mục không được để trống.');
+            return;
+          }
+
+          const newIcon = prompt(`Nhập biểu tượng icon mới cho "${trimmedName}" (hiện tại: ${oldIcon}):`, oldIcon) || oldIcon;
+
+          try {
+            const updateRes = await window.KokoroAPI.updateCategory(catId, {
+              name: trimmedName,
+              icon: newIcon.trim() || oldIcon,
+              color: oldColor
+            });
+            if (updateRes && updateRes.status === 'success') {
+              if (window.KokoroApp && window.KokoroApp.showToast) {
+                window.KokoroApp.showToast(`Đã cập nhật danh mục "${trimmedName}" ✨`);
+              }
+              await renderCategoriesTab();
+              if (window.Editor && typeof window.Editor.loadCategories === 'function') {
+                await window.Editor.loadCategories();
+              }
+              if (window.KokoroApp && typeof window.KokoroApp.loadCategories === 'function') {
+                await window.KokoroApp.loadCategories();
+              }
+              if (window.KokoroApp) await window.KokoroApp.loadEntries();
+            }
+          } catch (err) {
+            alert('Lỗi cập nhật danh mục: ' + err.message);
+          }
+        });
+      });
+
+      // Delete Category Handler
+      categoriesListContainer.querySelectorAll('.btn-delete-category').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          const catId = e.currentTarget.dataset.catId;
+          const catName = e.currentTarget.dataset.catName;
+          if (!confirm(`Bạn có chắc muốn xóa danh mục "${catName}"?\n(Lưu ý: Các bài viết thuộc danh mục này sẽ tự động chuyển về trạng thái Chưa phân loại, bài viết của bạn sẽ được an toàn tuyệt đối).`)) return;
+
+          try {
+            const delRes = await window.KokoroAPI.deleteCategory(catId);
+            if (delRes && delRes.status === 'success') {
+              if (window.KokoroApp && window.KokoroApp.showToast) {
+                window.KokoroApp.showToast(`Đã xóa danh mục "${catName}" thành công 🌸`);
+              }
+              await renderCategoriesTab();
+              if (window.Editor && typeof window.Editor.loadCategories === 'function') {
+                await window.Editor.loadCategories();
+              }
+              if (window.KokoroApp && typeof window.KokoroApp.loadCategories === 'function') {
+                await window.KokoroApp.loadCategories();
+              }
+              if (window.KokoroApp) await window.KokoroApp.loadEntries();
+            }
+          } catch (err) {
+            alert('Lỗi xóa danh mục: ' + err.message);
+          }
+        });
+      });
+
     } catch (e) {
-      moodsListContainer.innerHTML = `<div style="font-size: 12px; color: var(--text-muted); text-align: center;">Chưa thể tải dữ liệu thống kê tâm trạng.</div>`;
+      categoriesListContainer.innerHTML = `<div style="font-size: 12px; color: var(--text-muted); text-align: center;">Chưa thể tải dữ liệu danh mục.</div>`;
     }
   };
 
@@ -317,7 +557,7 @@ const KokoroTagManager = (() => {
       if (tags.length === 0) {
         tagsListContainer.innerHTML = `
           <div style="text-align: center; padding: 30px; font-size: 12.5px; color: var(--text-muted);">
-            🍃 Bạn chưa có thẻ chủ đề nào.<br>Thêm thẻ vào bài viết (ví dụ: #sakura, #coffee) để quản lý tại đây nhé!
+            🍃 Bạn chưa có thẻ chủ đề nào.<br>Tạo thẻ mới ở ô bên trên để bắt đầu gắn nhãn bài viết nhé!
           </div>
         `;
         return;
@@ -404,7 +644,7 @@ const KokoroTagManager = (() => {
     }
   };
 
-  const openManagerModal = (tab = 'moods') => {
+  const openManagerModal = (tab = 'categories') => {
     if (!modalEl) initModal();
     if (!modalEl) return;
     modalEl.style.display = 'flex';
@@ -425,6 +665,8 @@ const KokoroTagManager = (() => {
     initModal,
     openManagerModal,
     closeManagerModal,
+    renderCategoriesTab,
+    renderTagsTab,
     parseTagsFromInput,
     normalizeTag,
     toggleTagInInput,
@@ -436,3 +678,4 @@ const KokoroTagManager = (() => {
 })();
 
 window.KokoroTagManager = KokoroTagManager;
+

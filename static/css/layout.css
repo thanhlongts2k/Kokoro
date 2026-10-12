@@ -162,20 +162,26 @@
   gap: 24px;
 }
 
-/* Mobile Quick Mood Horizontal Capsule Scroll Bar */
-.mobile-mood-scroll {
+/* Mobile Quick Mood Horizontal Capsule Scroll Bar - Strict iOS WebKit Pan-X Lock */
+.mobile-mood-scroll,
+#mobile-mood-chips {
   display: flex !important;
   gap: 10px !important;
   overflow-x: auto !important;
+  overflow-y: hidden !important;
+  touch-action: pan-x !important;
+  overscroll-behavior-x: contain !important;
+  overscroll-behavior-y: none !important;
+  -webkit-overflow-scrolling: touch !important;
   white-space: nowrap !important;
   padding: 6px 16px !important;
   margin: 0 -16px 14px -16px !important;
-  -webkit-overflow-scrolling: touch !important;
   scrollbar-width: none !important;
   box-sizing: border-box !important;
 }
 
-.mobile-mood-scroll::-webkit-scrollbar {
+.mobile-mood-scroll::-webkit-scrollbar,
+#mobile-mood-chips::-webkit-scrollbar {
   display: none !important;
 }
 
