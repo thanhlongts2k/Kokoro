@@ -93,6 +93,7 @@ async def mock_login(request: Request) -> JSONResponse:
         max_age=SESSION_DURATION_SECONDS,
         httponly=True,
         samesite="lax",
+        secure=True,  # Mandatory on HTTPS environment
         path="/"
     )
     return response
@@ -142,6 +143,7 @@ async def google_login(request: Request) -> JSONResponse:
         max_age=SESSION_DURATION_SECONDS,
         httponly=True,
         samesite="lax",
+        secure=True,  # Mandatory on HTTPS environment
         path="/"
     )
     return response

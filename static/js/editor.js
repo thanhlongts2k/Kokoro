@@ -440,7 +440,8 @@ const Editor = {
           const placeholder = document.createElement('div');
           placeholder.className = 'preview-heic-placeholder';
           placeholder.style.cssText = 'width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(255,183,197,0.18); color: var(--text-muted); font-size: 10px; padding: 4px; text-align: center; border-radius: 12px;';
-          placeholder.innerHTML = `<i class="bi bi-camera-fill text-sakura" style="font-size: 20px; margin-bottom: 2px;"></i><span style="overflow: hidden; text-overflow: ellipsis; max-width: 90%; white-space: nowrap;">${file.name}</span>`;
+          const safeFileName = window.escapeHtml ? window.escapeHtml(file.name) : file.name;
+          placeholder.innerHTML = `<i class="bi bi-camera-fill text-sakura" style="font-size: 20px; margin-bottom: 2px;"></i><span style="overflow: hidden; text-overflow: ellipsis; max-width: 90%; white-space: nowrap;">${safeFileName}</span>`;
           box.insertBefore(placeholder, removeBtn);
         };
       }

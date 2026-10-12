@@ -17,6 +17,21 @@ function lockBodyScroll(locked) {
 }
 window.lockBodyScroll = lockBodyScroll;
 
+/**
+ * Global HTML Entity Sanitizer for XSS Prevention (SSoT)
+ * Encodes special characters before inserting into HTML / innerHTML strings.
+ */
+function escapeHtml(unsafe) {
+  if (unsafe === null || unsafe === undefined) return '';
+  return String(unsafe)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+window.escapeHtml = escapeHtml;
+
 
 const KokoroAPI = (() => {
   // Dynamically resolve base path regardless of whether app is at root '/' or '/kokoro/'
@@ -417,8 +432,12 @@ const KokoroAPI = (() => {
     // POST /api/auth/logout
     async logout() {
       return await request('/auth/logout', { method: 'POST' });
-    }
+    },
+
+    // HTML Sanitizer
+    escapeHtml
   };
 })();
 
+KokoroAPI.escapeHtml = escapeHtml;
 window.KokoroAPI = KokoroAPI;

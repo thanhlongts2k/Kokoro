@@ -37,6 +37,19 @@ const KokoroApp = {
 
     this.setupEventListeners();
 
+    // Check initial hash route
+    const initialHash = location.hash ? location.hash.replace('#', '') : 'timeline';
+    if (['timeline', 'calendar', 'memories', 'profile'].includes(initialHash) && initialHash !== 'timeline') {
+      this.switchView(initialHash, false);
+      try {
+        history.replaceState({ view: initialHash }, '', '#' + initialHash);
+      } catch (err) {}
+    } else {
+      try {
+        history.replaceState({ view: 'timeline' }, '', '#timeline');
+      } catch (err) {}
+    }
+
     // Initialize Auth & Session
     let user = null;
     if (window.KokoroAuth) {
@@ -193,6 +206,14 @@ const KokoroApp = {
         const v = e.currentTarget.dataset.switchView;
         this.switchView(v);
       });
+    });
+
+    // Global HTML5 History API Popstate Event Listener (Browser Back/Forward)
+    window.addEventListener('popstate', (e) => {
+      const targetView = (e.state && e.state.view) || (location.hash ? location.hash.replace('#', '') : 'timeline');
+      if (['timeline', 'calendar', 'memories', 'profile'].includes(targetView)) {
+        this.switchView(targetView, false); // false to avoid duplicate pushState
+      }
     });
 
     // Full Calendar Navigation Handlers
@@ -922,9 +943,10 @@ const KokoroApp = {
           .map((p, idx) => {
             const thumbUrl = window.KokoroAPI.resolveMediaUrl(p.thumbUrl || p.url);
             const fullUrl = window.KokoroAPI.resolveMediaUrl(p.url);
+            const safeAlt = window.escapeHtml(p.name || 'Photo ' + (idx + 1));
             return `
               <div class="gallery-item" data-full-src="${fullUrl}">
-                <img src="${thumbUrl}" alt="${p.name || 'Photo ' + (idx + 1)}" loading="lazy" />
+                <img src="${thumbUrl}" alt="${safeAlt}" loading="lazy" />
               </div>
             `;
           })
@@ -938,9 +960,10 @@ const KokoroApp = {
             const fullUrl = window.KokoroAPI.resolveMediaUrl(p.url);
             const isLast = idx === 3 && photosCount > 4;
             const extraCount = photosCount - 4;
+            const safeAlt = window.escapeHtml(p.name || 'Photo ' + (idx + 1));
             return `
               <div class="gallery-item" data-full-src="${fullUrl}">
-                <img src="${thumbUrl}" alt="${p.name || 'Photo ' + (idx + 1)}" loading="lazy" />
+                <img src="${thumbUrl}" alt="${safeAlt}" loading="lazy" />
                 ${isLast ? `<div class="gallery-more-overlay">+${extraCount} ảnh</div>` : ''}
               </div>
             `;
@@ -958,18 +981,23 @@ const KokoroApp = {
     const tagsHtml = (entry.tags || [])
       .map(
         (t) => `
-        <span class="tag-pill ${this.activeTagFilter === t ? 'active' : ''}" data-tag="${t}">${t}</span>
+        <span class="tag-pill ${this.activeTagFilter === t ? 'active' : ''}" data-tag="${window.escapeHtml(t)}">${window.escapeHtml(t)}</span>
       `
       )
       .join('');
+
+    const safeTitle = window.escapeHtml(entry.title || '');
+    const safeContent = window.escapeHtml(entry.content || '');
+    const safeMoodLabel = window.escapeHtml(entry.moodLabel || entry.mood || '');
+    const safeDisplayDate = window.escapeHtml(entry.displayDate || entry.entryDate || '');
 
     return `
       <article class="glass-panel journal-card glass-card-interactive" id="entry-${entry.id}">
         <div class="card-header entry-card-header">
           <div class="card-meta card-meta-left">
-            <span class="mood-pill mood-${entry.mood}">${entry.moodLabel || entry.mood}</span>
+            <span class="mood-pill mood-${entry.mood}">${safeMoodLabel}</span>
             <span class="card-meta-dot">&bull;</span>
-            <span class="card-meta-time entry-date"><i class="bi bi-clock"></i> ${entry.displayDate || entry.entryDate}</span>
+            <span class="card-meta-time entry-date"><i class="bi bi-clock"></i> ${safeDisplayDate}</span>
             ${entry.isPinned ? `<span style="color: var(--sakura-500); margin-left: 4px;" title="Đã ghim"><i class="bi bi-pin-angle-fill"></i></span>` : ''}
           </div>
           <div class="card-actions">
@@ -985,8 +1013,8 @@ const KokoroApp = {
           </div>
         </div>
 
-        <h2 class="card-title">${entry.title}</h2>
-        <p class="card-content">${entry.content}</p>
+        <h2 class="card-title">${safeTitle}</h2>
+        <p class="card-content">${safeContent}</p>
 
         ${photosGridHtml}
 
@@ -1096,10 +1124,20 @@ const KokoroApp = {
   /**
    * Router View Switcher
    * @param {'timeline'|'calendar'|'memories'|'profile'} viewName
+   * @param {boolean} updateHistory
    */
-  switchView(viewName) {
+  switchView(viewName, updateHistory = true) {
     if (!['timeline', 'calendar', 'memories', 'profile'].includes(viewName)) return;
     this.currentView = viewName;
+
+    // 0. Synchronize HTML5 History API (Back/Forward browser buttons)
+    if (updateHistory) {
+      try {
+        history.pushState({ view: viewName }, '', '#' + viewName);
+      } catch (err) {
+        console.warn('[KokoroApp] History pushState failed:', err);
+      }
+    }
 
     // 1. Toggle active class on view containers
     document.querySelectorAll('.c-view').forEach((el) => el.classList.remove('active'));
@@ -1318,9 +1356,10 @@ const KokoroApp = {
         tagScrollEl.style.display = 'flex';
         tagScrollEl.innerHTML = tagList.map((tag) => {
           const isSelected = this.memoriesState.tag === tag;
+          const safeTag = window.escapeHtml(tag);
           return `
-            <button type="button" class="memory-tag-chip ${isSelected ? 'active' : ''}" data-memories-tag="${tag}">
-              <span>#${tag}</span>
+            <button type="button" class="memory-tag-chip ${isSelected ? 'active' : ''}" data-memories-tag="${safeTag}">
+              <span>#${safeTag}</span>
               <span style="opacity: 0.7; font-size: 11px;">(${tagCounts[tag]})</span>
             </button>
           `;
@@ -1375,12 +1414,13 @@ const KokoroApp = {
 
     // 4. Render photo grid or empty state
     if (filteredPhotos.length === 0) {
+      const safeEmptyTag = this.memoriesState.tag ? window.escapeHtml(this.memoriesState.tag) : '';
       gridEl.innerHTML = `
         <div class="glass-panel" style="padding: 44px 20px; text-align: center; grid-column: 1 / -1; border-radius: var(--radius-lg);">
           <div style="font-size: 38px; margin-bottom: 8px;">📷</div>
           <div style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Chưa có hình ảnh kỷ niệm phù hợp</div>
           <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 18px;">
-            ${this.memoriesState.tag ? `Không tìm thấy hình ảnh nào với thẻ #${this.memoriesState.tag}.` : 'Hãy đính kèm hình ảnh vào các bài viết nhật ký để lưu giữ kỷ niệm tại đây nhé! 🌸'}
+            ${this.memoriesState.tag ? `Không tìm thấy hình ảnh nào với thẻ #${safeEmptyTag}.` : 'Hãy đính kèm hình ảnh vào các bài viết nhật ký để lưu giữ kỷ niệm tại đây nhé! 🌸'}
           </div>
           <button class="c-btn c-btn--primary" onclick="if(window.Editor){ window.Editor.open(); }">
             <i class="bi bi-plus-lg"></i> Viết bài & Thêm ảnh
@@ -1394,12 +1434,17 @@ const KokoroApp = {
       .map((p) => {
         const thumbUrl = window.KokoroAPI.resolveMediaUrl(p.thumbUrl || p.url);
         const fullUrl = window.KokoroAPI.resolveMediaUrl(p.url);
+        const safeTitle = window.escapeHtml(p.entryTitle || '');
+        const safeDisplayTitle = safeTitle || 'Khoảnh khắc';
+        const safeDate = window.escapeHtml(p.displayDate || '');
+        const safeMood = window.escapeHtml(p.moodLabel || '');
+        const safeAlt = window.escapeHtml(p.name || 'Memory Photo');
         return `
-          <div class="c-memory-item" data-full-src="${fullUrl}" data-title="${p.entryTitle || ''}" data-date="${p.displayDate || ''}">
-            <img src="${thumbUrl}" alt="${p.name || 'Memory Photo'}" loading="lazy" />
+          <div class="c-memory-item" data-full-src="${fullUrl}" data-title="${safeTitle}" data-date="${safeDate}">
+            <img src="${thumbUrl}" alt="${safeAlt}" loading="lazy" />
             <div class="c-memory-overlay">
-              <span class="c-memory-title">${p.entryTitle || 'Khoảnh khắc'}</span>
-              <span class="c-memory-meta"><i class="bi bi-clock"></i> ${p.displayDate} &bull; ${p.moodLabel}</span>
+              <span class="c-memory-title">${safeDisplayTitle}</span>
+              <span class="c-memory-meta"><i class="bi bi-clock"></i> ${safeDate} &bull; ${safeMood}</span>
             </div>
           </div>
         `;

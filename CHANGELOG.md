@@ -4,6 +4,32 @@ Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal 
 
 ---
 
+## [1.5.6] - 2026-10-12
+### Fixed & Hardened (Security Hotfix, Stored XSS Mitigation, History API & Mobile Accessibility)
+- **[P0 - CRITICAL SECURITY] Vá Triệt Để Lỗ Hổng Stored XSS (`static/js/api.js`, `static/js/app.js`, `static/js/tag-manager.js`, `static/js/auth.js`, `static/js/editor.js`):**
+  - Xây dựng tiện ích chuẩn hóa `escapeHtml(unsafe)` trong `api.js`, đăng ký toàn cục tại `window.escapeHtml` và `window.KokoroAPI.escapeHtml`.
+  - Bọc mã hóa 100% dữ liệu người dùng render qua `innerHTML`: tiêu đề (`entry.title`), nội dung (`entry.content`), nhãn thẻ (`tag.name`, `tagsHtml`), tên ảnh đính kèm (`p.name`, `file.name`), ngày giờ (`displayDate`), và thông tin tài khoản mock/profile.
+  - Ngăn chặn hoàn toàn mọi payload script injection, mã HTML độc hại khi render trên Timeline Feed, Full Calendar, Memories Gallery, và Tag Manager.
+- **[P1 - HIGH INTERACTION] Khắc Phục Lỗi Modal Quản Lý Danh Mục Bị Kẹt Pointer-Events (`static/js/tag-manager.js`):**
+  - Cập nhật `openManagerModal(tab)`: Thêm `modalEl.classList.add('active')` và `window.lockBodyScroll(true)` để kích hoạt thuộc tính CSS `pointer-events: auto`.
+  - Cập nhật `closeManagerModal()`: Gỡ bỏ `modalEl.classList.remove('active')` và `window.lockBodyScroll(false)` đồng bộ.
+  - Người dùng có thể click tương tác mượt mà với các tab, nút đổi tên, nút xóa thẻ, và nút đóng modal.
+- **[P2 - SECURITY CONFIG] Bổ Sung Cờ `secure=True` Cho Session Cookie (`app/routes/auth_routes.py`):**
+  - Thêm chỉ thị `secure=True` cho tất cả các lời gọi `response.set_cookie(...)` tại endpoint `mock_login` và `google_login`.
+  - Đảm bảo session cookie luôn được truyền tải an toàn độc quyền qua kênh mã hóa HTTPS, ngăn chặn rò rỉ cookie trên môi trường mạng.
+- **[P2 - USER EXPERIENCE] Đồng Bộ HTML5 History API Cho Điều Hướng Tabs (`static/js/app.js`):**
+  - Bổ sung `history.pushState({ view: viewName }, '', '#' + viewName)` vào hàm `switchView(viewName, updateHistory = true)`.
+  - Lắng nghe sự kiện `popstate` toàn cục để điều hướng tab liền mạch khi người dùng nhấn nút Back / Forward của trình duyệt hoặc cử chỉ vuốt quay lại trên điện thoại.
+  - Hỗ trợ khôi phục deep link hash (`#calendar`, `#memories`, `#profile`) khi tải lại trang mà không làm mất lịch sử duyệt.
+- **[P3 - MOBILE ACCESSIBILITY] Chuẩn Hóa Kích Thước Vùng Chạm Touch Targets >= 44px (`static/css/components.css`, `static/css/layout.css`):**
+  - Mở rộng kích thước nút icon tròn (`#theme-toggle-btn`, `#zen-toggle-btn`, `.action-icon-btn`): `min-width: 40px; min-height: 40px;` kèm pseudo-element `::before` (`inset: -4px`) tạo diện tích chạm xúc giác đạt chuẩn WCAG 2.5.5 (48x48px).
+  - Chuẩn hóa các chip chọn cảm xúc `.mood-option-chip`: `min-height: 44px; padding: 0 16px;`.
+  - Mở rộng kích thước nút điều hướng tháng trên lịch (`#full-cal-prev-btn`, `#dt-cal-prev-btn`, v.v.): `min-width: 36px; min-height: 36px; padding: 6px;` kèm vùng đệm mở rộng `::before`.
+- **Nâng Cấp Phiên Bản Hệ Thống Lên v1.5.6:**
+  - Đồng bộ `APP_VERSION = "v1.5.6"` trong `app/config.py`.
+  - Cập nhật `CACHE_NAME = 'kokoro-v1.5.6'` và query params trong `static/sw.js`.
+  - Cập nhật phiên bản badge `v1.5.6` và query string cache-busting trong `static/index.html`.
+
 ## [1.5.5] - 2026-10-12
 ### Added & Fixed (System Refactor, Adaptive Media, Smooth Time Wheel, Memories Redesign & Tag Management)
 - **Tiêu Diệt Triệt Để Ghost Lightbox Controls (`static/index.html`, `static/js/lightbox.js`, `static/css/components.css`, `static/css/layout.css`):**

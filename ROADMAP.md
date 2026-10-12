@@ -189,6 +189,25 @@
 - [x] Bổ sung Backend REST API: `PUT /api/tags/{id}`, `DELETE /api/tags/{id}`, `DELETE /api/tags/cleanup-orphans`.
 - [x] Nâng phiên bản hệ thống lên `v1.5.5` và kiểm thử tự động toàn diện đạt 100% PASS.
 
+### 🔹 Giai đoạn 7.11: Hotfix v1.5.6 — Vá Dứt Điểm 5 Bug Audit Độc Lập (P0 - P3)
+- [x] **[P0 - CRITICAL SECURITY] Vá triệt để lỗ hổng Stored XSS**:
+  - [x] Xây dựng hàm `escapeHtml(unsafe)` trong `static/js/api.js`, export qua `window.escapeHtml` và `window.KokoroAPI.escapeHtml`.
+  - [x] Bọc mã hóa dữ liệu người dùng render qua innerHTML trong `app.js` (`buildEntryCardHtml`, Lịch, Kỷ niệm), `tag-manager.js`, `auth.js`, và `editor.js`.
+- [x] **[P1 - HIGH INTERACTION] Sửa lỗi modal Quản lý Danh mục bị kẹt pointer-events**:
+  - [x] Bổ sung `modalEl.classList.add('active')` và `lockBodyScroll(true)` trong `openManagerModal`.
+  - [x] Bổ sung `modalEl.classList.remove('active')` và `lockBodyScroll(false)` trong `closeManagerModal`.
+- [x] **[P2 - SECURITY CONFIG] Bổ sung cờ `Secure=True` cho Session Cookie**:
+  - [x] Bổ sung `secure=True` cho `response.set_cookie(...)` tại `mock_login` và `google_login` trong `app/routes/auth_routes.py`.
+- [x] **[P2 - USER EXPERIENCE] Đồng bộ HTML5 History API cho điều hướng Tabs**:
+  - [x] Tích hợp `history.pushState({ view: viewName }, '', '#' + viewName)` vào `switchView`.
+  - [x] Lắng nghe sự kiện toàn cục `popstate` và khôi phục hash router ban đầu.
+- [x] **[P3 - MOBILE ACCESSIBILITY] Chuẩn hóa kích thước vùng chạm Touch Targets >= 44px**:
+  - [x] Cấu hình `min-width: 40px; min-height: 40px;` kèm pseudo-element `::before` (`inset: -4px`) cho các icon tròn.
+  - [x] Cấu hình `.mood-option-chip` đạt `min-height: 44px; padding: 0 16px;`.
+  - [x] Đảm bảo nút điều hướng tháng trên lịch đạt kích thước chuẩn.
+- [x] **Nâng cấp phiên bản hệ thống lên v1.5.6**:
+  - [x] Cập nhật `app/config.py`, `static/sw.js`, và `static/index.html`.
+
 ### 🔹 Giai đoạn 8: Cảm Hứng & Chia Sẻ (v1.6.0 - Planned)
 - [ ] Gợi ý câu hỏi suy ngẫm mỗi ngày (Daily Zen Prompt):
   - [ ] Bộ danh mục 60+ câu hỏi chánh niệm, triết lý sống Nhật Bản offline trong `static/js/daily-prompt.js`.

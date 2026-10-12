@@ -90,10 +90,11 @@ const KokoroTagManager = (() => {
         const currentSelected = parseTagsFromInput(inputEl ? inputEl.value : '');
         containerEl.innerHTML = cachedTags.map((t) => {
           const cleanName = normalizeTag(t.name);
+          const safeCleanName = window.escapeHtml(cleanName);
           const isSelected = currentSelected.includes(cleanName.toLowerCase());
           return `
-            <span class="tag-quick-chip ${isSelected ? 'selected' : ''}" data-tag="${cleanName}" title="Gắn thẻ ${cleanName} (${t.usage_count} bài viết)">
-              ${cleanName} <span class="tag-quick-chip-count">(${t.usage_count})</span>
+            <span class="tag-quick-chip ${isSelected ? 'selected' : ''}" data-tag="${safeCleanName}" title="Gắn thẻ ${safeCleanName} (${t.usage_count} bài viết)">
+              ${safeCleanName} <span class="tag-quick-chip-count">(${t.usage_count})</span>
             </span>
           `;
         }).join('');
@@ -149,10 +150,11 @@ const KokoroTagManager = (() => {
 
         containerEl.innerHTML = cachedTags.map((t) => {
           const cleanName = normalizeTag(t.name);
+          const safeCleanName = window.escapeHtml(cleanName);
           const isActive = activeFilter && activeFilter.toLowerCase() === cleanName.toLowerCase();
           return `
-            <span class="tag-pill ${isActive ? 'active' : ''}" data-tag="${cleanName}" title="Lọc theo thẻ ${cleanName} (${t.usage_count} bài viết)">
-              ${cleanName} <span class="tag-count">(${t.usage_count})</span>
+            <span class="tag-pill ${isActive ? 'active' : ''}" data-tag="${safeCleanName}" title="Lọc theo thẻ ${safeCleanName} (${t.usage_count} bài viết)">
+              ${safeCleanName} <span class="tag-count">(${t.usage_count})</span>
             </span>
           `;
         }).join('');
@@ -323,17 +325,18 @@ const KokoroTagManager = (() => {
 
       tagsListContainer.innerHTML = tags.map((t) => {
         const cleanName = normalizeTag(t.name);
+        const safeCleanName = window.escapeHtml(cleanName);
         return `
           <div class="glass-panel" style="padding: 10px 14px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; gap: 10px;">
             <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
-              <span class="tag-quick-chip selected" style="margin: 0; pointer-events: none;">${cleanName}</span>
+              <span class="tag-quick-chip selected" style="margin: 0; pointer-events: none;">${safeCleanName}</span>
               <span style="font-size: 11.5px; color: var(--text-muted); white-space: nowrap;">${t.usage_count} bài viết</span>
             </div>
             <div style="display: flex; gap: 6px; flex-shrink: 0;">
-              <button type="button" class="action-icon-btn btn-rename-tag" data-tag-id="${t.id}" data-tag-name="${cleanName}" style="width: 30px; height: 30px;" title="Đổi tên thẻ">
+              <button type="button" class="action-icon-btn btn-rename-tag" data-tag-id="${t.id}" data-tag-name="${safeCleanName}" style="width: 30px; height: 30px;" title="Đổi tên thẻ">
                 <i class="bi bi-pencil" style="font-size: 12px;"></i>
               </button>
-              <button type="button" class="action-icon-btn btn-delete-tag text-danger" data-tag-id="${t.id}" data-tag-name="${cleanName}" style="width: 30px; height: 30px;" title="Xóa thẻ">
+              <button type="button" class="action-icon-btn btn-delete-tag text-danger" data-tag-id="${t.id}" data-tag-name="${safeCleanName}" style="width: 30px; height: 30px;" title="Xóa thẻ">
                 <i class="bi bi-trash" style="font-size: 12px;"></i>
               </button>
             </div>
@@ -405,11 +408,17 @@ const KokoroTagManager = (() => {
     if (!modalEl) initModal();
     if (!modalEl) return;
     modalEl.style.display = 'flex';
+    modalEl.classList.add('active'); // Bắt buộc thêm class active để mở pointer-events: auto
+    if (window.lockBodyScroll) window.lockBodyScroll(true);
     switchTab(tab);
   };
 
   const closeManagerModal = () => {
-    if (modalEl) modalEl.style.display = 'none';
+    if (modalEl) {
+      modalEl.style.display = 'none';
+      modalEl.classList.remove('active'); // Gỡ bỏ class active
+    }
+    if (window.lockBodyScroll) window.lockBodyScroll(false);
   };
 
   return {

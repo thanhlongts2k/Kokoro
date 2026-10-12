@@ -173,9 +173,11 @@ const KokoroAuth = {
         item.className = 'dropdown-item';
         item.style.padding = '6px 8px';
         item.style.borderRadius = '6px';
+        const safeName = window.escapeHtml(u.name || '');
+        const safeAvatar = window.escapeHtml(u.avatar_url || './icons/sakura.svg');
         item.innerHTML = `
-          <img src="${u.avatar_url}" style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover;" />
-          <span style="font-size: 12px; font-weight: 600;">${u.name}</span>
+          <img src="${safeAvatar}" style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover;" />
+          <span style="font-size: 12px; font-weight: 600;">${safeName}</span>
         `;
         item.addEventListener('click', () => this.switchUser(u.id));
         listEl.appendChild(item);
@@ -189,11 +191,14 @@ const KokoroAuth = {
       this.mockUsers.forEach((u) => {
         const chip = document.createElement('div');
         chip.className = 'dev-user-chip';
+        const safeName = window.escapeHtml(u.name || '');
+        const safeEmail = window.escapeHtml(u.email || '');
+        const safeAvatar = window.escapeHtml(u.avatar_url || './icons/sakura.svg');
         chip.innerHTML = `
-          <img src="${u.avatar_url}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" />
+          <img src="${safeAvatar}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" />
           <div style="flex: 1;">
-            <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">${u.name}</div>
-            <div style="font-size: 11px; color: var(--text-muted);">${u.email}</div>
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">${safeName}</div>
+            <div style="font-size: 11px; color: var(--text-muted);">${safeEmail}</div>
           </div>
           <i class="bi bi-chevron-right text-sakura" style="font-size: 12px;"></i>
         `;
