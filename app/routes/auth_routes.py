@@ -9,6 +9,7 @@ Endpoints:
 - POST /api/auth/logout      (Clear session cookie)
 """
 
+import os
 import logging
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -86,6 +87,8 @@ async def mock_login(request: Request) -> JSONResponse:
         "token": token
     })
 
+    is_secure = os.getenv("COOKIE_SECURE", "").lower() in ("true", "1") or (request.url.scheme == "https") or (request.headers.get("x-forwarded-proto") == "https")
+
     # Set persistent HttpOnly session cookie
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
@@ -93,7 +96,7 @@ async def mock_login(request: Request) -> JSONResponse:
         max_age=SESSION_DURATION_SECONDS,
         httponly=True,
         samesite="lax",
-        secure=True,  # Mandatory on HTTPS environment
+        secure=is_secure,
         path="/"
     )
     return response
@@ -137,13 +140,15 @@ async def google_login(request: Request) -> JSONResponse:
         "token": token
     })
 
+    is_secure = os.getenv("COOKIE_SECURE", "").lower() in ("true", "1") or (request.url.scheme == "https") or (request.headers.get("x-forwarded-proto") == "https")
+
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
         value=token,
         max_age=SESSION_DURATION_SECONDS,
         httponly=True,
         samesite="lax",
-        secure=True,  # Mandatory on HTTPS environment
+        secure=is_secure,
         path="/"
     )
     return response
