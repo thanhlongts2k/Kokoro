@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 class Config:
-    APP_VERSION: str = "v1.6.0-beta.2"
+    APP_VERSION: str = "v1.6.0"
     BASE_DIR: Path = BASE_DIR
     PORT: int = int(os.getenv("PORT", "5050"))
     HOST: str = os.getenv("HOST", "0.0.0.0")

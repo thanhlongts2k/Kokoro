@@ -7,9 +7,11 @@
 const KokoroApp = {
   allEntries: [], // SSoT: Master snapshot of all entries without temporary filters
   entries: [],    // Filtered entries displayed in Timeline Feed
-  timelineState: { mood: 'all', tag: null, search: '' },
-  memoriesState: { mood: 'all', tag: null },
+  categories: [], // SSoT: Dynamic mood/category taxonomy from PostgreSQL
+  timelineState: { mood: 'all', categoryId: null, tag: null, search: '' },
+  memoriesState: { mood: 'all', categoryId: null, tag: null },
   activeMoodFilter: 'all',
+  activeCategoryId: null,
   activeTagFilter: null,
   activeDateFilter: null,
   searchQuery: '',
@@ -63,6 +65,9 @@ const KokoroApp = {
 
   async onUserChanged(user) {
     this.activeMoodFilter = 'all';
+    this.activeCategoryId = null;
+    this.timelineState.mood = 'all';
+    this.timelineState.categoryId = null;
     this.activeTagFilter = null;
     this.activeDateFilter = null;
 
@@ -105,6 +110,7 @@ const KokoroApp = {
         this.renderProfileView();
         this.renderStats();
       } else {
+        await this.loadCategories();
         await this.loadEntries();
         await this.loadStats();
         this.renderTimeline();
@@ -123,6 +129,7 @@ const KokoroApp = {
   },
 
   async onPinUnlocked() {
+    await this.loadCategories();
     await this.loadEntries();
     await this.loadStats();
     this.renderTimeline();
@@ -497,6 +504,192 @@ const KokoroApp = {
   },
 
   /**
+   * Fetch categories from PostgreSQL API strictly for current user
+   */
+  async loadCategories() {
+    try {
+      const res = await window.KokoroAPI.getCategories();
+      if (res && res.status === 'success' && Array.isArray(res.categories)) {
+        this.categories = res.categories;
+      }
+    } catch (err) {
+      console.warn('[KokoroApp] Lỗi tải danh mục:', err);
+    }
+    this.renderMoodFilterChips();
+    this.renderMemoriesMoodFilterChips();
+  },
+
+  /**
+   * Render dynamic mood/category filter chips in Desktop Sidebar and Mobile Horizontal Scroll
+   */
+  renderMoodFilterChips() {
+    const sidebarContainer = document.getElementById('sidebar-mood-filters');
+    const mobileContainer = document.getElementById('mobile-mood-chips');
+    const isAllActive = (this.timelineState.mood === 'all' || !this.timelineState.mood) && !this.timelineState.categoryId;
+
+    const categories = (this.categories && this.categories.length > 0) ? this.categories : [
+      { id: null, name: 'Bình yên', icon: '🌸', color: '#ec4899', usage_count: 0 },
+      { id: null, name: 'Ấm áp', icon: '☕', color: '#f59e0b', usage_count: 0 },
+      { id: null, name: 'Chiêm nghiệm', icon: '🌙', color: '#8b5cf6', usage_count: 0 },
+      { id: null, name: 'Biết ơn', icon: '🍵', color: '#10b981', usage_count: 0 },
+      { id: null, name: 'Năng lượng', icon: '⚡', color: '#3b82f6', usage_count: 0 }
+    ];
+
+    if (sidebarContainer) {
+      let sidebarHtml = `
+        <button class="btn-glass ${isAllActive ? 'active' : ''}" data-filter-mood="all" style="justify-content: space-between; width: 100%; border-radius: var(--radius-sm);">
+          <span style="display: flex; align-items: center; gap: 8px;"><i class="bi bi-grid"></i> Tất cả bài viết</span>
+          <span class="mood-count-badge" data-count-mood="all">${this.allEntries.length}</span>
+        </button>
+      `;
+
+      categories.forEach((cat) => {
+        const isSelected = this.timelineState.categoryId 
+          ? (cat.id === Number(this.timelineState.categoryId)) 
+          : (this.timelineState.mood === cat.name);
+        const safeName = window.escapeHtml(cat.name);
+        const safeIcon = window.escapeHtml(cat.icon || '🌸');
+        const count = cat.usage_count || 0;
+        sidebarHtml += `
+          <button class="btn-glass ${isSelected ? 'active' : ''}" 
+                  data-filter-mood="${safeName}" 
+                  data-category-id="${cat.id || ''}" 
+                  style="justify-content: space-between; width: 100%; border-radius: var(--radius-sm);">
+            <span style="display: flex; align-items: center; gap: 8px;"><span>${safeIcon}</span> ${safeName}</span>
+            <span class="mood-count-badge" data-count-category="${cat.id || ''}">${count}</span>
+          </button>
+        `;
+      });
+      sidebarContainer.innerHTML = sidebarHtml;
+
+      sidebarContainer.querySelectorAll('[data-filter-mood]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const mood = e.currentTarget.dataset.filterMood;
+          const catId = e.currentTarget.dataset.categoryId ? Number(e.currentTarget.dataset.categoryId) : null;
+          this.setMoodFilter(mood, catId);
+        });
+      });
+    }
+
+    if (mobileContainer) {
+      let mobileHtml = `
+        <button class="btn-glass mood-chip-pill ${isAllActive ? 'active' : ''}" data-filter-mood="all">
+          <span class="chip-icon">🌸</span>
+          <span class="chip-label">Tất cả</span>
+          <span class="mood-count-badge" data-count-mood="all">${this.allEntries.length}</span>
+        </button>
+      `;
+
+      categories.forEach((cat) => {
+        const isSelected = this.timelineState.categoryId 
+          ? (cat.id === Number(this.timelineState.categoryId)) 
+          : (this.timelineState.mood === cat.name);
+        const safeName = window.escapeHtml(cat.name);
+        const safeIcon = window.escapeHtml(cat.icon || '🌸');
+        const count = cat.usage_count || 0;
+        mobileHtml += `
+          <button class="btn-glass mood-chip-pill ${isSelected ? 'active' : ''}" 
+                  data-filter-mood="${safeName}" 
+                  data-category-id="${cat.id || ''}">
+            <span class="chip-icon">${safeIcon}</span>
+            <span class="chip-label">${safeName}</span>
+            <span class="mood-count-badge" data-count-category="${cat.id || ''}">${count}</span>
+          </button>
+        `;
+      });
+      mobileContainer.innerHTML = mobileHtml;
+
+      mobileContainer.querySelectorAll('[data-filter-mood]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const mood = e.currentTarget.dataset.filterMood;
+          const catId = e.currentTarget.dataset.categoryId ? Number(e.currentTarget.dataset.categoryId) : null;
+          this.setMoodFilter(mood, catId);
+        });
+      });
+    }
+  },
+
+  /**
+   * Render dynamic mood/category filter chips in Memories View
+   */
+  renderMemoriesMoodFilterChips() {
+    const container = document.getElementById('memories-mood-filters');
+    if (!container) return;
+
+    const categories = (this.categories && this.categories.length > 0) ? this.categories : [
+      { id: null, name: 'Bình yên', icon: '🌸', color: '#ec4899' },
+      { id: null, name: 'Ấm áp', icon: '☕', color: '#f59e0b' },
+      { id: null, name: 'Chiêm nghiệm', icon: '🌙', color: '#8b5cf6' },
+      { id: null, name: 'Biết ơn', icon: '🍵', color: '#10b981' },
+      { id: null, name: 'Năng lượng', icon: '⚡', color: '#3b82f6' }
+    ];
+
+    const sourceEntries = (this.allEntries && this.allEntries.length > 0) ? this.allEntries : this.entries;
+    const isAllActive = (this.memoriesState.mood === 'all' || !this.memoriesState.mood) && !this.memoriesState.categoryId;
+
+    const catPhotoCounts = {};
+    let allPhotoCount = 0;
+    sourceEntries.forEach((entry) => {
+      if (entry.photos && entry.photos.length > 0) {
+        const pCount = entry.photos.length;
+        allPhotoCount += pCount;
+        if (entry.categoryId || entry.category_id) {
+          const cId = entry.categoryId || entry.category_id;
+          catPhotoCounts[cId] = (catPhotoCounts[cId] || 0) + pCount;
+        }
+        if (entry.mood) {
+          catPhotoCounts[entry.mood] = (catPhotoCounts[entry.mood] || 0) + pCount;
+        }
+        if (entry.categoryName) {
+          catPhotoCounts[entry.categoryName] = (catPhotoCounts[entry.categoryName] || 0) + pCount;
+        }
+      }
+    });
+
+    let html = `
+      <button class="btn-glass mood-chip-pill ${isAllActive ? 'active' : ''}" data-memories-mood="all">
+        <span class="chip-icon">📸</span>
+        <span class="chip-label">Tất cả ảnh</span>
+        <span class="mood-count-badge" data-memories-count-mood="all">${allPhotoCount}</span>
+      </button>
+    `;
+
+    categories.forEach((cat) => {
+      const isSelected = this.memoriesState.categoryId 
+        ? (cat.id === Number(this.memoriesState.categoryId)) 
+        : (this.memoriesState.mood === cat.name);
+      const safeName = window.escapeHtml(cat.name);
+      const safeIcon = window.escapeHtml(cat.icon || '🌸');
+      const count = (cat.id && catPhotoCounts[cat.id]) ? catPhotoCounts[cat.id] : (catPhotoCounts[cat.name] || 0);
+
+      html += `
+        <button class="btn-glass mood-chip-pill ${isSelected ? 'active' : ''}" 
+                data-memories-mood="${safeName}" 
+                data-category-id="${cat.id || ''}">
+          <span class="chip-icon">${safeIcon}</span>
+          <span class="chip-label">${safeName}</span>
+          <span class="mood-count-badge" data-memories-count-category="${cat.id || ''}">${count}</span>
+        </button>
+      `;
+    });
+
+    container.innerHTML = html;
+
+    container.querySelectorAll('[data-memories-mood]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        container.querySelectorAll('.mood-chip-pill').forEach((b) => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        const mood = e.currentTarget.dataset.memoriesMood;
+        const catId = e.currentTarget.dataset.categoryId ? Number(e.currentTarget.dataset.categoryId) : null;
+        this.memoriesState.mood = mood;
+        this.memoriesState.categoryId = catId;
+        this.activeMemoriesMood = mood;
+        this.renderMemoriesGallery();
+      });
+    });
+  },
+
+  /**
    * Fetch entries from PostgreSQL API with currently applied filters
    * Keeps master snapshot in this.allEntries to prevent state leak across screens.
    */
@@ -513,9 +706,13 @@ const KokoroApp = {
 
       // 2. Fetch timeline specific filtered entries
       const filters = {};
-      const activeMood = this.timelineState.mood || this.activeMoodFilter;
-      if (activeMood && activeMood !== 'all') {
-        filters.mood = activeMood;
+      if (this.timelineState.categoryId) {
+        filters.category_id = this.timelineState.categoryId;
+      } else {
+        const activeMood = this.timelineState.mood || this.activeMoodFilter;
+        if (activeMood && activeMood !== 'all') {
+          filters.mood = activeMood;
+        }
       }
       const activeTag = this.timelineState.tag || this.activeTagFilter;
       if (activeTag) {
@@ -560,23 +757,38 @@ const KokoroApp = {
    * Update photo count badges in Memories Mood Filter chips
    */
   updateMemoriesMoodBadges() {
-    const badges = document.querySelectorAll('[data-memories-count-mood]');
+    const badges = document.querySelectorAll('[data-memories-count-mood], [data-memories-count-category]');
     if (!badges || !badges.length) return;
 
+    const sourceEntries = (this.allEntries && this.allEntries.length > 0) ? this.allEntries : this.entries;
     const counts = { all: 0, serene: 0, cozy: 0, reflective: 0, grateful: 0, energetic: 0 };
-    (this.allEntries || []).forEach((entry) => {
+    const catCounts = {};
+
+    sourceEntries.forEach((entry) => {
       if (entry.photos && entry.photos.length > 0) {
         const photoNum = entry.photos.length;
         counts.all += photoNum;
         if (counts[entry.mood] !== undefined) {
           counts[entry.mood] += photoNum;
         }
+        if (entry.categoryId || entry.category_id) {
+          const cId = entry.categoryId || entry.category_id;
+          catCounts[cId] = (catCounts[cId] || 0) + photoNum;
+        }
+        if (entry.categoryName) {
+          catCounts[entry.categoryName] = (catCounts[entry.categoryName] || 0) + photoNum;
+        }
       }
     });
 
     badges.forEach((b) => {
-      const mood = b.dataset.memoriesCountMood;
-      b.textContent = counts[mood] !== undefined ? counts[mood] : 0;
+      if (b.dataset.memoriesCountMood) {
+        const mood = b.dataset.memoriesCountMood;
+        b.textContent = counts[mood] !== undefined ? counts[mood] : (catCounts[mood] || 0);
+      } else if (b.dataset.memoriesCountCategory) {
+        const cId = b.dataset.memoriesCountCategory;
+        b.textContent = catCounts[cId] !== undefined ? catCounts[cId] : 0;
+      }
     });
   },
 
@@ -612,17 +824,22 @@ const KokoroApp = {
    */
   updateMoodCountBadges(stats) {
     const s = stats || this.stats;
-    if (!s) return;
-    const badges = document.querySelectorAll('[data-count-mood]');
+    const badges = document.querySelectorAll('[data-count-mood], [data-count-category]');
     badges.forEach((badge) => {
-      const moodKey = badge.dataset.countMood;
-      let count = 0;
-      if (moodKey === 'all') {
-        count = s.totalEntries || 0;
-      } else {
-        count = (s.moodCounts && s.moodCounts[moodKey]) ? s.moodCounts[moodKey] : 0;
+      if (badge.dataset.countMood) {
+        const moodKey = badge.dataset.countMood;
+        let count = 0;
+        if (moodKey === 'all') {
+          count = (s && s.totalEntries !== undefined) ? s.totalEntries : (this.allEntries ? this.allEntries.length : 0);
+        } else {
+          count = (s && s.moodCounts && s.moodCounts[moodKey]) ? s.moodCounts[moodKey] : 0;
+        }
+        badge.textContent = count;
+      } else if (badge.dataset.countCategory) {
+        const catId = Number(badge.dataset.countCategory);
+        const cat = (this.categories || []).find((c) => c.id === catId);
+        badge.textContent = cat ? (cat.usage_count || 0) : 0;
       }
-      badge.textContent = count;
     });
   },
 
@@ -678,9 +895,11 @@ const KokoroApp = {
     multiBar.innerHTML = html || `<div class="mood-segment segment-serene" style="width: 100%;"></div>`;
   },
 
-  async setMoodFilter(mood) {
+  async setMoodFilter(mood, categoryId = null) {
     this.activeMoodFilter = mood;
+    this.activeCategoryId = categoryId;
     this.timelineState.mood = mood;
+    this.timelineState.categoryId = categoryId;
     this.activeTagFilter = null;
     this.timelineState.tag = null;
     this.activeDateFilter = null;
@@ -691,15 +910,7 @@ const KokoroApp = {
       tagContainer.querySelectorAll('.tag-pill').forEach((p) => p.classList.remove('active'));
     }
 
-    // Update active style on filter buttons
-    document.querySelectorAll('[data-filter-mood]').forEach((btn) => {
-      if (btn.dataset.filterMood === mood) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-    });
-
+    this.renderMoodFilterChips();
     await this.loadEntries();
   },
 
@@ -736,13 +947,14 @@ const KokoroApp = {
 
   async clearFilters() {
     this.activeMoodFilter = 'all';
+    this.activeCategoryId = null;
     this.timelineState.mood = 'all';
+    this.timelineState.categoryId = null;
     this.activeTagFilter = null;
     this.timelineState.tag = null;
     this.activeDateFilter = null;
-    document.querySelectorAll('[data-filter-mood]').forEach((b) => b.classList.remove('active'));
-    const allBtn = document.querySelector('[data-filter-mood="all"]');
-    if (allBtn) allBtn.classList.add('active');
+
+    this.renderMoodFilterChips();
 
     const tagContainer = document.getElementById('sidebar-popular-tags');
     if (tagContainer) {
@@ -988,14 +1200,30 @@ const KokoroApp = {
 
     const safeTitle = window.escapeHtml(entry.title || '');
     const safeContent = window.escapeHtml(entry.content || '');
-    const safeMoodLabel = window.escapeHtml(entry.moodLabel || entry.mood || '');
     const safeDisplayDate = window.escapeHtml(entry.displayDate || entry.entryDate || '');
+
+    // Category or Mood badge
+    let categoryBadgeHtml = '';
+    if (entry.categoryName) {
+      const safeCatName = window.escapeHtml(entry.categoryName);
+      const safeCatIcon = window.escapeHtml(entry.categoryIcon || '🌸');
+      const safeCatColor = window.escapeHtml(entry.categoryColor || '#ec4899');
+      categoryBadgeHtml = `
+        <span class="category-badge-pill" style="--cat-color: ${safeCatColor};">
+          <span>${safeCatIcon}</span>
+          <span>${safeCatName}</span>
+        </span>
+      `;
+    } else {
+      const safeMoodLabel = window.escapeHtml(entry.moodLabel || entry.mood || '🌸 Bình yên');
+      categoryBadgeHtml = `<span class="mood-pill mood-${entry.mood}">${safeMoodLabel}</span>`;
+    }
 
     return `
       <article class="glass-panel journal-card glass-card-interactive" id="entry-${entry.id}">
         <div class="card-header entry-card-header">
           <div class="card-meta card-meta-left">
-            <span class="mood-pill mood-${entry.mood}">${safeMoodLabel}</span>
+            ${categoryBadgeHtml}
             <span class="card-meta-dot">&bull;</span>
             <span class="card-meta-time entry-date"><i class="bi bi-clock"></i> ${safeDisplayDate}</span>
             ${entry.isPinned ? `<span style="color: var(--sakura-500); margin-left: 4px;" title="Đã ghim"><i class="bi bi-pin-angle-fill"></i></span>` : ''}
@@ -1394,16 +1622,22 @@ const KokoroApp = {
           entryDate: e.entryDate,
           displayDate: e.displayDate || e.entryDate,
           mood: e.mood,
-          moodLabel: e.moodLabel || e.mood
+          moodLabel: e.moodLabel || e.mood,
+          categoryId: e.categoryId || e.category_id,
+          categoryName: e.categoryName || e.category_name,
+          categoryIcon: e.categoryIcon || e.category_icon
         });
       });
     });
 
-    // 3. Filter by active memories mood
+    // 3. Filter by active memories mood / category
     let filteredPhotos = allPhotos;
+    const activeCatId = this.memoriesState.categoryId;
     const activeMood = this.memoriesState.mood || this.activeMemoriesMood;
-    if (activeMood && activeMood !== 'all') {
-      filteredPhotos = allPhotos.filter((p) => p.mood === activeMood);
+    if (activeCatId) {
+      filteredPhotos = allPhotos.filter((p) => p.categoryId === Number(activeCatId));
+    } else if (activeMood && activeMood !== 'all') {
+      filteredPhotos = allPhotos.filter((p) => p.mood === activeMood || (p.categoryName && p.categoryName.toLowerCase() === activeMood.toLowerCase()));
     }
 
     if (badgeEl) {
@@ -1437,14 +1671,15 @@ const KokoroApp = {
         const safeTitle = window.escapeHtml(p.entryTitle || '');
         const safeDisplayTitle = safeTitle || 'Khoảnh khắc';
         const safeDate = window.escapeHtml(p.displayDate || '');
-        const safeMood = window.escapeHtml(p.moodLabel || '');
+        const safeCat = p.categoryName ? `${p.categoryIcon || '🌸'} ${p.categoryName}` : (p.moodLabel || '');
+        const safeMeta = window.escapeHtml(safeCat);
         const safeAlt = window.escapeHtml(p.name || 'Memory Photo');
         return `
           <div class="c-memory-item" data-full-src="${fullUrl}" data-title="${safeTitle}" data-date="${safeDate}">
             <img src="${thumbUrl}" alt="${safeAlt}" loading="lazy" />
             <div class="c-memory-overlay">
               <span class="c-memory-title">${safeDisplayTitle}</span>
-              <span class="c-memory-meta"><i class="bi bi-clock"></i> ${safeDate} &bull; ${safeMood}</span>
+              <span class="c-memory-meta"><i class="bi bi-clock"></i> ${safeDate} &bull; ${safeMeta}</span>
             </div>
           </div>
         `;

@@ -224,10 +224,11 @@
   - [x] Bộ chọn Emoji Popover (20 icon tinh tế) và bảng 7 mã màu Pastel chữa lành.
   - [x] Bộ điều khiển `static/js/tag-manager.js` kết nối đầy đủ CRUD API cho cả danh mục và thẻ.
   - [x] Viết bộ kiểm thử giao diện `tests/test_v160_modal_client.py` đạt 100% PASS.
-- [ ] **Giai đoạn 8.3 (v1.6.0 Release) — Tích Hợp Đồng Bộ Toàn Hệ Thống:**
-  - [ ] Tích hợp bộ chọn Mood/Danh mục động vào Form Soạn thảo (`static/js/editor.js`).
-  - [ ] Tích hợp bộ lọc Mood/Danh mục động ngoài Timeline Feed và Kho Kỷ niệm (`static/js/app.js`).
-  - [ ] Nâng cấp Service Worker cache lên `kokoro-v1.6.0` và kiểm thử hồi quy toàn diện.
+- [x] **Giai đoạn 8.3 (v1.6.0 Release) — Tích Hợp Đồng Bộ Toàn Hệ Thống:**
+  - [x] Tích hợp bộ chọn Mood/Danh mục động vào Form Soạn thảo (`static/js/editor.js`).
+  - [x] Tích hợp bộ lọc Mood/Danh mục động ngoài Timeline Feed và Kho Kỷ niệm (`static/js/app.js`).
+  - [x] Nâng cấp Service Worker cache lên `kokoro-v1.6.0` và kiểm thử hồi quy toàn diện.
+  - [x] Viết bộ kiểm thử tích hợp tự động `tests/test_v160_full_integration.py` đạt 100% PASS (13/13 tests toàn hệ thống).
 
 
 

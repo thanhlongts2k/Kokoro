@@ -203,7 +203,7 @@
           <h4 style="font-size: 13px; font-weight: 800; margin: 0 0 14px 0; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;">
             <i class="bi bi-emoji-smile" style="color: var(--sakura-500); margin-right: 6px;"></i> Cảm xúc chủ đạo
           </h4>
-          <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div id="sidebar-mood-filters" style="display: flex; flex-direction: column; gap: 8px;">
             <button class="btn-glass active" data-filter-mood="all" style="justify-content: space-between; width: 100%; border-radius: var(--radius-sm);">
               <span style="display: flex; align-items: center; gap: 8px;"><i class="bi bi-grid"></i> Tất cả bài viết</span>
               <span class="mood-count-badge" data-count-mood="all"></span>
@@ -695,32 +695,18 @@
         </div>
 
         <div class="editor-body">
-          <!-- Mood Selection -->
-          <div>
-            <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;">
-              Tâm trạng lúc này
-            </label>
-            <div class="mood-picker-list">
-              <button type="button" class="mood-option-chip selected" data-mood="serene" data-label="Serene 🌸">🌸 Thanh bình</button>
-              <button type="button" class="mood-option-chip" data-mood="cozy" data-label="Cozy ☕">☕ Ấm áp</button>
-              <button type="button" class="mood-option-chip" data-mood="reflective" data-label="Reflective 🌙">🌙 Chiêm nghiệm</button>
-              <button type="button" class="mood-option-chip" data-mood="grateful" data-label="Grateful 🍵">🍵 Biết ơn</button>
-              <button type="button" class="mood-option-chip" data-mood="energetic" data-label="Energetic ⚡">⚡ Năng lượng</button>
-            </div>
-          </div>
-
-          <!-- Category Selection (v1.6.0) -->
-          <div class="editor-category-section" style="margin-top: 4px; margin-bottom: 6px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+          <!-- Unified Mood & Category Selection (v1.6.0) -->
+          <div class="editor-mood-category-section" style="margin-bottom: 10px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
               <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin: 0;">
-                Danh mục bài viết
+                Tâm trạng &amp; Cảm xúc
               </label>
               <button type="button" id="editor-manage-categories-link" style="background: none; border: none; font-size: 12px; font-weight: 600; color: var(--sakura-500); cursor: pointer; text-decoration: underline; padding: 2px 4px;">
-                Quản lý danh mục 📁
+                Quản lý cảm xúc 🌸
               </button>
             </div>
-            <div class="category-picker-scroll" id="editor-category-picker-list" style="display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px;">
-              <!-- Dynamically populated category chips -->
+            <div class="category-picker-scroll mood-picker-list" id="editor-mood-picker-list" style="display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px;">
+              <!-- Dynamically populated from KokoroAPI.getCategories() -->
             </div>
             <input type="hidden" id="editor-category-id-input" value="" />
           </div>

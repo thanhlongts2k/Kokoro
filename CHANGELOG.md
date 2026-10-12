@@ -4,6 +4,30 @@ Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal 
 
 ---
 
+## [1.6.0] - 2026-10-12
+### Added & Unified (Official Release: Dynamic Mood & Category Management System)
+- **Hệ Thống Quản Lý Danh Mục & Cảm Xúc Động (Dynamic Mood Taxonomy & Unified Categories):**
+  * Thống nhất triệt để khái niệm "Danh mục" và "Cảm xúc" thành Một Nguồn Chân Lý Duy Nhất (Single Source of Truth - SSoT). Người dùng có toàn quyền Thêm / Sửa / Đổi icon emoji / Đổi màu / Xóa các tâm trạng & đề tài cuộc sống.
+  * Bảng CSDL PostgreSQL `categories` độc lập kết hợp khóa ngoại `entries.category_id REFERENCES categories(id) ON DELETE SET NULL`. Bảo vệ an toàn tuyệt đối 100% bài viết của người dùng (không bao giờ xóa mất bài viết khi xóa danh mục).
+  * 3 Chỉ mục hiệu năng cao: `idx_categories_user`, `idx_entries_user_cat`, `idx_entry_tags_tag_id`.
+  * Khởi tạo sẵn 5 tâm trạng cốt lõi của Kokoro làm danh mục mặc định (`Bình yên 🌸`, `Ấm áp ☕`, `Chiêm nghiệm 🌙`, `Biết ơn 🍵`, `Năng lượng ⚡`).
+- **Trình Soạn Thảo Nhật Ký Đa Năng (`static/js/editor.js`, `static/index.html`):**
+  * Tự động nạp danh sách danh mục động qua REST API (`KokoroAPI.getCategories()`).
+  * Giao diện chip capsule trực quan (`#editor-mood-picker-list`) kèm link tắt mở nhanh modal quản lý (`#editor-manage-categories-link`).
+  * Hỗ trợ lưu trữ `category_id` vào multipart upload, bản nháp `localStorage` tự động lưu/khôi phục, và hàng đợi ngoại tuyến IndexedDB.
+- **Dòng Thời Gian & Thẻ Bài Viết Kính Mờ (`static/js/app.js`):**
+  * Đồng bộ hóa dải chip lọc danh mục trên Desktop Sidebar (`#sidebar-mood-filters`) và Mobile Horizontal Scroll (`#mobile-mood-chips`).
+  * Thẻ bài viết tự động hiển thị `.category-badge-pill` với biểu tượng Emoji và màu sắc Pastel tùy chỉnh; hỗ trợ fallback mượt mà cho các bài viết cũ.
+  * Lọc bài viết chính xác theo `category_id` hoặc tên cảm xúc.
+- **Kho Kỷ Niệm Hình Ảnh (`static/js/app.js`):**
+  * Thanh lọc cảm xúc ảnh (`#memories-mood-filters`) tự động cập nhật theo danh mục động, hiển thị số lượng ảnh thực tế theo từng danh mục.
+  * Lớp phủ thông tin ảnh kỷ niệm hiển thị chuẩn xác tên và icon danh mục kèm ngày giờ.
+- **Hạ Tầng PWA & Cache Busting (`static/sw.js`, `app/config.py`):**
+  * Tăng phiên bản ứng dụng chính thức lên `v1.6.0` trong `Config.APP_VERSION` và `GET /api/auth/config`.
+  * Nâng cấp Service Worker cache lên `kokoro-v1.6.0`, đồng bộ truy vấn phiên bản `?v=1.6.0` cho toàn bộ tài nguyên CSS/JS.
+- **Hệ Thống Kiểm Thử Tự Động Toàn Diện (`tests/`):**
+  * 13/13 Ca kiểm thử tự động đạt 100% PASS (`test_v160_backend_api.py`, `test_v160_modal_client.py`, `test_v160_full_integration.py`).
+
 ## [1.6.0-beta.2] - 2026-10-12
 ### Added & Enhanced (Category & Tag Manager Modal UI, Emoji Picker & iOS PWA Diagonal Drag Fix)
 - **Thiết Kế Lại Toàn Diện Modal Quản Lý Danh Mục & Thẻ (`static/index.html`, `static/css/components.css`):**

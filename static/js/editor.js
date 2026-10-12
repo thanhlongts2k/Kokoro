@@ -31,6 +31,10 @@ const Editor = {
   selectedCreatedAt: null,
 
   editingEntryId: null,
+  selectedCategoryId: null,
+  categories: [],
+  moodPickerContainer: null,
+  manageCategoriesLink: null,
   selectedMood: 'serene',
   selectedMoodLabel: 'Serene 🌸',
   existingPhotos: [], // Array of { id, url, thumbUrl } for saved photos from server
@@ -66,6 +70,18 @@ const Editor = {
     this.discardDraftBtn = document.getElementById('editor-discard-draft-btn');
     this.modalTitleEl = document.getElementById('editor-modal-title');
     this.saveBtnTextEl = document.getElementById('editor-save-btn-text');
+
+    // Mood & Category Picker elements
+    this.moodPickerContainer = document.getElementById('editor-mood-picker-list');
+    this.manageCategoriesLink = document.getElementById('editor-manage-categories-link');
+    if (this.manageCategoriesLink) {
+      this.manageCategoriesLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (window.KokoroTagManager) {
+          window.KokoroTagManager.openManagerModal('categories');
+        }
+      });
+    }
 
     // Datetime Picker integration
     this.datetimeBtn = document.getElementById('editor-datetime-btn');
@@ -103,18 +119,6 @@ const Editor = {
         }
       });
     }
-
-    // Mood Selector chips
-    const moodChips = document.querySelectorAll('.mood-option-chip');
-    moodChips.forEach((chip) => {
-      chip.addEventListener('click', () => {
-        moodChips.forEach((c) => c.classList.remove('selected'));
-        chip.classList.add('selected');
-        this.selectedMood = chip.dataset.mood;
-        this.selectedMoodLabel = chip.dataset.label;
-        this.scheduleDraftSave();
-      });
-    });
 
     // Auto-save listeners on input changes (Debounce 1s)
     [this.titleInput, this.contentInput, this.tagInput].forEach((input) => {
@@ -211,14 +215,15 @@ const Editor = {
           title,
           content,
           mood: this.selectedMood,
+          category_id: this.selectedCategoryId,
           tags,
           created_at: this.selectedCreatedAt,
           entry_date: this.selectedEntryDate
         });
         if (this.draftBannerEl && this.draftTextEl) {
-          this.draftBannerEl.style.display = 'flex';
           const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
           this.draftTextEl.textContent = `Đã tự động lưu nháp lúc ${timeStr} 🌸`;
+          this.draftBannerEl.style.display = 'flex';
         }
       }
     }, 1000);
@@ -233,9 +238,8 @@ const Editor = {
       if (this.contentInput) this.contentInput.value = draft.content || '';
       if (this.tagInput) this.tagInput.value = draft.tags || '';
 
-      if (draft.mood) {
-        const chip = document.querySelector(`.mood-option-chip[data-mood="${draft.mood}"]`);
-        if (chip) chip.click();
+      if (draft.category_id || draft.mood) {
+        this.renderCategoryChips(draft.category_id, draft.mood);
       }
 
       if (draft.created_at) {
@@ -263,7 +267,95 @@ const Editor = {
     this.showToast('Đã xóa bản nháp thành công 🌸');
   },
 
-  open(entry = null) {
+  async loadCategories(targetCategoryId = null, targetMood = null) {
+    if (!this.moodPickerContainer || !window.KokoroAPI) return;
+    try {
+      const res = await window.KokoroAPI.getCategories();
+      if (res && res.status === 'success' && Array.isArray(res.categories)) {
+        this.categories = res.categories;
+      }
+    } catch (err) {
+      console.warn('[Editor] Không thể tải danh mục:', err);
+    }
+
+    if (!this.categories || this.categories.length === 0) {
+      this.categories = [
+        { id: null, name: 'Bình yên', icon: '🌸', color: '#ec4899' },
+        { id: null, name: 'Ấm áp', icon: '☕', color: '#f59e0b' },
+        { id: null, name: 'Chiêm nghiệm', icon: '🌙', color: '#8b5cf6' },
+        { id: null, name: 'Biết ơn', icon: '🍵', color: '#10b981' },
+        { id: null, name: 'Năng lượng', icon: '⚡', color: '#3b82f6' }
+      ];
+    }
+
+    this.renderCategoryChips(targetCategoryId, targetMood);
+  },
+
+  renderCategoryChips(targetCategoryId = null, targetMood = null) {
+    if (!this.moodPickerContainer) return;
+
+    // Determine active category
+    let activeCat = null;
+    if (targetCategoryId) {
+      activeCat = this.categories.find((c) => c.id === Number(targetCategoryId));
+    }
+    if (!activeCat && targetMood) {
+      const lowerMood = String(targetMood).toLowerCase();
+      activeCat = this.categories.find((c) =>
+        c.name.toLowerCase() === lowerMood ||
+        (c.name === 'Bình yên' && lowerMood === 'serene') ||
+        (c.name === 'Ấm áp' && lowerMood === 'cozy') ||
+        (c.name === 'Chiêm nghiệm' && lowerMood === 'reflective') ||
+        (c.name === 'Biết ơn' && lowerMood === 'grateful') ||
+        (c.name === 'Năng lượng' && lowerMood === 'energetic')
+      );
+    }
+    if (!activeCat) {
+      activeCat = this.categories[0];
+    }
+
+    this.selectedCategoryId = activeCat ? activeCat.id : null;
+    this.selectedMood = activeCat ? activeCat.name : 'serene';
+    this.selectedMoodLabel = activeCat ? `${activeCat.icon} ${activeCat.name}` : '🌸 Bình yên';
+
+    const catInput = document.getElementById('editor-category-id-input');
+    if (catInput) catInput.value = this.selectedCategoryId || '';
+
+    this.moodPickerContainer.innerHTML = this.categories.map((c) => {
+      const isSelected = activeCat && (activeCat.id === c.id || (!activeCat.id && !c.id && activeCat.name === c.name));
+      const safeName = window.escapeHtml(c.name);
+      const safeIcon = window.escapeHtml(c.icon || '🌸');
+      const safeColor = window.escapeHtml(c.color || '#ec4899');
+      return `
+        <button type="button" 
+                class="mood-option-chip category-option-chip ${isSelected ? 'selected' : ''}" 
+                data-category-id="${c.id || ''}" 
+                data-mood="${safeName}" 
+                data-icon="${safeIcon}" 
+                data-color="${safeColor}"
+                style="--chip-color: ${safeColor};">
+          <span>${safeIcon}</span>
+          <span>${safeName}</span>
+        </button>
+      `;
+    }).join('');
+
+    // Bind chip clicks
+    this.moodPickerContainer.querySelectorAll('.mood-option-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        this.moodPickerContainer.querySelectorAll('.mood-option-chip').forEach((c) => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        const catId = chip.dataset.categoryId ? Number(chip.dataset.categoryId) : null;
+        this.selectedCategoryId = catId;
+        this.selectedMood = chip.dataset.mood;
+        this.selectedMoodLabel = `${chip.dataset.icon} ${chip.dataset.mood}`;
+        if (catInput) catInput.value = catId || '';
+        this.scheduleDraftSave();
+      });
+    });
+  },
+
+  async open(entry = null) {
     if (!this.overlayEl) return;
     this.resetForm();
 
@@ -277,10 +369,7 @@ const Editor = {
       if (this.contentInput) this.contentInput.value = entry.content || '';
       if (this.tagInput) this.tagInput.value = (entry.tags || []).join(' ');
 
-      if (entry.mood) {
-        const chip = document.querySelector(`.mood-option-chip[data-mood="${entry.mood}"]`);
-        if (chip) chip.click();
-      }
+      await this.loadCategories(entry.categoryId || entry.category_id, entry.mood);
 
       // Populate datetime from existing entry
       const dtSource = entry.createdAt || entry.created_at || (entry.entryDate || entry.entry_date ? `${entry.entryDate || entry.entry_date}T12:00:00` : new Date());
@@ -308,6 +397,7 @@ const Editor = {
       if (this.saveBtnTextEl) this.saveBtnTextEl.textContent = 'Lưu nhật ký ✨';
 
       this.updateDatetimeState(new Date());
+      await this.loadCategories();
       this.checkAndRestoreDraft();
     }
 
@@ -346,9 +436,10 @@ const Editor = {
     this.deletedPhotoIds = [];
     this.selectedFiles = [];
     this.renderAllPreviews();
-
-    const defaultChip = document.querySelector('.mood-option-chip[data-mood="serene"]');
-    if (defaultChip) defaultChip.click();
+    this.selectedCategoryId = null;
+    if (this.categories && this.categories.length > 0) {
+      this.renderCategoryChips();
+    }
 
     this.updateDatetimeState(new Date());
 
@@ -500,6 +591,7 @@ const Editor = {
           title: title || 'Khoảnh khắc tĩnh lặng',
           content,
           mood: this.selectedMood,
+          category_id: this.selectedCategoryId,
           weather: 'sunny',
           entry_date: targetDate,
           created_at: targetCreatedAt,
@@ -525,6 +617,9 @@ const Editor = {
     formData.append('title', title || 'Khoảnh khắc tĩnh lặng');
     formData.append('content', content);
     formData.append('mood', this.selectedMood);
+    if (this.selectedCategoryId) {
+      formData.append('category_id', String(this.selectedCategoryId));
+    }
     formData.append('weather', 'sunny');
     formData.append('entry_date', targetDate);
     formData.append('created_at', targetCreatedAt);
