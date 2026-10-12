@@ -1,0 +1,1105 @@
+/* ==========================================================================
+   KOKORO (心) — COMPONENT-DRIVEN DESIGN SYSTEM (SSoT)
+   Pure CSS Tokens, Zero Hardcoded Colors, Clean Modular Architecture
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. BUTTON CONTROLS (.c-btn)
+   -------------------------------------------------------------------------- */
+.c-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--touch-target-min);
+  padding: 10px 20px;
+  border-radius: var(--radius-pill);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: transform var(--transition-fast), 
+              background var(--transition-fast), 
+              border-color var(--transition-fast), 
+              box-shadow var(--transition-fast),
+              filter var(--transition-fast);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.c-btn:active {
+  transform: scale(0.97);
+}
+
+/* Primary Sakura Action Button */
+.c-btn--primary,
+.btn-sakura {
+  background: linear-gradient(135deg, var(--sakura-400) 0%, var(--sakura-500) 100%);
+  color: #ffffff;
+  border: none;
+  box-shadow: var(--shadow-fab);
+}
+
+.c-btn--primary:hover,
+.btn-sakura:hover {
+  transform: translateY(-2px) scale(1.02);
+  filter: brightness(1.06);
+  box-shadow: 0 12px 36px rgba(236, 72, 153, 0.45);
+}
+
+/* Adaptive Liquid Glass Button */
+.c-btn--glass,
+.btn-glass {
+  background: var(--btn-glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--btn-glass-border);
+  color: var(--btn-glass-text);
+  font-size: 13px;
+  padding: 8px 16px;
+}
+
+.c-btn--glass:hover,
+.btn-glass:hover {
+  background: var(--btn-glass-hover-bg);
+  color: var(--btn-glass-hover-text);
+  border-color: var(--btn-glass-hover-border);
+  transform: translateY(-1px);
+}
+
+.c-btn--glass.active,
+.btn-glass.active {
+  background: var(--btn-glass-active-bg);
+  color: var(--btn-glass-active-text);
+  border-color: var(--btn-glass-active-border);
+  box-shadow: 0 4px 14px rgba(236, 72, 153, 0.35);
+}
+
+/* Icon-only Action Button */
+.c-btn--icon,
+.action-icon-btn {
+  width: 36px;
+  height: 36px;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.c-btn--icon:hover,
+.action-icon-btn:hover {
+  background: var(--surface-hover-overlay);
+  color: var(--surface-hover-text);
+}
+
+/* Danger Action Button */
+.c-btn--danger {
+  background: rgba(225, 29, 72, 0.12);
+  border-color: rgba(225, 29, 72, 0.25);
+  color: #e11d48;
+}
+
+.c-btn--danger:hover {
+  background: rgba(225, 29, 72, 0.22);
+  color: #be123c;
+  border-color: #e11d48;
+}
+
+[data-theme="dark"] .c-btn--danger {
+  color: #fb7185;
+}
+
+/* Floating Action Button (FAB) */
+.c-btn--fab,
+.fab-create {
+  position: fixed;
+  z-index: 90;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, var(--sakura-400) 0%, var(--sakura-500) 100%);
+  color: #ffffff;
+  padding: 14px 24px;
+  font-weight: 700;
+  font-size: 14px;
+  border: none;
+  box-shadow: var(--shadow-fab);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform var(--transition-spring), box-shadow var(--transition-spring);
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 20px);
+  right: max(18px, env(safe-area-inset-right));
+}
+
+.c-btn--fab:hover,
+.fab-create:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 16px 40px rgba(236, 72, 153, 0.45);
+}
+
+@media (max-width: 768px) {
+  .c-btn--fab,
+  .fab-create,
+  #fab-create-btn,
+  .fab-create-btn {
+    display: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   2. CARD CONTAINERS (.c-card)
+   -------------------------------------------------------------------------- */
+.c-card,
+.glass-panel {
+  background: var(--surface-glass-card);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-lg);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
+}
+
+.c-card--subtle,
+.glass-panel-subtle {
+  background: var(--surface-glass-subtle);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glass-subtle);
+  border-radius: var(--radius-md);
+}
+
+.c-card--interactive,
+.glass-card-interactive {
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.c-card--interactive:hover,
+.glass-card-interactive:hover {
+  transform: translateY(-3px);
+  border-color: var(--border-glass-hover);
+  box-shadow: var(--shadow-hover);
+}
+
+/* Journal Timeline Entry Card */
+.c-card--timeline,
+.journal-card {
+  padding: 22px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.card-header,
+.entry-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+.card-meta,
+.card-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.entry-date,
+.card-time,
+.card-meta-time {
+  white-space: nowrap !important;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.card-actions .action-icon-btn {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  min-height: 30px;
+  padding: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13.5px;
+}
+
+@media (max-width: 768px) {
+  .c-card--timeline,
+  .journal-card {
+    padding: 16px 14px !important;
+  }
+  .card-header,
+  .entry-card-header {
+    gap: 6px;
+  }
+  .card-meta,
+  .card-meta-left {
+    gap: 4px;
+  }
+  .card-meta-time {
+    font-size: 0.76rem;
+  }
+  .card-actions {
+    gap: 4px;
+  }
+  .card-actions .action-icon-btn {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    font-size: 13px;
+  }
+}
+
+/* Zen Quote Card */
+.c-card--quote,
+.zen-quote-card {
+  padding: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(254, 242, 244, 0.85) 100%);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+}
+
+[data-theme="dark"] .c-card--quote,
+[data-theme="dark"] .zen-quote-card {
+  background: var(--surface-glass-card);
+  border: 1px solid var(--border-glass-subtle);
+}
+
+/* Metric / Stat Card */
+.c-card--metric {
+  padding: 16px;
+  text-align: center;
+  border-radius: var(--radius-md);
+  background: var(--surface-glass-subtle);
+  border: 1px solid var(--border-glass-subtle);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.c-card--metric-value {
+  font-size: 26px;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.c-card--metric-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* --------------------------------------------------------------------------
+   3. CHIP & PILL CONTROLS (.c-chip)
+   -------------------------------------------------------------------------- */
+.c-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--border-glass-subtle);
+  background: var(--surface-glass-subtle);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.c-chip:hover {
+  background: var(--surface-hover-overlay);
+  color: var(--surface-hover-text);
+  border-color: var(--sakura-400);
+}
+
+.c-chip.active {
+  background: var(--sakura-500);
+  color: #ffffff;
+  border-color: var(--sakura-500);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.35);
+}
+
+/* Emotion Mood Badges */
+.c-chip--mood-serene { background: var(--mood-serene-bg); color: var(--mood-serene); border-color: rgba(244, 114, 182, 0.3); }
+.c-chip--mood-cozy { background: var(--mood-cozy-bg); color: var(--mood-cozy); border-color: rgba(245, 158, 11, 0.3); }
+.c-chip--mood-reflective { background: var(--mood-reflective-bg); color: var(--mood-reflective); border-color: rgba(168, 85, 247, 0.3); }
+.c-chip--mood-grateful { background: var(--mood-grateful-bg); color: var(--mood-grateful); border-color: rgba(16, 185, 129, 0.3); }
+.c-chip--mood-energetic { background: var(--mood-energetic-bg); color: var(--mood-energetic); border-color: rgba(56, 189, 248, 0.3); }
+
+/* Topic Tag Pill */
+.c-chip--tag,
+.tag-pill {
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   4. FORM INPUTS (.c-input)
+   -------------------------------------------------------------------------- */
+.c-input {
+  width: 100%;
+  border: 1px solid var(--border-glass-subtle);
+  background: var(--surface-glass-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  font-family: inherit;
+  font-size: 14.5px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--transition-fast), 
+              box-shadow var(--transition-fast), 
+              background var(--transition-fast);
+}
+
+.c-input:focus {
+  border-color: var(--sakura-400);
+  background: var(--surface-glass-hover);
+  box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.2);
+}
+
+.c-input::placeholder {
+  color: var(--text-muted);
+}
+
+.c-input--textarea {
+  min-height: 130px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+/* Search Bar Wrapper */
+.c-input-search-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-glass-card);
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.c-input-search-box:focus-within {
+  border-color: var(--sakura-400);
+  box-shadow: var(--shadow-md), 0 0 0 3px rgba(244, 114, 182, 0.15);
+}
+
+.c-input-search-field {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+/* --------------------------------------------------------------------------
+   5. MULTI-VIEW PANELS & ROUTER TRANSITIONS (.c-view)
+   -------------------------------------------------------------------------- */
+.c-view {
+  display: none;
+  width: 100%;
+  animation: viewFadeSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.c-view.active {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@keyframes viewFadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   6. MODAL & BOTTOM SHEET (.c-modal, .c-sheet)
+   -------------------------------------------------------------------------- */
+.c-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(15, 16, 22, 0.6);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  align-items: flex-end; /* Mobile bottom sheet */
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-normal);
+  overscroll-behavior: contain;
+}
+
+.c-modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.c-sheet {
+  width: 100vw;
+  max-width: 620px;
+  background: var(--surface-glass-modal);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-glass);
+  box-shadow: 0 -10px 40px rgba(244, 114, 182, 0.15);
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
+  max-height: 94dvh;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform var(--transition-spring);
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+  overscroll-behavior: contain;
+}
+
+.c-modal-overlay.active .c-sheet {
+  transform: translateY(0);
+}
+
+@media (min-width: 768px) {
+  .c-modal-overlay {
+    align-items: center;
+  }
+
+  .c-sheet {
+    border-radius: var(--radius-xl);
+    max-height: 88vh;
+    transform: scale(0.96);
+    padding-bottom: 0;
+  }
+
+  .c-modal-overlay.active .c-sheet {
+    transform: scale(1);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   6.5. UPLOADED PHOTO PREVIEWS & THUMBNAILS (.preview-thumb-box)
+   -------------------------------------------------------------------------- */
+.uploaded-previews-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)) !important;
+  gap: 10px !important;
+  margin-top: 12px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
+.preview-thumb-box {
+  width: 100% !important;
+  max-width: 100% !important;
+  aspect-ratio: 1 !important;
+  border-radius: var(--radius-sm) !important;
+  overflow: hidden !important;
+  position: relative !important;
+  border: 1px solid var(--border-glass) !important;
+  background: rgba(0, 0, 0, 0.05);
+  box-sizing: border-box !important;
+}
+
+.preview-thumb-box img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+.preview-remove-btn {
+  position: absolute !important;
+  top: 4px !important;
+  right: 4px !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  border-radius: 50% !important;
+  background: rgba(225, 29, 72, 0.88) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #ffffff !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.85) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  z-index: 10 !important;
+  touch-action: manipulation;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.preview-remove-btn:hover {
+  background: #e11d48 !important;
+  transform: scale(1.1) !important;
+}
+
+.preview-remove-btn:active {
+  transform: scale(0.92) !important;
+}
+
+.preview-saved-badge {
+  position: absolute !important;
+  bottom: 4px !important;
+  left: 4px !important;
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+  background: rgba(15, 23, 42, 0.75) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: #ffffff !important;
+  border-radius: 4px !important;
+  padding: 1px 5px !important;
+  pointer-events: none !important;
+  z-index: 5 !important;
+  letter-spacing: 0.3px;
+}
+
+/* --------------------------------------------------------------------------
+   7. VIEW 2: FULL CALENDAR COMPONENT (.c-calendar)
+   -------------------------------------------------------------------------- */
+.c-calendar-card {
+  padding: 24px 20px;
+}
+
+.c-calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.c-calendar-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.c-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  text-align: center;
+}
+
+.c-calendar-weekday {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-muted);
+  padding: 8px 0;
+  text-transform: uppercase;
+}
+
+.c-calendar-day {
+  min-height: 52px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: var(--surface-glass-subtle);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 2px 4px 2px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.c-calendar-day:hover {
+  background: var(--surface-glass-hover);
+  border-color: var(--sakura-300);
+  transform: translateY(-1px);
+}
+
+.c-calendar-day.empty {
+  background: transparent;
+  border: none;
+  cursor: default;
+  pointer-events: none;
+}
+
+.c-calendar-day-num {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.c-calendar-day.today .c-calendar-day-num {
+  color: var(--sakura-600);
+  background: var(--sakura-100);
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+}
+
+[data-theme="dark"] .c-calendar-day.today .c-calendar-day-num {
+  color: #ffffff;
+  background: var(--sakura-500);
+}
+
+.c-calendar-day.selected {
+  background: var(--sakura-500) !important;
+  border-color: var(--sakura-500) !important;
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.4);
+}
+
+.c-calendar-day.selected .c-calendar-day-num {
+  color: #ffffff !important;
+}
+
+.c-calendar-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex-wrap: wrap;
+  min-height: 8px;
+}
+
+.c-calendar-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+/* --------------------------------------------------------------------------
+   8. VIEW 3: MEMORIES PHOTO GALLERY COMPONENT (.c-memories)
+   -------------------------------------------------------------------------- */
+.c-memories-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .c-memories-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .c-memories-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+}
+
+.c-memory-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid var(--border-glass-subtle);
+  background: var(--surface-glass-subtle);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.c-memory-item:hover {
+  transform: scale(1.03);
+  box-shadow: var(--shadow-hover);
+  border-color: var(--sakura-400);
+}
+
+.c-memory-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.c-memory-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, rgba(15, 16, 22, 0.85) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 10px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.c-memory-item:hover .c-memory-overlay,
+.c-memory-item:active .c-memory-overlay {
+  opacity: 1;
+}
+
+.c-memory-title {
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.c-memory-meta {
+  color: var(--sakura-200);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   9. VIEW 4: PROFILE & UTILITIES COMPONENT (.c-profile)
+   -------------------------------------------------------------------------- */
+.c-profile-header-card {
+  padding: 28px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.c-profile-avatar-wrap {
+  position: relative;
+}
+
+.c-profile-avatar-large {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--sakura-400);
+  box-shadow: 0 0 20px rgba(244, 114, 182, 0.4);
+}
+
+.c-profile-name {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.c-profile-email {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.c-profile-menu-card {
+  padding: 6px 0;
+  border-radius: var(--radius-lg);
+}
+
+.c-profile-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast);
+}
+
+.c-profile-menu-item:hover {
+  background: var(--surface-hover-overlay);
+}
+
+.c-profile-menu-item:not(:last-child) {
+  border-bottom: 1px solid var(--border-glass-subtle);
+}
+
+.c-profile-menu-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.c-profile-menu-icon {
+  font-size: 18px;
+  color: var(--sakura-500);
+  width: 24px;
+  text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   10. MODAL BODY SCROLL LOCK & SCROLLBAR SUPPRESSION (SSoT)
+   -------------------------------------------------------------------------- */
+html.modal-scroll-locked,
+body.modal-scroll-locked {
+  overflow: hidden !important;
+  height: 100dvh !important;
+  touch-action: none;
+}
+
+/* Triệt tiêu thanh cuộn xám thừa trong Lightbox và Overlay */
+.lightbox-overlay,
+.modal-overlay,
+.lightbox-modal,
+.lightbox-container {
+  overscroll-behavior: contain;
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE/Edge */
+}
+.lightbox-overlay::-webkit-scrollbar,
+.modal-overlay::-webkit-scrollbar,
+.lightbox-modal::-webkit-scrollbar,
+.lightbox-container::-webkit-scrollbar {
+  display: none !important; /* Chrome/Safari */
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* --------------------------------------------------------------------------
+   11. LIGHTBOX ZOOM & PAN INTERACTIVE CONTROLS
+   -------------------------------------------------------------------------- */
+.lightbox-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(10, 10, 15, 0.94);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0;
+  pointer-events: none !important;
+  transition: opacity 0.25s ease;
+  padding: 16px;
+  overflow: hidden !important;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.lightbox-modal.active {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.lightbox-controls-bar,
+#lightbox-controls-bar {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
+  z-index: 10000 !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(20, 20, 30, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-pill);
+  padding: 6px 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+  pointer-events: none !important;
+}
+
+.lightbox-modal.active .lightbox-controls-bar,
+.lightbox-modal.active #lightbox-controls-bar,
+.lightbox-modal.active .lightbox-tool-btn {
+  pointer-events: auto !important;
+}
+
+.lightbox-tool-btn {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+  touch-action: manipulation;
+  pointer-events: auto !important;
+}
+
+.lightbox-tool-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: scale(1.08);
+}
+
+.lightbox-tool-btn:active {
+  transform: scale(0.95);
+}
+
+.lightbox-tool-btn.lightbox-close-tool {
+  color: var(--sakura-300);
+}
+
+.lightbox-img-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 95vw;
+  max-height: 85vh;
+  overflow: visible;
+  touch-action: none !important;
+}
+
+#lightbox-img,
+.lightbox-img-wrapper img {
+  max-width: 92vw;
+  max-height: 82vh;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65);
+  transform-origin: center center;
+  will-change: transform;
+  cursor: zoom-in;
+  transition: transform 0.1s ease-out;
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-user-drag: none !important;
+  pointer-events: auto !important;
+}
+
+#lightbox-img.is-zoomed,
+.lightbox-img-wrapper img.is-zoomed {
+  cursor: grab;
+}
+
+#lightbox-img.is-dragging,
+.lightbox-img-wrapper img.is-dragging {
+  cursor: grabbing;
+  transition: none !important;
+}
+
+.lightbox-caption {
+  position: absolute;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 320;
+  max-width: 90vw;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13.5px;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 6px 18px;
+  border-radius: var(--radius-pill);
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lightbox-caption:empty {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   12. IMMUTABLE DESKTOP DASHBOARD 3-COLUMN GRID ARCHITECTURE
+   -------------------------------------------------------------------------- */
+@media (min-width: 1025px) {
+  .app-dashboard-layout {
+    display: grid !important;
+    grid-template-columns: 300px minmax(520px, 1fr) 320px !important;
+    gap: 24px !important;
+    max-width: 1440px !important;
+    margin: 0 auto !important;
+    padding: 20px 24px !important;
+    align-items: start !important;
+  }
+  .dashboard-col-left {
+    width: 300px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+  .dashboard-col-center {
+    min-width: 520px !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+  .dashboard-col-right {
+    width: 320px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+  .mobile-mood-scroll,
+  #mobile-mood-chips {
+    display: none !important;
+  }
+  .fab-create,
+  .fab-create-btn,
+  #fab-create-btn {
+    display: none !important;
+  }
+}

@@ -106,7 +106,7 @@ const PasscodeLock = {
     if (!overlay) return;
 
     overlay.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    if (window.lockBodyScroll) window.lockBodyScroll(true);
     this.updateDots();
 
     const titleEl = document.getElementById('passcode-title');
@@ -120,7 +120,7 @@ const PasscodeLock = {
     this.inputPin = '';
     const overlay = document.getElementById('passcode-lock-overlay');
     if (overlay) overlay.classList.remove('active');
-    document.body.style.overflow = '';
+    if (window.lockBodyScroll) window.lockBodyScroll(false);
   },
 
   lockNow() {
@@ -205,6 +205,9 @@ const PasscodeLock = {
         this.hideLockScreen();
         if (window.KokoroApp) {
           window.KokoroApp.showToast('Đã mở khóa nhật ký thành công! 🌸✨');
+          if (typeof window.KokoroApp.onPinUnlocked === 'function') {
+            window.KokoroApp.onPinUnlocked();
+          }
         }
       } else {
         this.failedAttempts++;
@@ -261,11 +264,13 @@ const PasscodeLock = {
 
     this.updateSettingsModalState();
     modal.classList.add('active');
+    if (window.lockBodyScroll) window.lockBodyScroll(true);
   },
 
   closeSetupModal() {
     const modal = document.getElementById('passcode-settings-modal');
     if (modal) modal.classList.remove('active');
+    if (window.lockBodyScroll) window.lockBodyScroll(false);
   },
 
   updateSettingsModalState() {

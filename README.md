@@ -1,6 +1,6 @@
 # 🌸 Kokoro (心) — Japanese-inspired Aesthetic Diary & Photo Journal PWA
 
-[![Version](https://img.shields.io/badge/version-v1.2.0-ffb7c5.svg?style=flat-square)](https://github.com/thanhlongts2k/Kokoro)
+[![Version](https://img.shields.io/badge/version-v1.4.2-ffb7c5.svg?style=flat-square)](https://github.com/thanhlongts2k/Kokoro)
 [![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![Backend](https://img.shields.io/badge/Starlette-ASGI-4F46E5?style=flat-square)](https://www.starlette.io/)
 [![Database](https://img.shields.io/badge/PostgreSQL-18-336791?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)

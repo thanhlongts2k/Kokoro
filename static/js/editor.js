@@ -23,6 +23,8 @@ const Editor = {
   editingEntryId: null,
   selectedMood: 'serene',
   selectedMoodLabel: 'Serene 🌸',
+  existingPhotos: [], // Array of { id, url, thumbUrl } for saved photos from server
+  deletedPhotoIds: [], // Array of photo IDs to delete on server
   selectedFiles: [], // Array of real File objects to be uploaded
   draftTimeout: null,
 
@@ -197,29 +199,30 @@ const Editor = {
 
       if (this.draftBannerEl) this.draftBannerEl.style.display = 'none';
 
-      // Previews of existing photos
-      if (entry.photos && entry.photos.length > 0 && this.previewsContainer) {
-        this.previewsContainer.innerHTML = entry.photos.map((p) => {
-          const thumbUrl = window.KokoroAPI.resolveMediaUrl(p.thumbUrl || p.url);
-          return `
-            <div class="preview-item" title="Ảnh đã lưu" style="position: relative;">
-              <img src="${thumbUrl}" alt="Existing Photo" />
-              <div style="position: absolute; bottom: 2px; right: 4px; font-size: 9px; background: rgba(0,0,0,0.65); color: white; border-radius: 4px; padding: 1px 4px;">Đã lưu</div>
-            </div>
-          `;
-        }).join('');
-      }
+      // Load existing photos into state
+      this.existingPhotos = (entry.photos || []).map((p) => ({
+        id: p.id,
+        url: p.url,
+        thumbUrl: p.thumbUrl || p.url
+      }));
+      this.deletedPhotoIds = [];
+      this.selectedFiles = [];
+      this.renderAllPreviews();
     } else {
       // CREATE MODE
       this.editingEntryId = null;
       this.editingEntryDate = null;
+      this.existingPhotos = [];
+      this.deletedPhotoIds = [];
+      this.selectedFiles = [];
+      this.renderAllPreviews();
       if (this.modalTitleEl) this.modalTitleEl.textContent = 'Ghi Lại Khoảnh Khắc 🌸';
       if (this.saveBtnTextEl) this.saveBtnTextEl.textContent = 'Lưu nhật ký ✨';
       this.checkAndRestoreDraft();
     }
 
     this.overlayEl.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    if (window.lockBodyScroll) window.lockBodyScroll(true);
     setTimeout(() => {
       if (this.contentInput) this.contentInput.focus();
     }, 150);
@@ -231,15 +234,17 @@ const Editor = {
     this.editingEntryId = null;
     this.editingEntryDate = null;
     this.overlayEl.classList.remove('active');
-    document.body.style.overflow = '';
+    if (window.lockBodyScroll) window.lockBodyScroll(false);
   },
 
   resetForm() {
     if (this.titleInput) this.titleInput.value = '';
     if (this.contentInput) this.contentInput.value = '';
     if (this.tagInput) this.tagInput.value = '';
+    this.existingPhotos = [];
+    this.deletedPhotoIds = [];
     this.selectedFiles = [];
-    this.renderPreviews();
+    this.renderAllPreviews();
 
     const defaultChip = document.querySelector('.mood-option-chip[data-mood="serene"]');
     if (defaultChip) defaultChip.click();
@@ -256,13 +261,47 @@ const Editor = {
       this.selectedFiles.push(file);
     });
 
-    this.renderPreviews();
+    this.renderAllPreviews();
   },
 
-  renderPreviews() {
+  renderAllPreviews() {
     if (!this.previewsContainer) return;
     this.previewsContainer.innerHTML = '';
 
+    // 1. Render existing photos from server with "Đã lưu" badge and remove button
+    this.existingPhotos.forEach((photo, idx) => {
+      const box = document.createElement('div');
+      box.className = 'preview-thumb-box';
+      box.setAttribute('data-photo-id', photo.id);
+
+      const img = document.createElement('img');
+      img.src = window.KokoroAPI.resolveMediaUrl(photo.thumbUrl || photo.url);
+      img.alt = 'Ảnh đã lưu';
+
+      const badge = document.createElement('div');
+      badge.className = 'preview-saved-badge';
+      badge.textContent = 'Đã lưu';
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'preview-remove-btn';
+      removeBtn.innerHTML = '&times;';
+      removeBtn.title = 'Xóa ảnh này';
+      removeBtn.setAttribute('aria-label', 'Xóa ảnh này');
+      removeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.deletedPhotoIds.push(photo.id);
+        this.existingPhotos.splice(idx, 1);
+        this.renderAllPreviews();
+      });
+
+      box.appendChild(img);
+      box.appendChild(badge);
+      box.appendChild(removeBtn);
+      this.previewsContainer.appendChild(box);
+    });
+
+    // 2. Render newly selected files with remove button
     this.selectedFiles.forEach((file, idx) => {
       const box = document.createElement('div');
       box.className = 'preview-thumb-box';
@@ -277,17 +316,22 @@ const Editor = {
       removeBtn.type = 'button';
       removeBtn.className = 'preview-remove-btn';
       removeBtn.innerHTML = '&times;';
-      removeBtn.title = 'Xóa ảnh';
+      removeBtn.title = 'Hủy chọn ảnh mới';
+      removeBtn.setAttribute('aria-label', 'Hủy chọn ảnh mới');
       removeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         this.selectedFiles.splice(idx, 1);
-        this.renderPreviews();
+        this.renderAllPreviews();
       });
 
       box.appendChild(img);
       box.appendChild(removeBtn);
       this.previewsContainer.appendChild(box);
     });
+  },
+
+  renderPreviews() {
+    this.renderAllPreviews();
   },
 
   setLoading(isLoading) {
@@ -306,12 +350,14 @@ const Editor = {
   async save() {
     const title = this.titleInput ? this.titleInput.value.trim() : '';
     const content = this.contentInput ? this.contentInput.value.trim() : '';
+    const hasPhotos = (this.existingPhotos.length > 0) || (this.selectedFiles.length > 0);
 
-    if (!content) {
+    // Edge case: Allow photo-only entries if photos exist. Require content only if NO photos attached.
+    if (!content && !hasPhotos) {
       if (window.KokoroApp) {
-        window.KokoroApp.showToast('Vui lòng viết một chút cảm xúc vào nhật ký nhé! 🌸', 'warning');
+        window.KokoroApp.showToast('Vui lòng viết nội dung hoặc chọn ít nhất một hình ảnh nhé! 🌸', 'warning');
       } else {
-        alert('Vui lòng viết một chút cảm xúc vào nhật ký nhé! 🌸');
+        alert('Vui lòng viết nội dung hoặc chọn ít nhất một hình ảnh nhé! 🌸');
       }
       if (this.contentInput) this.contentInput.focus();
       return;
@@ -325,7 +371,9 @@ const Editor = {
     if (!navigator.onLine) {
       this.setLoading(true);
       try {
+        const userId = this.getCurrentUserId();
         await window.KokoroAPI.saveOfflineEntry({
+          user_id: userId,
           title: title || 'Khoảnh khắc tĩnh lặng',
           content,
           mood: this.selectedMood,
@@ -335,7 +383,6 @@ const Editor = {
           photos: this.selectedFiles // Safely preserved as native Blobs in IndexedDB
         });
 
-        const userId = this.getCurrentUserId();
         window.KokoroAPI.clearDraft(userId);
 
         if (window.KokoroApp) {
@@ -361,6 +408,10 @@ const Editor = {
     formData.append('weather', 'sunny');
     formData.append('entry_date', targetDate);
     formData.append('tags', rawTags);
+
+    if (this.deletedPhotoIds.length > 0) {
+      formData.append('deleted_photo_ids', JSON.stringify(this.deletedPhotoIds));
+    }
 
     this.selectedFiles.forEach((file) => {
       formData.append('photos', file);
@@ -399,7 +450,9 @@ const Editor = {
 
       if (isNetworkError) {
         try {
+          const userId = this.getCurrentUserId();
           await window.KokoroAPI.saveOfflineEntry({
+            user_id: userId,
             title: title || 'Khoảnh khắc tĩnh lặng',
             content,
             mood: this.selectedMood,
@@ -408,7 +461,6 @@ const Editor = {
             tags: rawTags,
             photos: this.selectedFiles
           });
-          const userId = this.getCurrentUserId();
           window.KokoroAPI.clearDraft(userId);
           if (window.KokoroApp) {
             window.KokoroApp.showToast('Mất kết nối máy chủ. Bài viết đã được chuyển vào hàng đợi ngoại tuyến an toàn! 🌸', 'warning');

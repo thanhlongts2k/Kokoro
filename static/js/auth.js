@@ -48,24 +48,8 @@ const KokoroAuth = {
   },
 
   setupDropdownListeners() {
-    const pill = document.getElementById('user-profile-pill');
-    const dropdown = document.getElementById('profile-dropdown-menu');
     const logoutBtn = document.getElementById('logout-btn');
     const loginHeaderBtn = document.getElementById('header-login-btn');
-
-    if (pill && dropdown) {
-      pill.addEventListener('click', (e) => {
-        e.stopPropagation();
-        dropdown.classList.toggle('active');
-      });
-
-      // Click outside to close
-      document.addEventListener('click', (e) => {
-        if (!dropdown.contains(e.target) && !pill.contains(e.target)) {
-          dropdown.classList.remove('active');
-        }
-      });
-    }
 
     if (logoutBtn) {
       logoutBtn.addEventListener('click', () => this.logout());

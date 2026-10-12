@@ -139,8 +139,11 @@ async def create_entry(request: Request) -> JSONResponse:
 
     title = form.get("title", "").strip() or "Khoảnh khắc tĩnh lặng"
     content = form.get("content", "").strip()
-    if not content:
-        return JSONResponse({"status": "error", "message": "Nội dung nhật ký không được để trống."}, status_code=400)
+    photo_files = form.getlist("photos")
+    has_photos = any(hasattr(p, "filename") and p.filename for p in photo_files)
+
+    if not content and not has_photos:
+        return JSONResponse({"status": "error", "message": "Vui lòng nhập nội dung hoặc đính kèm ít nhất một hình ảnh 🌸"}, status_code=400)
 
     mood = form.get("mood", "serene").strip()
     weather = form.get("weather", "sunny").strip()
@@ -256,8 +259,16 @@ async def update_entry(request: Request) -> JSONResponse:
     form = await request.form()
     title = form.get("title", "").strip() or "Khoảnh khắc tĩnh lặng"
     content = form.get("content", "").strip()
-    if not content:
-        return JSONResponse({"status": "error", "message": "Nội dung nhật ký không được để trống"}, status_code=400)
+
+    deleted_photo_ids_raw = form.get("deleted_photo_ids", "")
+    deleted_photo_ids = []
+    if deleted_photo_ids_raw:
+        try:
+            parsed = json.loads(deleted_photo_ids_raw)
+            if isinstance(parsed, list):
+                deleted_photo_ids = [int(x) for x in parsed if str(x).isdigit()]
+        except Exception:
+            pass
 
     mood = form.get("mood", "serene").strip()
     weather = form.get("weather", "sunny").strip()
@@ -297,9 +308,19 @@ async def update_entry(request: Request) -> JSONResponse:
                     "sort_order": idx
                 })
 
+    deleted_paths = []
     try:
         with get_db() as conn:
             with conn.cursor() as cur:
+                # Check validation: content or remaining photos
+                cur.execute("SELECT id FROM entry_photos WHERE entry_id = %s;", (entry_id,))
+                existing_rows = cur.fetchall()
+                existing_pids = [(r[0] if isinstance(r, (tuple, list)) else r["id"]) for r in existing_rows]
+                remaining_count = len([pid for pid in existing_pids if pid not in deleted_photo_ids]) + len(processed_photos)
+
+                if not content and remaining_count == 0:
+                    return JSONResponse({"status": "error", "message": "Vui lòng nhập nội dung hoặc đính kèm ít nhất một hình ảnh 🌸"}, status_code=400)
+
                 # 1. Update entry metadata
                 cur.execute("""
                     UPDATE entries
@@ -307,17 +328,36 @@ async def update_entry(request: Request) -> JSONResponse:
                     WHERE id = %s AND user_id = %s;
                 """, (title, content, mood, weather, entry_date, entry_id, user_id))
 
-                # 2. Append new photos if provided
+                # 2. Delete removed photos from DB & collect disk paths
+                if deleted_photo_ids:
+                    cur.execute("""
+                        SELECT file_path, thumb_path 
+                        FROM entry_photos 
+                        WHERE entry_id = %s AND id = ANY(%s);
+                    """, (entry_id, deleted_photo_ids))
+                    for r in cur.fetchall():
+                        fp = r[0] if isinstance(r, (tuple, list)) else r["file_path"]
+                        tp = r[1] if isinstance(r, (tuple, list)) else r["thumb_path"]
+                        if fp: deleted_paths.append(fp)
+                        if tp: deleted_paths.append(tp)
+
+                    cur.execute("""
+                        DELETE FROM entry_photos 
+                        WHERE entry_id = %s AND id = ANY(%s);
+                    """, (entry_id, deleted_photo_ids))
+
+                # 3. Append new photos if provided
                 if processed_photos:
                     cur.execute("SELECT COALESCE(MAX(sort_order), 0) + 1 FROM entry_photos WHERE entry_id = %s;", (entry_id,))
-                    base_sort = cur.fetchone()[0] or 0
+                    row_max = cur.fetchone()
+                    base_sort = (row_max[0] if isinstance(row_max, (tuple, list)) else row_max.get("coalesce", 0)) if row_max else 0
                     for p in processed_photos:
                         cur.execute("""
                             INSERT INTO entry_photos (entry_id, file_path, thumb_path, file_name, file_size, width, height, sort_order)
                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
                         """, (entry_id, p["file_path"], p["thumb_path"], p["file_name"], p["file_size"], p["width"], p["height"], base_sort + p["sort_order"]))
 
-                # 3. Update tags: Remove old links and add new tags
+                # 4. Update tags: Remove old links and add new tags
                 cur.execute("DELETE FROM entry_tags WHERE entry_id = %s;", (entry_id,))
                 for t_name in tag_list:
                     cur.execute("""
@@ -326,12 +366,24 @@ async def update_entry(request: Request) -> JSONResponse:
                         ON CONFLICT (user_id, name) DO UPDATE SET name = EXCLUDED.name
                         RETURNING id;
                     """, (user_id, t_name))
-                    tag_id = cur.fetchone()[0]
+                    tag_row = cur.fetchone()
+                    tag_id = tag_row[0] if isinstance(tag_row, (tuple, list)) else tag_row["id"]
                     cur.execute("""
                         INSERT INTO entry_tags (entry_id, tag_id)
                         VALUES (%s, %s)
                         ON CONFLICT DO NOTHING;
                     """, (entry_id, tag_id))
+
+                # 5. Clean orphaned tags for this user
+                cur.execute("""
+                    DELETE FROM tags 
+                    WHERE user_id = %s 
+                      AND id NOT IN (SELECT tag_id FROM entry_tags WHERE tag_id IS NOT NULL);
+                """, (user_id,))
+
+        # Delete physical photo files on disk after successful DB commit
+        if deleted_paths:
+            MediaService.delete_photo_files(deleted_paths)
 
         return JSONResponse({
             "status": "success",
@@ -379,6 +431,13 @@ async def delete_entry(request: Request) -> JSONResponse:
                 deleted = cur.fetchone()
                 if not deleted:
                     return JSONResponse({"status": "error", "message": "Không tìm thấy bài viết hoặc bạn không có quyền xóa."}, status_code=404)
+
+                # Clean orphaned tags for this user
+                cur.execute("""
+                    DELETE FROM tags 
+                    WHERE user_id = %s 
+                      AND id NOT IN (SELECT tag_id FROM entry_tags WHERE tag_id IS NOT NULL);
+                """, (user_id,))
 
         # Delete image files on disk
         if photo_paths:

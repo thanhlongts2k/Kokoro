@@ -4,18 +4,72 @@ Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal 
 
 ---
 
-## [Unreleased]
-### Planned (Kế hoạch v1.5.0 - Cảm Hứng & Chia Sẻ)
-- **Gợi Ý Câu Hỏi Suy Ngẫm Mỗi Ngày (Daily Zen Prompt):**
-  - Hiển thị thẻ gợi ý suy ngẫm/chữa lành nhẹ nhàng trên đầu Timeline ("Góc Suy Ngẫm Hôm Nay ✨").
-  - Thuật toán chọn câu hỏi theo ngày (deterministic seed hash theo `YYYY-MM-DD` từ danh sách 60+ câu hỏi chánh niệm/triết lý Nhật Bản offline), bảo mật riêng tư 100%, tự đổi mới vào 00:00.
-  - Tương tác: Bấm vào prompt tự động mở Editor Modal và chèn câu hỏi làm gợi ý viết bài, hỗ trợ nút "Đổi câu khác 🎲" và nút ẩn trong ngày.
-- **Xuất Bài Viết Thành Ảnh Thẻ Kỷ Niệm (Aesthetic Journal Card Export):**
-  - Bổ sung nút "Lưu ảnh kỷ niệm 📷" trên từng thẻ bài viết ở Timeline Feed.
-  - Sử dụng Pure HTML5 Canvas 2D Engine (0KB thư viện ngoài, 100% offline-first) render ảnh thẻ độ phân giải cao 2K.
-  - Hỗ trợ 2 phong cách giao diện: Soft Sakura 🌸 (Hồng phấn thanh nhã) và Night Sakura 🌙 (Tím huyền bí).
-  - Hỗ trợ 2 tỉ lệ chuẩn mạng xã hội: Thẻ vuông 1:1 (1080x1080) và Story 9:16 (1080x1920).
-  - Modal xem trước tương tác (`#card-export-modal`) cho phép tùy chọn theme, tỉ lệ và bấm 1-click tải ảnh PNG về máy.
+## [1.5.0] - 2026-10-12
+### Added & Refactored (Go-Live Readiness Release)
+- **Hoàn Thiện Nghiệp Vụ Hình Ảnh & Media Lifecycle Đầy Đủ (`static/js/editor.js`, `app/routes/entry_routes.py`, `app/services/media_service.py`):**
+  - Tái cấu trúc Data Model trong Editor: Quản lý tách bạch 3 tập dữ liệu `existingPhotos` (ảnh đã lưu từ server), `deletedPhotoIds` (danh sách ID ảnh cần xóa), và `selectedFiles` (ảnh mới chọn).
+  - Quy chuẩn component thumbnail `.preview-thumb-box`: Khung vuông cố định `aspect-ratio: 1`, ảnh bên trong `object-fit: cover`, không cho phép bung kích thước container.
+  - Bổ sung nút xóa nổi bật `.preview-remove-btn` (hình tròn nổi 28x28px, nền hồng ngọc gradient, viền trắng, icon `✕`) trên góc TẤT CẢ các ảnh thumbnail (cả ảnh cũ lẫn ảnh mới).
+  - Backend nhận và parse `deleted_photo_ids` trong transaction nguyên tử: Xóa bản ghi trong bảng `entry_photos` và xóa sạch file vật lý `.webp` cùng `_thumb.webp` trong thư mục `uploads/` trên ổ cứng.
+- **Triệt Tiêu Hoàn Toàn Lỗi Tràn Ngang Modal / Bottom Sheet Trên Mobile (`layout.css`, `components.css`):**
+  - Thay thế toàn bộ `100vw` bằng `width: 100% !important; max-width: 100% !important; box-sizing: border-box !important;`.
+  - Khóa cứng `overflow-x: hidden !important; overscroll-behavior: contain !important; touch-action: pan-y !important; min-width: 0 !important;` trên `.modal-overlay`, `.editor-dialog`, và `.editor-body`.
+  - Chuẩn hóa lưới ảnh `.uploaded-previews-grid` với `display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 10px; width: 100%; max-width: 100%;`.
+  - Đảm bảo trên các màn hình Mobile (375x812 và 390x844): Modal đứng im tuyệt đối, không lộ bất kỳ mảng trống nào bên phải (`scrollWidth === innerWidth`).
+- **Vá Lỗ Hổng Xác Thực & Cô Lập Dữ Liệu Đa Tài Khoản (`static/js/api.js`, `static/js/app.js`, `static/js/passcode.js`):**
+  - Bắt buộc lưu kèm `user_id` vào từng bản ghi của hàng đợi ngoại tuyến `IndexedDB`.
+  - Trong `syncOfflineQueue`: Chỉ đồng bộ các bài viết khớp với `currentUser.id`.
+  - Khi đổi tài khoản (`onUserChanged`): Làm mới toàn bộ 4 views (Timeline, Calendar, Memories, Profile) và xóa trắng form Editor để không bị rò rỉ dữ liệu hoặc nháp của tài khoản trước.
+  - Bảo mật PIN: Khi đang bật khóa PIN, chỉ gọi nạp dữ liệu bài viết vào DOM sau khi người dùng đã nhập đúng mã PIN trong phiên (`isUnlocked === true`).
+- **Xử Lý Toàn Diện Ma Trận Edge Cases:**
+  - Cho phép đăng bài viết chỉ có ảnh (nội dung chữ để trống nếu có ít nhất 1 ảnh đính kèm). Chỉ báo lỗi 400 khi cả chữ và ảnh đều rỗng.
+  - Cho phép xóa sạch toàn bộ ảnh cũ trong bài viết, chuyển bài viết thành nhật ký thuần văn bản hợp lệ.
+  - Dọn dẹp tags mồ côi: Tự động xóa các tag trong bảng `tags` không còn bài viết nào tham chiếu đến sau khi xóa/sửa bài.
+- **Bộ Kiểm Thử Toàn Diện 100% PASS:**
+  - `tests/test_v15_media_lifecycle.py`: 6 kịch bản kiểm thử xóa ảnh vật lý trên ổ đĩa và cập nhật DB pass 100%.
+  - `tests/verify_mobile_editor_overflow.py`: Playwright kiểm thử viewport mobile (375x812 & 390x844) xác nhận 0px tràn ngang và nút xóa 28x28px hiển thị hoàn hảo.
+  - Toàn bộ test hồi quy (`test_v14_features.py`, `test_auth_isolation.py`, `test_edit_and_ux.py`) đạt 100% PASS.
+
+## [1.4.3] - 2026-10-12
+### Fixed & Improved
+- **Khắc Phục Triệt Để Bug Nút Profile Header Bị Đơ & Intercept Pointer Events (`components.css`, `layout.css`, `auth.js`, `app.js`):**
+  - **Root Cause cốt lõi:** Cụm thanh công cụ phóng to `#lightbox-controls-bar` định vị ở góc trên bên phải (`top: max(16px...), right: max(16px...)`) trước đó được gán `pointer-events: auto !important` ngay cả khi Lightbox đang đóng (`opacity: 0`), dẫn đến việc toàn bộ click vào Profile Pill ("Nguyễn Thành Long") bị phần tử vô hình này nuốt mất sự kiện.
+  - Sửa đổi: Đưa `.lightbox-modal` khi không kích hoạt về `display: none !important; visibility: hidden !important; pointer-events: none !important;`, chỉ kích hoạt `pointer-events: auto !important` khi có class `.active`.
+  - Triệt tiêu hoàn toàn các listener trực tiếp gây xung đột và `stopPropagation()` cục bộ trong `static/js/auth.js`, chuyển 100% sang Event Delegation duy nhất tại `document` trong `static/js/app.js` (SSoT).
+- **Bổ Sung Nút Chế Độ Đêm / Ngày Vào Profile Dropdown Menu (`index.html`, `app.js`):**
+  - Tích hợp thêm mục "Chế độ Đêm / Ngày" (`#dropdown-theme-toggle-btn`) vào menu thả xuống, đồng bộ trạng thái icon và badge (Sáng / Tối) theo thời gian thực.
+  - Menu chứa đầy đủ 4 nhóm chức năng cốt lõi: Bảo mật mã PIN, Đêm/Ngày, Sao lưu/Khôi phục, Đăng xuất.
+- **Tối Ưu Hóa Logic Tách Tên Xưng Hô Friendly Greeting Banner (`app.js`):**
+  - Ưu tiên các trường `nickname` / `preferredName` / `preferred_name` nếu có.
+  - Tự động lọc bỏ các chú thích trong ngoặc đơn như `(心)`, `(Zen)` và lấy chính xác từ cuối cùng trong chuỗi họ tên (ví dụ: "Nguyễn Thành Long" -> "Chào Long, hôm nay bạn cảm thấy thế nào? 🌸").
+- **Kiểm Thử Tự Động Playwright E2E:**
+  - Script `tests/verify_profile_dropdown.py` kiểm thử 100% PASS từ click pill, assert menu hiển thị, đầy đủ 4 mục menu, đóng khi click outside, và chụp ảnh bằng chứng `desktop_profile_dropdown_open.png`.
+- **Tăng Phiên Bản Hệ Thống Lên `v1.4.3`:**
+  - Cập nhật `sw.js` (CACHE_NAME = `kokoro-v1.4.3`), `app/config.py`, và query string chống cache `?v=1.4.3` cho toàn bộ CSS/JS.
+- **Header Profile Pill Dropdown Event Delegation (`static/js/app.js` & CSS):**
+  - Chuyển toàn bộ cơ chế lắng nghe sự kiện click mở Dropdown sang Event Delegation cấp `document`, triệt tiêu hoàn toàn lỗi mất listener khi render lại user info động.
+  - Thiết lập thuộc tính `z-index: 9999 !important; pointer-events: auto !important;` cho `.profile-dropdown-menu`, đảm bảo `.app-header` và `#user-profile-container` có `overflow: visible !important`.
+  - Tự động đóng dropdown khi click ra ngoài hoặc khi nhấp vào bất kỳ tùy chọn nào bên trong.
+- **Tinh Chỉnh Logic Tách Tên Xưng Hô Thân Mật (`static/js/app.js`):**
+  - Tách lấy từ cuối cùng trong chuỗi họ tên (ví dụ: "Nguyễn Thành Long" -> "Chào Long") và loại bỏ phần chú thích trong ngoặc đơn như `(心)`, `(Zen)`.
+- **Cố Định Layout Desktop 3 Cột Bất Biến & Ẩn FAB Nổi (`layout.css`, `components.css`):**
+  - Khóa cứng bố cục `300px minmax(520px, 1fr) 320px` trên Desktop (`> 1024px`), triệt tiêu hoàn toàn 5 cột trụ dọc và ẩn nút FAB nổi đè bài viết.
+  - Tăng phiên bản `CACHE_NAME` lên `kokoro-v1.4.2` và query param `?v=1.4.2` trên toàn bộ assets.
+
+---
+
+## [1.4.1] - 2026-10-12
+### Fixed & Improved
+- **PWA Service Worker Cache-Busting & Clean Activation (`static/sw.js` & `static/index.html`):**
+  - Tăng phiên bản `CACHE_NAME` lên `kokoro-v1.4.1`.
+  - Tự động xóa sạch toàn bộ cache cũ trong sự kiện `activate` và gọi `self.skipWaiting()` + `self.clients.claim()`.
+  - Gắn query param chống cache `?v=1.4.1` cho toàn bộ thẻ `<script>` (`lightbox.js`, `app.js`, `editor.js`...) và `<link>` CSS (`components.css`, `layout.css`...) trong `index.html`.
+  - Bổ sung `reg.update()` trong `pwa.js` để kích hoạt kiểm tra cập nhật Service Worker chủ động ngay khi mở web.
+- **Tương Tác Lightbox Cảm Ứng & Phóng To Trực Quan (`lightbox.js`, `components.css`, `layout.css`):**
+  - Gắn thuộc tính bắt buộc cho ảnh `#lightbox-img`: `touch-action: none !important`, `user-select: none !important`, `transition: transform 0.1s ease-out`.
+  - Đăng ký sự kiện Touch chuẩn Mobile với `{ passive: false }` và gọi `e.preventDefault()` khi phát hiện cử chỉ 2 ngón (Pinch-to-Zoom) hoặc đang kéo ảnh khi phóng to (Pan), ngăn chặn triệt để tình trạng trình duyệt nuốt mất cử chỉ.
+  - Nâng cấp cụm nút bấm điều khiển nổi (`#lightbox-controls-bar`): Đảm bảo `z-index: 10000 !important` luôn nổi trên cùng; hỗ trợ các nấc zoom mượt mà theo bậc: `[+]` (1.5x -> 2.0x -> 2.5x -> 3.0x -> 3.5x), `[-]` (thu nhỏ theo bậc), `[↺]` (reset về 1.0x tâm giữa), và `[✕]` (đóng ảnh).
+  - Tích hợp chốt chống gán sự kiện lặp (`this.initialized`) trong `Lightbox.init()`.
 
 ---
 

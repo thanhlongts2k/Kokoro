@@ -59,7 +59,7 @@ def run_v14_tests():
     print("\n[Step 1] Kiem tra phien ban may chu GET /api/health...")
     st, body, _ = request_http(client, "GET", "/api/health")
     assert st == 200, f"Health check failed: {st}"
-    assert body["version"] == "v1.4.0", f"Version mismatch: expected v1.4.0, got {body['version']}"
+    assert body["version"] == "v1.5.0", f"Version mismatch: expected v1.5.0, got {body['version']}"
     print(f"  -> PASS: Kokoro Server dang chay phien ban: {body['version']} (PostgreSQL: {body['database']})")
 
     # 2. Check Zen Audio Assets on Disk

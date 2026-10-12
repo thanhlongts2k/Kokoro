@@ -71,6 +71,26 @@
   --header-height: 68px;
   --bottom-nav-height: 64px;
 
+  /* Button & Pill Glass Tokens */
+  --btn-glass-bg: rgba(255, 255, 255, 0.85);
+  --btn-glass-border: var(--border-glass);
+  --btn-glass-text: var(--text-primary);
+  --btn-glass-hover-bg: #ffffff;
+  --btn-glass-hover-text: var(--sakura-600);
+  --btn-glass-hover-border: var(--sakura-300);
+  --btn-glass-active-bg: var(--sakura-500);
+  --btn-glass-active-text: #ffffff;
+  --btn-glass-active-border: var(--sakura-500);
+
+  /* Surface Pill & Card Overrides */
+  --surface-pill-bg: rgba(255, 255, 255, 0.85);
+  --surface-pill-border: var(--border-glass);
+  --surface-hover-overlay: var(--sakura-100);
+  --surface-hover-text: var(--sakura-600);
+  --pwa-btn-bg: var(--sakura-100);
+  --pwa-btn-color: var(--sakura-600);
+  --pwa-btn-border: var(--sakura-300);
+
   /* Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -106,6 +126,26 @@
   --text-secondary: #cbd5e1;    /* Slate 300 - Gentle contrast */
   --text-muted: #64748b;        /* Slate 500 - Subdued metadata */
   --text-sakura: #f472b6;       /* Bright Sakura Neon */
+
+  /* Button & Pill Glass Tokens (Dark Mode) */
+  --btn-glass-bg: rgba(255, 255, 255, 0.06);
+  --btn-glass-border: rgba(255, 255, 255, 0.14);
+  --btn-glass-text: #f8fafc;
+  --btn-glass-hover-bg: rgba(255, 255, 255, 0.12);
+  --btn-glass-hover-text: #ffffff;
+  --btn-glass-hover-border: var(--sakura-400);
+  --btn-glass-active-bg: var(--sakura-500);
+  --btn-glass-active-text: #ffffff;
+  --btn-glass-active-border: var(--sakura-400);
+
+  /* Surface Pill & Card Overrides (Dark Mode) */
+  --surface-pill-bg: rgba(35, 33, 54, 0.85);
+  --surface-pill-border: rgba(244, 114, 182, 0.25);
+  --surface-hover-overlay: rgba(244, 114, 182, 0.2);
+  --surface-hover-text: var(--sakura-300);
+  --pwa-btn-bg: rgba(244, 114, 182, 0.18);
+  --pwa-btn-color: var(--sakura-300);
+  --pwa-btn-border: rgba(244, 114, 182, 0.35);
 
   /* Shadows (Neon Pink / Dark Ambient Glow) */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);

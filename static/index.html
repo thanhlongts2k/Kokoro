@@ -35,9 +35,10 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <!-- Stylesheets (Relative paths for Nginx reverse proxy subpath support) -->
-  <link rel="stylesheet" href="./css/tokens.css?v=1.4.0">
-  <link rel="stylesheet" href="./css/glass.css?v=1.4.0">
-  <link rel="stylesheet" href="./css/layout.css?v=1.4.0">
+  <link rel="stylesheet" href="./css/tokens.css?v=1.5.0">
+  <link rel="stylesheet" href="./css/glass.css?v=1.5.0">
+  <link rel="stylesheet" href="./css/components.css?v=1.5.0">
+  <link rel="stylesheet" href="./css/layout.css?v=1.5.0">
 </head>
 <body>
 
@@ -106,7 +107,7 @@
         </button>
 
         <!-- User Profile Pill & Dropdown -->
-        <div style="position: relative;" id="user-profile-container">
+        <div style="position: relative;" id="user-profile-container" class="header-profile-container profile-wrapper">
           <div class="header-profile-pill" id="user-profile-pill" title="Tài khoản">
             <img src="./icons/sakura.svg" alt="Avatar" id="header-avatar" class="profile-avatar" />
             <span class="profile-name" id="header-user-name">Đang tải...</span>
@@ -126,14 +127,7 @@
               <div id="mock-users-list" style="display: flex; flex-direction: column; gap: 4px;"></div>
             </div>
             <div class="dropdown-divider" id="mock-account-divider" style="display: none;"></div>
-            <button class="dropdown-item" id="export-backup-btn" style="color: var(--text-primary);">
-              <i class="bi bi-cloud-arrow-down text-sakura"></i> Sao lưu dữ liệu (JSON)
-            </button>
-            <button class="dropdown-item" id="import-backup-btn" style="color: var(--text-primary);">
-              <i class="bi bi-cloud-arrow-up text-sakura"></i> Khôi phục dữ liệu (JSON)
-            </button>
-            <input type="file" id="backup-file-input" accept=".json,application/json" style="display: none;" />
-            <div class="dropdown-divider"></div>
+
             <!-- Passcode Security in Profile Menu -->
             <button class="dropdown-item" id="lock-screen-now-btn" style="color: var(--text-primary);">
               <i class="bi bi-shield-lock text-sakura"></i> Khóa màn hình ngay
@@ -143,6 +137,26 @@
                 <i class="bi bi-key text-sakura"></i> Bảo mật mã PIN
               </span>
               <span id="profile-lock-badge" class="badge-pill badge-inactive">Chưa bật</span>
+            </button>
+
+            <!-- Theme Mode Toggle in Profile Menu -->
+            <button class="dropdown-item" id="dropdown-theme-toggle-btn" style="color: var(--text-primary); justify-content: space-between;">
+              <span style="display: flex; align-items: center; gap: 8px;">
+                <i class="bi bi-moon-stars text-sakura" id="dropdown-theme-icon"></i> Chế độ Đêm / Ngày
+              </span>
+              <span id="dropdown-theme-badge" class="badge-pill badge-inactive" style="font-size: 10px;">Sáng</span>
+            </button>
+            <div class="dropdown-divider"></div>
+
+            <button class="dropdown-item" id="export-backup-btn" style="color: var(--text-primary);">
+              <i class="bi bi-cloud-arrow-down text-sakura"></i> Sao lưu dữ liệu (JSON)
+            </button>
+            <button class="dropdown-item" id="import-backup-btn" style="color: var(--text-primary);">
+              <i class="bi bi-cloud-arrow-up text-sakura"></i> Khôi phục dữ liệu (JSON)
+            </button>
+            <!-- PWA Install option for mobile -->
+            <button class="dropdown-item" id="pwa-install-menu-item" style="display: none; color: var(--text-primary);">
+              <i class="bi bi-download text-sakura"></i> Cài đặt ứng dụng PWA
             </button>
             <div class="dropdown-divider"></div>
             <button class="dropdown-item text-danger" id="logout-btn">
@@ -161,10 +175,10 @@
     <!-- ====================================================================
          2. MAIN WRAPPER (ADAPTIVE 3-COLUMN / 1-COLUMN)
          ==================================================================== -->
-    <main class="main-wrapper">
+    <main class="main-wrapper app-dashboard-layout">
 
       <!-- Mobile Horizontal Quick Mood Filter -->
-      <div class="mobile-mood-scroll">
+      <div class="mobile-mood-scroll mood-filter-chips" id="mobile-mood-chips">
         <button class="btn-glass active" data-filter-mood="all">Tất cả 🌸</button>
         <button class="btn-glass" data-filter-mood="serene">Bình yên 🌸</button>
         <button class="btn-glass" data-filter-mood="cozy">Ấm áp ☕</button>
@@ -173,7 +187,7 @@
       </div>
 
       <!-- 2.1. LEFT SIDEBAR (CALENDAR & MOOD FILTERS) -->
-      <aside class="sidebar-left">
+      <aside class="sidebar-left dashboard-col-left">
         <!-- Interactive Mini Calendar -->
         <div class="glass-panel calendar-widget">
           <div class="cal-header">
@@ -232,40 +246,257 @@
         </div>
       </aside>
 
-      <!-- 2.2. CENTER TIMELINE FEED -->
-      <section class="timeline-feed">
-        <!-- Welcoming Healing Card -->
-        <div class="glass-panel welcome-banner-card" style="padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
-          <div>
-            <h1 style="font-size: 20px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-primary); letter-spacing: -0.3px;">
-              Chào Aria, hôm nay bạn cảm thấy thế nào? 🌸
-            </h1>
-            <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">
-              Lắng đọng tâm trí và lưu giữ những khoảnh khắc nhẹ nhàng của ngày hôm nay.
-            </p>
+      <!-- 2.2. CENTER MULTI-VIEW SECTION -->
+      <section class="timeline-feed dashboard-col-center" id="center-content-area">
+        <!-- Desktop Quick View Switcher Tabs -->
+        <div class="desktop-view-tabs" id="desktop-view-tabs">
+          <button class="c-chip active" data-switch-view="timeline"><i class="bi bi-journal-richtext"></i> Nhật ký</button>
+          <button class="c-chip" data-switch-view="calendar"><i class="bi bi-calendar-heart"></i> Lịch cảm xúc</button>
+          <button class="c-chip" data-switch-view="memories"><i class="bi bi-images"></i> Kỷ niệm</button>
+          <button class="c-chip" data-switch-view="profile"><i class="bi bi-person-circle"></i> Cá nhân</button>
+        </div>
+
+        <!-- ==========================================
+             VIEW 1: TIMELINE (DEFAULT)
+             ========================================== -->
+        <div id="view-timeline" class="c-view active">
+          <!-- Welcoming Healing Card -->
+          <div class="glass-panel welcome-banner-card" style="padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+            <div>
+              <h1 id="welcome-greeting-title" style="font-size: 20px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-primary); letter-spacing: -0.3px;">
+                Chào bạn, hôm nay bạn cảm thấy thế nào? 🌸
+              </h1>
+              <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">
+                Lắng đọng tâm trí và lưu giữ những khoảnh khắc nhẹ nhàng của ngày hôm nay.
+              </p>
+            </div>
+            <button class="btn-sakura" onclick="window.Editor && window.Editor.open()" style="flex-shrink: 0;">
+              <i class="bi bi-plus-lg"></i> Viết nhật ký
+            </button>
           </div>
-          <button class="btn-sakura" onclick="window.Editor && window.Editor.open()" style="flex-shrink: 0;">
-            <i class="bi bi-plus-lg"></i> Viết nhật ký
-          </button>
+
+          <!-- Live Search Bar (Debounced 300ms) -->
+          <div class="glass-panel search-bar-container">
+            <i class="bi bi-search text-sakura" style="font-size: 15px;"></i>
+            <input type="text" id="search-input" class="search-input-field" placeholder="Tìm kiếm khoảnh khắc theo tiêu đề, nội dung hoặc thẻ..." />
+            <button type="button" id="search-clear-btn" class="action-icon-btn" style="width: 26px; height: 26px; display: none;" title="Xóa từ khóa">
+              <i class="bi bi-x-lg" style="font-size: 11px;"></i>
+            </button>
+          </div>
+
+          <!-- Feed Cards Container -->
+          <div id="timeline-feed-container" style="display: flex; flex-direction: column; gap: 20px;">
+            <!-- Injected dynamically by app.js -->
+          </div>
         </div>
 
-        <!-- Live Search Bar (Debounced 300ms) -->
-        <div class="glass-panel search-bar-container">
-          <i class="bi bi-search text-sakura" style="font-size: 15px;"></i>
-          <input type="text" id="search-input" class="search-input-field" placeholder="Tìm kiếm khoảnh khắc theo tiêu đề, nội dung hoặc thẻ..." />
-          <button type="button" id="search-clear-btn" class="action-icon-btn" style="width: 26px; height: 26px; display: none;" title="Xóa từ khóa">
-            <i class="bi bi-x-lg" style="font-size: 11px;"></i>
-          </button>
+        <!-- ==========================================
+             VIEW 2: CALENDAR (LỊCH CẢM XÚC)
+             ========================================== -->
+        <div id="view-calendar" class="c-view">
+          <div class="glass-panel c-calendar-card">
+            <div class="c-calendar-nav">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="c-calendar-title" id="full-cal-month-title">Tháng 10 2026</span>
+                <button type="button" id="full-cal-today-btn" class="c-chip" style="font-size: 11px; padding: 3px 10px;">Hôm nay</button>
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <button type="button" class="action-icon-btn" id="full-cal-prev-btn" title="Tháng trước">
+                  <i class="bi bi-chevron-left"></i>
+                </button>
+                <button type="button" class="action-icon-btn" id="full-cal-next-btn" title="Tháng sau">
+                  <i class="bi bi-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Full Calendar Grid -->
+            <div class="c-calendar-grid" id="full-calendar-grid">
+              <!-- Rendered dynamically by app.js -->
+            </div>
+          </div>
+
+          <!-- Selected Day's Entries Section -->
+          <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 6px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <h3 style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0;" id="calendar-selected-date-heading">
+                Khoảnh khắc ngày hôm nay 🌸
+              </h3>
+              <button type="button" id="calendar-add-date-btn" class="c-btn c-btn--primary" style="padding: 6px 14px; font-size: 12px; min-height: 36px;">
+                <i class="bi bi-plus-lg"></i> Viết cho ngày này
+              </button>
+            </div>
+            <div id="calendar-day-entries-list" style="display: flex; flex-direction: column; gap: 16px;">
+              <!-- Rendered dynamically by app.js -->
+            </div>
+          </div>
         </div>
 
-        <!-- Feed Cards Container -->
-        <div id="timeline-feed-container" style="display: flex; flex-direction: column; gap: 20px;">
-          <!-- Injected dynamically by app.js -->
+        <!-- ==========================================
+             VIEW 3: MEMORIES (KHO KỶ NIỆM / PHOTO GALLERY)
+             ========================================== -->
+        <div id="view-memories" class="c-view">
+          <div class="glass-panel" style="padding: 20px 24px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
+              <div>
+                <h2 style="font-size: 18px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-primary);">
+                  Kho Kỷ Niệm 🌸
+                </h2>
+                <p style="font-size: 12.5px; color: var(--text-muted); margin: 0;">
+                  Lắng đọng qua từng khung hình đã lưu giữ trong nhật ký.
+                </p>
+              </div>
+              <span id="memories-total-badge" class="c-chip" style="font-weight: 800; background: var(--surface-hover-overlay); color: var(--surface-hover-text);">
+                📸 0 ảnh
+              </span>
+            </div>
+
+            <!-- Mood Filter for Memories -->
+            <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch;" id="memories-mood-filters">
+              <button class="c-chip active" data-memories-mood="all">Tất cả ảnh</button>
+              <button class="c-chip" data-memories-mood="serene">🌸 Bình yên</button>
+              <button class="c-chip" data-memories-mood="cozy">☕ Ấm áp</button>
+              <button class="c-chip" data-memories-mood="reflective">🌙 Chiêm nghiệm</button>
+              <button class="c-chip" data-memories-mood="grateful">🍵 Biết ơn</button>
+              <button class="c-chip" data-memories-mood="energetic">⚡ Năng lượng</button>
+            </div>
+          </div>
+
+          <!-- Memories Photo Grid -->
+          <div class="c-memories-grid" id="memories-photo-grid">
+            <!-- Rendered dynamically by app.js -->
+          </div>
+        </div>
+
+        <!-- ==========================================
+             VIEW 4: PROFILE (TRANG CÁ NHÂN & TIỆN ÍCH)
+             ========================================== -->
+        <div id="view-profile" class="c-view">
+          <!-- Profile Header Card -->
+          <div class="glass-panel c-profile-header-card">
+            <div class="c-profile-avatar-wrap">
+              <img src="./icons/sakura.svg" alt="Avatar" id="profile-view-avatar" class="c-profile-avatar-large" />
+            </div>
+            <div>
+              <h2 class="c-profile-name" id="profile-view-name">Aria Tanaka</h2>
+              <p class="c-profile-email" id="profile-view-email">aria.tanaka@kokoro.me</p>
+            </div>
+            <span class="c-chip c-chip--mood-serene" style="font-size: 11px;">
+              Thành viên Kokoro Zen Journal 🌸
+            </span>
+          </div>
+
+          <!-- Emotion Journey Metrics Card -->
+          <div class="glass-panel" style="padding: 20px;">
+            <h4 style="font-size: 13px; font-weight: 800; margin: 0 0 14px 0; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;">
+              <i class="bi bi-graph-up-arrow text-sakura"></i> Hành trình cảm xúc
+            </h4>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px;">
+              <div class="c-card--metric">
+                <div class="c-card--metric-value text-sakura" id="profile-stat-entries">0</div>
+                <div class="c-card--metric-label">Khoảnh khắc</div>
+              </div>
+              <div class="c-card--metric">
+                <div class="c-card--metric-value" style="color: #f59e0b;" id="profile-stat-streak">0 ngày</div>
+                <div class="c-card--metric-label">Chuỗi viết</div>
+              </div>
+              <div class="c-card--metric">
+                <div class="c-card--metric-value" style="color: #10b981;" id="profile-stat-photos">0</div>
+                <div class="c-card--metric-label">Hình ảnh</div>
+              </div>
+            </div>
+
+            <!-- Mood Distribution Progress Bar -->
+            <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">Phân bổ tâm trạng:</div>
+            <div class="mood-bar-container" style="height: 10px; border-radius: var(--radius-pill); overflow: hidden; display: flex; background: rgba(148, 163, 184, 0.2); margin-bottom: 12px;">
+              <div id="profile-bar-serene" style="width: 0%; background: var(--mood-serene);"></div>
+              <div id="profile-bar-cozy" style="width: 0%; background: var(--mood-cozy);"></div>
+              <div id="profile-bar-reflective" style="width: 0%; background: var(--mood-reflective);"></div>
+              <div id="profile-bar-grateful" style="width: 0%; background: var(--mood-grateful);"></div>
+              <div id="profile-bar-energetic" style="width: 0%; background: var(--mood-energetic);"></div>
+            </div>
+            <div class="mood-legend" style="display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px;">
+              <span class="legend-item"><span class="legend-dot" style="background: var(--mood-serene);"></span>🌸 <span id="profile-leg-serene">0%</span></span>
+              <span class="legend-item"><span class="legend-dot" style="background: var(--mood-cozy);"></span>☕ <span id="profile-leg-cozy">0%</span></span>
+              <span class="legend-item"><span class="legend-dot" style="background: var(--mood-reflective);"></span>🌙 <span id="profile-leg-reflective">0%</span></span>
+              <span class="legend-item"><span class="legend-dot" style="background: var(--mood-grateful);"></span>🍵 <span id="profile-leg-grateful">0%</span></span>
+              <span class="legend-item"><span class="legend-dot" style="background: var(--mood-energetic);"></span>⚡ <span id="profile-leg-energetic">0%</span></span>
+            </div>
+          </div>
+
+          <!-- Settings & Utilities Action Menu -->
+          <div class="glass-panel c-profile-menu-card">
+            <!-- 1. Passcode Lock -->
+            <button class="c-profile-menu-item" id="profile-action-pin">
+              <div class="c-profile-menu-left">
+                <i class="bi bi-key c-profile-menu-icon"></i>
+                <div>
+                  <div style="color: var(--text-primary); font-weight: 700;">Bảo mật mã PIN 4 số</div>
+                  <div style="font-size: 11.5px; color: var(--text-muted);">Khóa riêng tư bằng mật mã Client-side SHA-256</div>
+                </div>
+              </div>
+              <span id="profile-action-pin-badge" class="badge-pill badge-inactive">Chưa bật</span>
+            </button>
+
+            <!-- 2. Lock Screen Now -->
+            <button class="c-profile-menu-item" id="profile-action-lock-now">
+              <div class="c-profile-menu-left">
+                <i class="bi bi-shield-lock c-profile-menu-icon"></i>
+                <div style="color: var(--text-primary); font-weight: 700;">Khóa màn hình ngay</div>
+              </div>
+              <i class="bi bi-chevron-right" style="font-size: 12px; color: var(--text-muted);"></i>
+            </button>
+
+            <!-- 3. Night Sakura Theme Toggle -->
+            <button class="c-profile-menu-item" id="profile-action-theme">
+              <div class="c-profile-menu-left">
+                <i class="bi bi-moon-stars c-profile-menu-icon"></i>
+                <div style="color: var(--text-primary); font-weight: 700;">Giao diện Night Sakura</div>
+              </div>
+              <span id="profile-theme-label" class="badge-pill" style="background: var(--surface-glass-subtle); color: var(--text-primary);">Sáng</span>
+            </button>
+
+            <!-- 4. Export JSON Backup -->
+            <button class="c-profile-menu-item" id="profile-action-export">
+              <div class="c-profile-menu-left">
+                <i class="bi bi-cloud-arrow-down c-profile-menu-icon"></i>
+                <div style="color: var(--text-primary); font-weight: 700;">Sao lưu dữ liệu (Export JSON)</div>
+              </div>
+              <i class="bi bi-download" style="font-size: 12px; color: var(--text-muted);"></i>
+            </button>
+
+            <!-- 5. Import JSON Backup -->
+            <button class="c-profile-menu-item" id="profile-action-import">
+              <div class="c-profile-menu-left">
+                <i class="bi bi-cloud-arrow-up c-profile-menu-icon"></i>
+                <div style="color: var(--text-primary); font-weight: 700;">Khôi phục dữ liệu (Import JSON)</div>
+              </div>
+              <i class="bi bi-upload" style="font-size: 12px; color: var(--text-muted);"></i>
+            </button>
+
+            <!-- 6. Install PWA App -->
+            <button class="c-profile-menu-item" id="profile-action-pwa" style="display: none;">
+              <div class="c-profile-menu-left">
+                <i class="bi bi-phone c-profile-menu-icon"></i>
+                <div style="color: var(--text-primary); font-weight: 700;">Cài đặt Kokoro PWA lên thiết bị</div>
+              </div>
+              <i class="bi bi-arrow-down-circle text-sakura"></i>
+            </button>
+
+            <!-- 7. Logout / Switch Account -->
+            <button class="c-profile-menu-item" id="profile-action-logout" style="color: #e11d48;">
+              <div class="c-profile-menu-left">
+                <i class="bi bi-box-arrow-right c-profile-menu-icon" style="color: #e11d48;"></i>
+                <div style="font-weight: 700;">Đăng xuất tài khoản</div>
+              </div>
+              <i class="bi bi-chevron-right" style="font-size: 12px; color: #e11d48;"></i>
+            </button>
+          </div>
         </div>
       </section>
 
       <!-- 2.3. RIGHT SIDEBAR (STATS & ZEN HEALING QUOTES) -->
-      <aside class="sidebar-right">
+      <aside class="sidebar-right dashboard-col-right">
         <!-- Statistics Card -->
         <div class="glass-panel" style="padding: 20px;">
           <h4 style="font-size: 13px; font-weight: 800; margin: 0 0 16px 0; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;">
@@ -301,12 +532,12 @@
         </div>
 
         <!-- Zen & Healing Philosophy Card -->
-        <div class="glass-panel" style="padding: 22px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(254, 242, 244, 0.85) 100%);">
+        <div class="glass-panel zen-quote-card">
           <div style="font-size: 24px; color: var(--sakura-400); margin-bottom: 8px;">🍵</div>
           <p style="font-style: italic; font-size: 13px; line-height: 1.6; color: var(--text-secondary); margin: 0 0 10px 0;">
             "Hạnh phúc không phải là đích đến rực rỡ, mà là sự bình an trong từng nhịp thở bình dị mỗi sớm mai."
           </p>
-          <div style="font-size: 11px; font-weight: 700; color: var(--sakura-600); text-align: right;">
+          <div style="font-size: 11px; font-weight: 700; color: var(--text-sakura); text-align: right;">
             — Kokoro Zen Journal
           </div>
         </div>
@@ -322,7 +553,7 @@
         <div class="footer-brand">
           <img src="./icons/sakura.svg" alt="Kokoro Logo" class="footer-logo" />
           <span class="footer-title">Kokoro <span style="font-weight: 500; font-size: 14px; color: var(--sakura-500);">心</span></span>
-          <span class="footer-version-badge" id="app-version-badge">v1.2.0</span>
+          <span class="footer-version-badge" id="app-version-badge">v1.5.0</span>
         </div>
         <p class="footer-tagline">
           Lắng đọng tâm trí & lưu giữ những khoảnh khắc nhẹ nhàng trong không gian an yên.
@@ -348,12 +579,12 @@
     <!-- ====================================================================
          4. MOBILE BOTTOM NAVIGATION (THUMB ZONE)
          ==================================================================== -->
-    <nav class="mobile-bottom-nav">
+    <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
       <button class="bottom-nav-item active" data-tab="timeline">
         <i class="bi bi-journal-richtext"></i>
         <span>Nhật ký</span>
       </button>
-      <button class="bottom-nav-item" data-tab="calendar" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+      <button class="bottom-nav-item" data-tab="calendar">
         <i class="bi bi-calendar-heart"></i>
         <span>Lịch</span>
       </button>
@@ -361,11 +592,11 @@
         <i class="bi bi-plus-circle-fill" style="color: var(--sakura-500); font-size: 24px;"></i>
         <span>Viết bài</span>
       </button>
-      <button class="bottom-nav-item" data-tab="memories" onclick="alert('Tính năng Album Kỷ Niệm đang được đồng bộ! 🌸')">
+      <button class="bottom-nav-item" data-tab="memories">
         <i class="bi bi-images"></i>
         <span>Kỷ niệm</span>
       </button>
-      <button class="bottom-nav-item" data-tab="profile" onclick="alert('Aria Tanaka — Mock Account Active (Local Dev Mode)')">
+      <button class="bottom-nav-item" data-tab="profile">
         <i class="bi bi-person-circle"></i>
         <span>Cá nhân</span>
       </button>
@@ -482,10 +713,22 @@
          7. FULLSCREEN PHOTO LIGHTBOX MODAL
          ==================================================================== -->
     <div class="lightbox-modal" id="lightbox-modal">
-      <button class="lightbox-close-btn" id="lightbox-close-btn" title="Đóng ảnh">
-        <i class="bi bi-x-lg"></i>
-      </button>
-      <div class="lightbox-img-wrapper">
+      <div class="lightbox-controls-bar" id="lightbox-controls-bar">
+        <button class="lightbox-tool-btn" id="lightbox-zoom-in-btn" title="Phóng to (+)">
+          <i class="bi bi-plus-lg"></i>
+        </button>
+        <button class="lightbox-tool-btn" id="lightbox-zoom-out-btn" title="Thu nhỏ (-)">
+          <i class="bi bi-dash-lg"></i>
+        </button>
+        <button class="lightbox-tool-btn" id="lightbox-reset-btn" title="Về 1x (↺)">
+          <i class="bi bi-arrow-counterclockwise"></i>
+        </button>
+        <button class="lightbox-tool-btn lightbox-close-tool" id="lightbox-close-btn" title="Đóng ảnh (Esc)">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <div class="lightbox-caption" id="lightbox-caption"></div>
+      <div class="lightbox-img-wrapper" id="lightbox-img-wrapper">
         <img id="lightbox-img" src="" alt="Zoomed Photo" />
       </div>
     </div>
@@ -623,14 +866,14 @@
   </div>
 
   <!-- Scripts Execution (Relative paths for reverse proxy subpath) -->
-  <script src="./js/mock-data.js?v=1.4.0"></script>
-  <script src="./js/api.js?v=1.4.0"></script>
-  <script src="./js/auth.js?v=1.4.0"></script>
-  <script src="./js/lightbox.js?v=1.4.0"></script>
-  <script src="./js/editor.js?v=1.4.0"></script>
-  <script src="./js/zen-audio.js?v=1.4.0"></script>
-  <script src="./js/passcode.js?v=1.4.0"></script>
-  <script src="./js/pwa.js?v=1.4.0"></script>
-  <script src="./js/app.js?v=1.4.0"></script>
+  <script src="./js/mock-data.js?v=1.5.0"></script>
+  <script src="./js/api.js?v=1.5.0"></script>
+  <script src="./js/auth.js?v=1.5.0"></script>
+  <script src="./js/lightbox.js?v=1.5.0"></script>
+  <script src="./js/editor.js?v=1.5.0"></script>
+  <script src="./js/zen-audio.js?v=1.5.0"></script>
+  <script src="./js/passcode.js?v=1.5.0"></script>
+  <script src="./js/pwa.js?v=1.5.0"></script>
+  <script src="./js/app.js?v=1.5.0"></script>
 </body>
 </html>

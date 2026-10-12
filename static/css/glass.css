@@ -145,10 +145,11 @@ html, body {
   min-height: var(--touch-target-min);
   min-width: var(--touch-target-min);
   padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--border-glass);
-  color: var(--text-secondary);
+  background: var(--btn-glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--btn-glass-border);
+  color: var(--btn-glass-text);
   border-radius: var(--radius-pill);
   font-weight: 600;
   font-size: 13px;
@@ -157,10 +158,17 @@ html, body {
 }
 
 .btn-glass:hover {
-  background: #ffffff;
-  color: var(--sakura-600);
-  border-color: var(--sakura-300);
+  background: var(--btn-glass-hover-bg);
+  color: var(--btn-glass-hover-text);
+  border-color: var(--btn-glass-hover-border);
   transform: translateY(-1px);
+}
+
+.btn-glass.active {
+  background: var(--btn-glass-active-bg);
+  color: var(--btn-glass-active-text);
+  border-color: var(--btn-glass-active-border);
+  box-shadow: 0 4px 14px rgba(236, 72, 153, 0.35);
 }
 
 /* Mood Badges */
@@ -186,8 +194,8 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 10px;
-  background: rgba(255, 255, 255, 0.65);
+  padding: 4px 12px;
+  background: var(--surface-glass-subtle);
   border: 1px solid var(--border-glass-subtle);
   color: var(--text-secondary);
   border-radius: var(--radius-pill);
@@ -198,9 +206,9 @@ html, body {
 }
 
 .tag-pill:hover, .tag-pill.active {
-  background: var(--sakura-100);
-  color: var(--sakura-600);
-  border-color: var(--sakura-300);
+  background: var(--surface-hover-overlay);
+  color: var(--surface-hover-text);
+  border-color: var(--sakura-400);
 }
 
 /* Custom Soothing Scrollbar */
@@ -251,12 +259,12 @@ html, body {
   align-items: center;
   gap: 10px;
   padding: 12px 20px;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--surface-glass-modal);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(244, 114, 182, 0.4);
+  border: 1px solid var(--border-glass);
   border-radius: var(--radius-pill);
-  box-shadow: 0 10px 25px rgba(244, 114, 182, 0.22);
+  box-shadow: var(--shadow-lg);
   color: var(--text-primary);
   font-size: 13.5px;
   font-weight: 600;
@@ -310,25 +318,30 @@ html, body {
    PROFILE DROPDOWN MENU
    ========================================================================== */
 .profile-dropdown-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  width: 250px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(244, 114, 182, 0.35);
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  right: 0 !important;
+  width: 260px;
+  background: var(--surface-glass-modal);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-glass);
   border-radius: var(--radius-md);
-  box-shadow: 0 15px 35px rgba(244, 114, 182, 0.25);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--border-glass-subtle);
   display: none;
   flex-direction: column;
-  z-index: 1000;
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+  cursor: pointer;
   padding: 8px 0;
   animation: dropdownFade 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.profile-dropdown-menu.active {
-  display: flex;
+.profile-dropdown-menu.active,
+.profile-dropdown-menu.show {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 @keyframes dropdownFade {
@@ -348,7 +361,7 @@ html, body {
 
 .dropdown-divider {
   height: 1px;
-  background: rgba(244, 114, 182, 0.15);
+  background: var(--border-glass-subtle);
   margin: 4px 0;
 }
 
@@ -369,8 +382,8 @@ html, body {
 }
 
 .dropdown-item:hover {
-  background: var(--sakura-100);
-  color: var(--sakura-600);
+  background: var(--surface-hover-overlay);
+  color: var(--surface-hover-text);
 }
 
 .dropdown-item.text-danger {
@@ -378,8 +391,8 @@ html, body {
 }
 
 .dropdown-item.text-danger:hover {
-  background: #ffe4e6;
-  color: #be123c;
+  background: rgba(225, 29, 72, 0.15);
+  color: #f43f5e;
 }
 
 /* ==========================================================================
@@ -391,10 +404,15 @@ html, body {
   padding: 36px 32px;
   border-radius: var(--radius-lg);
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(253, 242, 248, 0.92) 100%);
-  border: 1px solid rgba(244, 114, 182, 0.45);
-  box-shadow: 0 25px 60px rgba(244, 114, 182, 0.3);
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--shadow-lg);
   text-align: center;
   margin: auto;
+}
+
+[data-theme="dark"] .login-card {
+  background: var(--surface-glass-modal);
+  border-color: var(--border-glass);
 }
 
 .login-logo-glow {
@@ -418,7 +436,7 @@ html, body {
 .login-divider-text::after {
   content: '';
   flex: 1;
-  border-bottom: 1px solid rgba(244, 114, 182, 0.25);
+  border-bottom: 1px solid var(--border-glass-subtle);
 }
 
 .login-divider-text span {
@@ -430,8 +448,9 @@ html, body {
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  border: 1px solid rgba(244, 114, 182, 0.3);
-  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--border-glass);
+  background: var(--surface-glass-subtle);
+  color: var(--text-primary);
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -439,15 +458,32 @@ html, body {
 }
 
 .dev-user-chip:hover {
-  background: var(--sakura-100);
+  background: var(--surface-hover-overlay);
   border-color: var(--sakura-400);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(244, 114, 182, 0.15);
+  box-shadow: var(--shadow-sm);
 }
 
 .dev-user-chip.active {
-  background: var(--sakura-200);
+  background: var(--sakura-500);
+  color: #ffffff;
   border-color: var(--sakura-500);
+}
+
+/* ==========================================================================
+   ZEN & HEALING PHILOSOPHY CARD
+   ========================================================================== */
+.zen-quote-card {
+  padding: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(254, 242, 244, 0.85) 100%);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  transition: background var(--transition-normal), border-color var(--transition-normal);
+}
+
+[data-theme="dark"] .zen-quote-card {
+  background: var(--surface-glass-card);
+  border: 1px solid var(--border-glass-subtle);
 }
 
 

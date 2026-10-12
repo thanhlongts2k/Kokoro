@@ -112,6 +112,55 @@
 - [x] Kiểm thử toàn diện & Nghiệm thu:
   - [x] Bổ sung test suite `tests/test_v14_features.py` đạt 100% PASS; toàn bộ 6 test suites của dự án đều đạt 100% PASS.
 
+### 🔹 Giai đoạn 7.5: Tái Cấu Trúc Kiến Trúc & Hệ Thống Multi-View Router (Architectural Refactor & Design System)
+- [x] Hệ thống Component-Driven Design System tập trung (`static/css/components.css`):
+  - [x] Quy chuẩn hóa các controls cốt lõi: `.c-btn`, `.c-card`, `.c-chip`, `.c-input`, `.c-modal`, `.c-sheet`, `.c-view`.
+  - [x] 100% sử dụng CSS Tokens từ `tokens.css` (zero hardcoded static colors `#fff`, `#000`).
+  - [x] Dọn dẹp module CSS: giải phóng `layout.css`, loại bỏ CSS trùng lặp.
+- [x] Hệ thống Điều hướng Multi-View Router cho PWA (Single Page App View Switcher):
+  - [x] **View 1 (`#view-timeline`)**: Nhật ký feed mặc định, thanh tìm kiếm live, danh sách bài viết.
+  - [x] **View 2 (`#view-calendar`)**: Lịch tháng toàn màn hình trực quan với Mood Dots, bộ chuyển tháng mượt mà, danh sách bài viết theo ngày được chọn.
+  - [x] **Nút trung tâm (`+ Viết bài`)**: Nút hành động chính tại Bottom Nav mở Editor Modal/Bottom-Sheet mà không làm gián đoạn view.
+  - [x] **View 3 (`#view-memories`)**: Thư viện ảnh dạng lưới (Photo Gallery Grid) gom tất cả ảnh nhật ký, tích hợp bộ lọc theo tâm trạng và xem phóng to qua Lightbox.
+  - [x] **View 4 (`#view-profile`)**: Trang cá nhân hiển thị Avatar, Email, Thẻ thống kê Streak Days, Tổng bài viết, Tỷ lệ mood, Quản lý khóa PIN 4 số, Chế độ ban đêm, Sao lưu/Khôi phục JSON, Cài đặt PWA, Đăng xuất.
+- [x] Đồng bộ Responsive Desktop & Mobile:
+  - [x] Desktop (>1024px): Bố cục Dashboard 3 cột thông minh và thanh chuyển đổi Desktop View Switcher Tabs.
+  - [x] Mobile (<768px): Ẩn Desktop Tabs và nút FAB nổi thừa, điều hướng mượt mà qua Bottom Navigation Bar 5 nút (4 view + 1 nút viết bài trung tâm).
+- [x] Kiểm thử thị giác tự động qua Playwright: Chụp và nghiệm thu đầy đủ 8 ảnh chụp Mobile (Light & Dark) và Desktop Calendar View, đảm bảo `scrollWidth <= innerWidth` 100%.
+
+### 🔹 Giai đoạn 7.6: Bản Vá Hotfix PWA Cache-Busting & Lightbox Cảm Ứng (v1.4.1 Release)
+- [x] Nâng cấp PWA Service Worker Cache-Busting:
+  - [x] Bump `CACHE_NAME` lên `kokoro-v1.4.1` trong `static/sw.js`.
+  - [x] Tự động xóa sạch toàn bộ cache cũ khi `activate` (`self.skipWaiting()` + `self.clients.claim()`).
+  - [x] Đồng bộ query parameter `?v=1.4.1` trên toàn bộ thẻ script và stylesheet trong `static/index.html`.
+  - [x] Bổ sung `reg.update()` trong `static/js/pwa.js` để tự động kiểm tra bản cập nhật mới ngay khi mở trang.
+- [x] Khắc phục triệt để tương tác Lightbox Zoom & Pan (`static/js/lightbox.js`, CSS):
+  - [x] Gắn thuộc tính CSS `touch-action: none !important; user-select: none !important; transition: transform 0.1s ease-out;` cho `#lightbox-img`.
+  - [x] Đăng ký sự kiện Touch chuẩn Mobile với `{ passive: false }` và gọi `e.preventDefault()` khi Pinch Zoom 2 ngón hoặc Pan kéo ảnh khi đang zoom.
+  - [x] Cụm nút điều khiển nổi `#lightbox-controls-bar` đạt `z-index: 10000 !important;` luôn hiển thị trên cùng.
+  - [x] Hỗ trợ các nấc zoom theo bậc: `[+]` (1.5x -> 2.0x -> 2.5x -> 3.0x -> 3.5x), `[-]` (thu nhỏ theo bậc), `[↺]` (reset về 1.0x tâm giữa).
+  - [x] Đồng bộ phiên bản ứng dụng toàn diện lên `v1.4.1` trên Footer, `app/config.py`, và `README.md`.
+
+### 🔹 Giai đoạn 7.7: Tái Cấu Trúc Toàn Diện Media Lifecycle & Vá Tràn Ngang Mobile (v1.5.0 Go-Live Readiness)
+- [x] Hoàn thiện nghiệp vụ hình ảnh & vòng đời ảnh (Media Lifecycle):
+  - [x] Tái cấu trúc Data Model trong Editor: `existingPhotos`, `deletedPhotoIds`, `selectedFiles`.
+  - [x] Chuẩn hóa `.preview-thumb-box` khung vuông 1:1, ảnh `object-fit: cover`.
+  - [x] Nút xóa nổi bật 28x28px (`.preview-remove-btn`) trên góc tất cả ảnh thumbnail (cũ và mới).
+  - [x] Backend xóa nguyên tử DB `entry_photos` và xóa file vật lý `.webp` / `_thumb.webp` trong `uploads/` trên ổ đĩa.
+- [x] Triệt tiêu hoàn toàn lỗi tràn ngang Modal / Bottom Sheet trên Mobile (375x812 & 390x844):
+  - [x] Thay thế toàn bộ `100vw` bằng `width: 100% !important; max-width: 100% !important; box-sizing: border-box !important;`.
+  - [x] Khóa cứng `overflow-x: hidden !important; touch-action: pan-y !important; min-width: 0 !important;` trên `.modal-overlay`, `.editor-dialog`, `.editor-body`.
+  - [x] Playwright E2E assert `scrollWidth <= innerWidth` 100% PASS.
+- [x] Vá lỗ hổng xác thực & cô lập dữ liệu đa tài khoản:
+  - [x] Lưu `user_id` vào IndexedDB offline queue; chỉ đồng bộ bài viết của current user.
+  - [x] `onUserChanged` làm mới cả 4 views và xóa trắng Editor form.
+  - [x] Khi bật khóa PIN, chỉ nạp dữ liệu bài viết sau khi nhập đúng mã PIN (`onPinUnlocked`).
+- [x] Xử lý ma trận Edge Cases:
+  - [x] Cho phép đăng bài viết chỉ có ảnh (content rỗng).
+  - [x] Cho phép xóa sạch toàn bộ ảnh cũ chuyển thành bài thuần văn bản.
+  - [x] Tự động xóa tags mồ côi trong PostgreSQL.
+- [x] Bộ test hồi quy và test mới pass 100% (`test_v15_media_lifecycle.py`, `verify_mobile_editor_overflow.py`).
+
 ### 🔹 Giai đoạn 8: Cảm Hứng & Chia Sẻ (v1.5.0 - Planned)
 - [ ] Gợi ý câu hỏi suy ngẫm mỗi ngày (Daily Zen Prompt):
   - [ ] Bộ danh mục 60+ câu hỏi chánh niệm, triết lý sống Nhật Bản offline trong `static/js/daily-prompt.js`.
@@ -127,4 +176,5 @@
   - [ ] Bổ sung nút "Lưu ảnh kỷ niệm 📷" trên từng thẻ bài viết ở Timeline Feed.
   - [ ] Modal xem trước tương tác (`#card-export-modal`) cho phép tùy chọn theme, tỉ lệ và bấm 1-click tải ảnh PNG về máy.
 - [ ] Nâng cấp Service Worker cache lên `kokoro-v1.5.0` và kiểm thử hồi quy toàn diện.
+
 

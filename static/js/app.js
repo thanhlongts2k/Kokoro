@@ -12,6 +12,12 @@ const KokoroApp = {
   searchQuery: '',
   pendingDeleteId: null,
   isLoading: false,
+  currentView: 'timeline',
+  calYear: new Date().getFullYear(),
+  calMonth: new Date().getMonth(),
+  selectedCalDate: new Date().toISOString().split('T')[0],
+  activeMemoriesMood: 'all',
+  stats: null,
 
   async init() {
     this.initTheme();
@@ -41,25 +47,69 @@ const KokoroApp = {
     this.activeTagFilter = null;
     this.activeDateFilter = null;
 
-    // Dynamic greeting
-    const greetingEl = document.querySelector('.timeline-feed h1');
+    // Reset Editor form & data model completely to prevent draft / photo leakage
+    if (window.Editor) {
+      window.Editor.resetForm();
+    }
+
+    // Dynamic greeting (Friendly name logic)
+    const greetingEl = document.querySelector('#welcome-greeting-title, .welcome-banner-card h1, .timeline-feed h1');
     if (greetingEl) {
-      const firstName = user ? user.name.split(' ')[0] : 'bạn';
-      greetingEl.textContent = `Chào ${firstName}, hôm nay bạn cảm thấy thế nào? 🌸`;
+      let displayName = 'bạn';
+      if (user) {
+        if (user.nickname) {
+          displayName = user.nickname;
+        } else if (user.preferredName || user.preferred_name) {
+          displayName = user.preferredName || user.preferred_name;
+        } else if (user.name) {
+          const cleanName = user.name.replace(/\s*\([^)]*\)/g, '').trim();
+          const parts = cleanName.split(/\s+/).filter(Boolean);
+          displayName = parts[parts.length - 1] || cleanName || 'bạn';
+        }
+      }
+      greetingEl.textContent = `Chào ${displayName}, hôm nay bạn cảm thấy thế nào? 🌸`;
     }
 
     if (user) {
+      let pinLocked = false;
       if (window.PasscodeLock) {
         window.PasscodeLock.onUserChanged(user.id);
+        pinLocked = window.PasscodeLock.isLocked;
       }
-      await this.loadEntries();
-      await this.loadStats();
+
+      // If PIN lock is active, do NOT load entries into DOM until user enters PIN
+      if (pinLocked) {
+        this.entries = [];
+        this.renderTimeline();
+        this.renderCalendar();
+        this.renderMemoriesGallery();
+        this.renderProfileView();
+        this.renderStats();
+      } else {
+        await this.loadEntries();
+        await this.loadStats();
+        this.renderTimeline();
+        this.renderCalendar();
+        this.renderMemoriesGallery();
+        this.renderProfileView();
+      }
     } else {
       this.entries = [];
       this.renderTimeline();
       this.renderCalendar();
+      this.renderMemoriesGallery();
+      this.renderProfileView();
       this.renderStats();
     }
+  },
+
+  async onPinUnlocked() {
+    await this.loadEntries();
+    await this.loadStats();
+    this.renderTimeline();
+    this.renderCalendar();
+    this.renderMemoriesGallery();
+    this.renderProfileView();
   },
 
   setupEventListeners() {
@@ -79,6 +129,35 @@ const KokoroApp = {
       });
     }
 
+    // Event Delegation: Profile Pill & Dropdown Menu Toggle (SSoT)
+    document.addEventListener('click', (e) => {
+      const pill = e.target.closest('#header-profile-pill, .header-profile-pill, #user-profile-btn, #user-profile-pill');
+      const dropdown = document.querySelector('#profile-dropdown-menu, .profile-dropdown-menu');
+
+      if (pill) {
+        e.stopPropagation();
+        dropdown?.classList.toggle('active');
+        dropdown?.classList.toggle('show');
+        return;
+      }
+
+      if (dropdown && !e.target.closest('#profile-dropdown-menu, .profile-dropdown-menu')) {
+        dropdown.classList.remove('active', 'show');
+      }
+    });
+
+    // Close dropdown after clicking any item inside
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#profile-dropdown-menu .dropdown-item')) {
+        const dropdown = document.querySelector('#profile-dropdown-menu, .profile-dropdown-menu');
+        if (dropdown) {
+          setTimeout(() => {
+            dropdown.classList.remove('active', 'show');
+          }, 150);
+        }
+      }
+    });
+
     // Mood filter chips in sidebar and mobile scroll
     const moodFilterBtns = document.querySelectorAll('[data-filter-mood]');
     moodFilterBtns.forEach((btn) => {
@@ -88,20 +167,141 @@ const KokoroApp = {
       });
     });
 
-    // Mobile Bottom Nav items
+    // Multi-View Bottom Navigation (Mobile)
     const navItems = document.querySelectorAll('.bottom-nav-item');
     navItems.forEach((item) => {
       item.addEventListener('click', () => {
-        navItems.forEach((n) => n.classList.remove('active'));
-        item.classList.add('active');
         const tab = item.dataset.tab;
         if (tab === 'editor') {
           if (window.Editor) window.Editor.open();
-        } else if (tab === 'timeline') {
-          this.clearFilters();
+        } else {
+          this.switchView(tab);
         }
       });
     });
+
+    // Multi-View Desktop Tab Switcher
+    const desktopTabs = document.querySelectorAll('[data-switch-view]');
+    desktopTabs.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const v = e.currentTarget.dataset.switchView;
+        this.switchView(v);
+      });
+    });
+
+    // Full Calendar Navigation Handlers
+    const calPrevBtn = document.getElementById('full-cal-prev-btn');
+    if (calPrevBtn) {
+      calPrevBtn.addEventListener('click', () => {
+        this.calMonth--;
+        if (this.calMonth < 0) {
+          this.calMonth = 11;
+          this.calYear--;
+        }
+        this.renderFullCalendar();
+      });
+    }
+
+    const calNextBtn = document.getElementById('full-cal-next-btn');
+    if (calNextBtn) {
+      calNextBtn.addEventListener('click', () => {
+        this.calMonth++;
+        if (this.calMonth > 11) {
+          this.calMonth = 0;
+          this.calYear++;
+        }
+        this.renderFullCalendar();
+      });
+    }
+
+    const calTodayBtn = document.getElementById('full-cal-today-btn');
+    if (calTodayBtn) {
+      calTodayBtn.addEventListener('click', () => {
+        const now = new Date();
+        this.calYear = now.getFullYear();
+        this.calMonth = now.getMonth();
+        this.selectedCalDate = now.toISOString().split('T')[0];
+        this.renderFullCalendar();
+      });
+    }
+
+    const calAddDateBtn = document.getElementById('calendar-add-date-btn');
+    if (calAddDateBtn) {
+      calAddDateBtn.addEventListener('click', () => {
+        if (window.Editor) {
+          window.Editor.open();
+        }
+      });
+    }
+
+    // Memories Mood Filter Chips
+    const memMoodBtns = document.querySelectorAll('[data-memories-mood]');
+    memMoodBtns.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        memMoodBtns.forEach((b) => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        this.activeMemoriesMood = e.currentTarget.dataset.memoriesMood;
+        this.renderMemoriesGallery();
+      });
+    });
+
+    // Profile Actions Event Handlers
+    const profilePinBtn = document.getElementById('profile-action-pin');
+    if (profilePinBtn) {
+      profilePinBtn.addEventListener('click', () => {
+        const sBtn = document.getElementById('passcode-settings-btn');
+        if (sBtn) sBtn.click();
+      });
+    }
+
+    const profileLockNow = document.getElementById('profile-action-lock-now');
+    if (profileLockNow) {
+      profileLockNow.addEventListener('click', () => {
+        const lBtn = document.getElementById('lock-screen-now-btn');
+        if (lBtn) lBtn.click();
+      });
+    }
+
+    const profileThemeBtn = document.getElementById('profile-action-theme');
+    if (profileThemeBtn) {
+      profileThemeBtn.addEventListener('click', () => {
+        const tBtn = document.getElementById('theme-toggle-btn');
+        if (tBtn) tBtn.click();
+        this.renderProfileView();
+      });
+    }
+
+    const profileExport = document.getElementById('profile-action-export');
+    if (profileExport) {
+      profileExport.addEventListener('click', () => {
+        const eBtn = document.getElementById('export-backup-btn');
+        if (eBtn) eBtn.click();
+      });
+    }
+
+    const profileImport = document.getElementById('profile-action-import');
+    if (profileImport) {
+      profileImport.addEventListener('click', () => {
+        const iBtn = document.getElementById('import-backup-btn');
+        if (iBtn) iBtn.click();
+      });
+    }
+
+    const profilePwa = document.getElementById('profile-action-pwa');
+    if (profilePwa) {
+      profilePwa.addEventListener('click', () => {
+        const pBtn = document.getElementById('pwa-install-btn');
+        if (pBtn) pBtn.click();
+      });
+    }
+
+    const profileLogout = document.getElementById('profile-action-logout');
+    if (profileLogout) {
+      profileLogout.addEventListener('click', () => {
+        const lBtn = document.getElementById('logout-btn');
+        if (lBtn) lBtn.click();
+      });
+    }
 
     // Network status & auto-sync offline queue
     window.addEventListener('online', async () => {
@@ -298,6 +498,9 @@ const KokoroApp = {
       this.isLoading = false;
       this.renderTimeline();
       this.renderCalendar();
+      if (this.currentView === 'calendar') this.renderFullCalendar();
+      if (this.currentView === 'memories') this.renderMemoriesGallery();
+      if (this.currentView === 'profile') this.renderProfileView();
       this.renderStats();
     }
   },
@@ -309,6 +512,7 @@ const KokoroApp = {
     try {
       const res = await window.KokoroAPI.getStats();
       if (res && res.status === 'success') {
+        this.stats = res;
         const totalEl = document.getElementById('stat-total-entries');
         const streakEl = document.getElementById('stat-writing-streak');
         const photosEl = document.getElementById('stat-photos-count');
@@ -318,6 +522,7 @@ const KokoroApp = {
         if (photosEl) photosEl.innerHTML = `<i class="bi bi-camera text-sakura"></i> ${res.totalPhotos || 0} ảnh`;
 
         this.renderMoodBreakdown(res.moodBreakdown, res.totalEntries);
+        if (this.currentView === 'profile') this.renderProfileView();
       }
     } catch (err) {
       console.warn('[KokoroApp] Không thể tải stats:', err);
@@ -416,6 +621,15 @@ const KokoroApp = {
         this.applyTheme(newTheme);
       });
     }
+
+    const dropdownThemeBtn = document.getElementById('dropdown-theme-toggle-btn');
+    if (dropdownThemeBtn) {
+      dropdownThemeBtn.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        this.applyTheme(newTheme);
+      });
+    }
   },
 
   applyTheme(theme) {
@@ -430,6 +644,15 @@ const KokoroApp = {
     if (icon) {
       icon.className = theme === 'dark' ? 'bi bi-sun-fill text-warning' : 'bi bi-moon-stars-fill text-sakura';
     }
+    const dropdownIcon = document.getElementById('dropdown-theme-icon');
+    if (dropdownIcon) {
+      dropdownIcon.className = theme === 'dark' ? 'bi bi-sun-fill text-warning' : 'bi bi-moon-stars text-sakura';
+    }
+    const dropdownBadge = document.getElementById('dropdown-theme-badge');
+    if (dropdownBadge) {
+      dropdownBadge.textContent = theme === 'dark' ? 'Tối' : 'Sáng';
+      dropdownBadge.className = theme === 'dark' ? 'badge-pill badge-active' : 'badge-pill badge-inactive';
+    }
   },
 
   openDeleteConfirm(id) {
@@ -437,6 +660,7 @@ const KokoroApp = {
     const modal = document.getElementById('delete-confirm-modal');
     if (modal) {
       modal.classList.add('active');
+      if (window.lockBodyScroll) window.lockBodyScroll(true);
     }
   },
 
@@ -445,6 +669,7 @@ const KokoroApp = {
     const modal = document.getElementById('delete-confirm-modal');
     if (modal) {
       modal.classList.remove('active');
+      if (window.lockBodyScroll) window.lockBodyScroll(false);
     }
   },
 
@@ -510,9 +735,17 @@ const KokoroApp = {
     }
 
     feedEl.innerHTML = filtered.map((entry) => this.buildEntryCardHtml(entry)).join('');
+    this.attachCardActions(feedEl);
+  },
+
+  /**
+   * Attach card actions (lightbox, edit, delete, pin, tag filter) to any entry list container
+   */
+  attachCardActions(container) {
+    if (!container) return;
 
     // Attach listeners for image clicks (Lightbox) & card buttons
-    feedEl.querySelectorAll('.gallery-item').forEach((item) => {
+    container.querySelectorAll('.gallery-item').forEach((item) => {
       item.addEventListener('click', (e) => {
         const fullSrc = item.dataset.fullSrc;
         const img = item.querySelector('img');
@@ -522,7 +755,7 @@ const KokoroApp = {
       });
     });
 
-    feedEl.querySelectorAll('[data-action="edit"]').forEach((btn) => {
+    container.querySelectorAll('[data-action="edit"]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const id = Number(e.currentTarget.dataset.id);
         const entry = this.entries.find((item) => item.id === id);
@@ -532,21 +765,21 @@ const KokoroApp = {
       });
     });
 
-    feedEl.querySelectorAll('[data-action="delete"]').forEach((btn) => {
+    container.querySelectorAll('[data-action="delete"]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const id = Number(e.currentTarget.dataset.id);
         this.openDeleteConfirm(id);
       });
     });
 
-    feedEl.querySelectorAll('[data-action="pin"]').forEach((btn) => {
+    container.querySelectorAll('[data-action="pin"]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const id = Number(e.currentTarget.dataset.id);
         this.togglePin(id);
       });
     });
 
-    feedEl.querySelectorAll('.tag-pill').forEach((tagBtn) => {
+    container.querySelectorAll('.tag-pill').forEach((tagBtn) => {
       tagBtn.addEventListener('click', (e) => {
         const tag = e.currentTarget.dataset.tag;
         this.setTagFilter(tag);
@@ -610,11 +843,11 @@ const KokoroApp = {
 
     return `
       <article class="glass-panel journal-card glass-card-interactive" id="entry-${entry.id}">
-        <div class="card-header">
-          <div class="card-meta">
+        <div class="card-header entry-card-header">
+          <div class="card-meta card-meta-left">
             <span class="mood-pill mood-${entry.mood}">${entry.moodLabel || entry.mood}</span>
-            <span>&bull;</span>
-            <span><i class="bi bi-clock"></i> ${entry.displayDate || entry.entryDate}</span>
+            <span class="card-meta-dot">&bull;</span>
+            <span class="card-meta-time entry-date"><i class="bi bi-clock"></i> ${entry.displayDate || entry.entryDate}</span>
             ${entry.isPinned ? `<span style="color: var(--sakura-500); margin-left: 4px;" title="Đã ghim"><i class="bi bi-pin-angle-fill"></i></span>` : ''}
           </div>
           <div class="card-actions">
@@ -736,6 +969,339 @@ const KokoroApp = {
     }
 
     this.renderMoodBreakdown(breakdown, total);
+  },
+
+  /**
+   * Router View Switcher
+   * @param {'timeline'|'calendar'|'memories'|'profile'} viewName
+   */
+  switchView(viewName) {
+    if (!['timeline', 'calendar', 'memories', 'profile'].includes(viewName)) return;
+    this.currentView = viewName;
+
+    // 1. Toggle active class on view containers
+    document.querySelectorAll('.c-view').forEach((el) => el.classList.remove('active'));
+    const targetView = document.getElementById(`view-${viewName}`);
+    if (targetView) targetView.classList.add('active');
+
+    // 2. Update Mobile Bottom Nav active state
+    document.querySelectorAll('.bottom-nav-item').forEach((item) => {
+      if (item.dataset.tab === viewName) {
+        item.classList.add('active');
+      } else {
+        item.classList.remove('active');
+      }
+    });
+
+    // 3. Update Desktop View Switcher active state
+    document.querySelectorAll('[data-switch-view]').forEach((btn) => {
+      if (btn.dataset.switchView === viewName) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    // 4. Render corresponding view content
+    if (viewName === 'timeline') {
+      this.renderTimeline();
+    } else if (viewName === 'calendar') {
+      this.renderFullCalendar();
+    } else if (viewName === 'memories') {
+      this.renderMemoriesGallery();
+    } else if (viewName === 'profile') {
+      this.renderProfileView();
+    }
+
+    // 5. Toggle mobile mood chips visibility (Mobile ONLY <= 768px):
+    // Never show mobile horizontal scroll chips on Desktop/Tablet
+    const mobileMoodChips = document.getElementById('mobile-mood-chips');
+    if (mobileMoodChips) {
+      if (window.innerWidth <= 768 && (viewName === 'timeline' || viewName === 'memories')) {
+        mobileMoodChips.style.display = 'flex';
+      } else {
+        mobileMoodChips.style.display = 'none';
+      }
+    }
+
+    // 6. Scroll to top smoothly
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  },
+
+  /**
+   * View 2: Render Interactive Full Month Calendar with Mood Dots & Day's Entries
+   */
+  renderFullCalendar() {
+    const gridEl = document.getElementById('full-calendar-grid');
+    if (!gridEl) return;
+
+    const currentYear = this.calYear;
+    const currentMonth = this.calMonth;
+
+    // Month Title
+    const monthTitleEl = document.getElementById('full-cal-month-title');
+    if (monthTitleEl) {
+      const monthNames = [
+        'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
+        'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'
+      ];
+      monthTitleEl.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+    }
+
+    const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay(); // 0: Sun
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    // Map dates to moods array
+    const dateToMoods = {};
+    this.entries.forEach((e) => {
+      if (e.entryDate) {
+        if (!dateToMoods[e.entryDate]) dateToMoods[e.entryDate] = [];
+        if (e.mood && !dateToMoods[e.entryDate].includes(e.mood)) {
+          dateToMoods[e.entryDate].push(e.mood);
+        }
+      }
+    });
+
+    let html = `
+      <div class="c-calendar-weekday">CN</div>
+      <div class="c-calendar-weekday">T2</div>
+      <div class="c-calendar-weekday">T3</div>
+      <div class="c-calendar-weekday">T4</div>
+      <div class="c-calendar-weekday">T5</div>
+      <div class="c-calendar-weekday">T6</div>
+      <div class="c-calendar-weekday">T7</div>
+    `;
+
+    // Empty spaces before first day
+    for (let i = 0; i < firstDayIndex; i++) {
+      html += `<div class="c-calendar-day empty"></div>`;
+    }
+
+    const moodColorMap = {
+      serene: 'var(--mood-serene)',
+      cozy: 'var(--mood-cozy)',
+      reflective: 'var(--mood-reflective)',
+      grateful: 'var(--mood-grateful)',
+      energetic: 'var(--mood-energetic)',
+      melancholy: 'var(--mood-melancholy)'
+    };
+
+    // Days in Month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const isToday = dateStr === todayStr;
+      const isSelected = dateStr === this.selectedCalDate;
+      const dayMoods = dateToMoods[dateStr] || [];
+      const hasEntries = dayMoods.length > 0;
+
+      let dotsHtml = '';
+      if (hasEntries) {
+        dotsHtml = dayMoods
+          .slice(0, 4)
+          .map((m) => `<span class="c-calendar-dot" style="background: ${moodColorMap[m] || 'var(--sakura-400)'};"></span>`)
+          .join('');
+      }
+
+      html += `
+        <div class="c-calendar-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${hasEntries ? 'has-entry' : ''}" 
+             data-full-date="${dateStr}">
+          <span class="c-calendar-day-num">${day}</span>
+          <div class="c-calendar-dots">${dotsHtml}</div>
+        </div>
+      `;
+    }
+
+    gridEl.innerHTML = html;
+
+    // Attach click listeners to calendar day cells
+    gridEl.querySelectorAll('.c-calendar-day[data-full-date]').forEach((cell) => {
+      cell.addEventListener('click', (e) => {
+        const d = e.currentTarget.dataset.fullDate;
+        this.selectedCalDate = d;
+        this.renderFullCalendar();
+      });
+    });
+
+    // Render entries for selected date
+    this.renderSelectedDateEntries();
+  },
+
+  /**
+   * Render list of entries for selected calendar date
+   */
+  renderSelectedDateEntries() {
+    const listEl = document.getElementById('calendar-day-entries-list');
+    const headingEl = document.getElementById('calendar-selected-date-heading');
+    if (!listEl) return;
+
+    if (headingEl && this.selectedCalDate) {
+      const [y, m, d] = this.selectedCalDate.split('-');
+      headingEl.textContent = `Khoảnh khắc ngày ${d}/${m}/${y} 🌸`;
+    }
+
+    const matchedEntries = this.entries.filter((e) => e.entryDate === this.selectedCalDate);
+
+    if (matchedEntries.length === 0) {
+      listEl.innerHTML = `
+        <div class="glass-panel" style="padding: 32px 20px; text-align: center; border-radius: var(--radius-lg);">
+          <div style="font-size: 32px; margin-bottom: 8px;">🍃</div>
+          <div style="font-size: 14.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Chưa có khoảnh khắc nào trong ngày này</div>
+          <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px;">Lắng đọng tâm trí và ghi lại những điều nhẹ nhàng của bạn nhé.</div>
+          <button class="c-btn c-btn--primary" onclick="if(window.Editor){ window.Editor.open(); }">
+            <i class="bi bi-pencil-square"></i> + Ghi nhật ký cho ngày này
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    listEl.innerHTML = matchedEntries.map((e) => this.buildEntryCardHtml(e)).join('');
+    this.attachCardActions(listEl);
+  },
+
+  /**
+   * View 3: Render Memories Photo Gallery Grid with Mood Filter & Lightbox Integration
+   */
+  renderMemoriesGallery() {
+    const gridEl = document.getElementById('memories-photo-grid');
+    const badgeEl = document.getElementById('memories-total-badge');
+    if (!gridEl) return;
+
+    // Collect all photos across all entries
+    const allPhotos = [];
+    this.entries.forEach((e) => {
+      if (e.photos && e.photos.length > 0) {
+        e.photos.forEach((p) => {
+          allPhotos.push({
+            ...p,
+            entryId: e.id,
+            entryTitle: e.title,
+            entryDate: e.entryDate,
+            displayDate: e.displayDate || e.entryDate,
+            mood: e.mood,
+            moodLabel: e.moodLabel || e.mood
+          });
+        });
+      }
+    });
+
+    // Filter by active memories mood
+    let filteredPhotos = allPhotos;
+    if (this.activeMemoriesMood && this.activeMemoriesMood !== 'all') {
+      filteredPhotos = allPhotos.filter((p) => p.mood === this.activeMemoriesMood);
+    }
+
+    if (badgeEl) {
+      badgeEl.textContent = `📸 ${filteredPhotos.length} ảnh`;
+    }
+
+    if (filteredPhotos.length === 0) {
+      gridEl.innerHTML = `
+        <div class="glass-panel" style="padding: 44px 20px; text-align: center; grid-column: 1 / -1; border-radius: var(--radius-lg);">
+          <div style="font-size: 38px; margin-bottom: 8px;">📷</div>
+          <div style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Chưa có hình ảnh kỷ niệm nào</div>
+          <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 18px;">Hãy đính kèm hình ảnh vào các bài viết nhật ký để lưu giữ kỷ niệm tại đây nhé! 🌸</div>
+          <button class="c-btn c-btn--primary" onclick="if(window.Editor){ window.Editor.open(); }">
+            <i class="bi bi-plus-lg"></i> Viết bài & Thêm ảnh
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    gridEl.innerHTML = filteredPhotos
+      .map((p) => {
+        const thumbUrl = window.KokoroAPI.resolveMediaUrl(p.thumbUrl || p.url);
+        const fullUrl = window.KokoroAPI.resolveMediaUrl(p.url);
+        return `
+          <div class="c-memory-item" data-full-src="${fullUrl}" data-title="${p.entryTitle || ''}" data-date="${p.displayDate || ''}">
+            <img src="${thumbUrl}" alt="${p.name || 'Memory Photo'}" loading="lazy" />
+            <div class="c-memory-overlay">
+              <span class="c-memory-title">${p.entryTitle || 'Khoảnh khắc'}</span>
+              <span class="c-memory-meta"><i class="bi bi-clock"></i> ${p.displayDate} &bull; ${p.moodLabel}</span>
+            </div>
+          </div>
+        `;
+      })
+      .join('');
+
+    // Attach click listener to open Fullscreen Lightbox
+    gridEl.querySelectorAll('.c-memory-item').forEach((item) => {
+      item.addEventListener('click', (e) => {
+        const fullSrc = e.currentTarget.dataset.fullSrc;
+        const title = e.currentTarget.dataset.title;
+        const date = e.currentTarget.dataset.date;
+        if (window.Lightbox) {
+          window.Lightbox.open(fullSrc, `${title} (${date})`);
+        }
+      });
+    });
+  },
+
+  /**
+   * View 4: Render Profile View & Management Utilities
+   */
+  renderProfileView() {
+    const user = window.KokoroAuth ? window.KokoroAuth.currentUser : null;
+
+    // 1. User Header
+    const avatarEl = document.getElementById('profile-view-avatar');
+    const nameEl = document.getElementById('profile-view-name');
+    const emailEl = document.getElementById('profile-view-email');
+
+    if (avatarEl) avatarEl.src = user ? user.avatar_url || './icons/sakura.svg' : './icons/sakura.svg';
+    if (nameEl) nameEl.textContent = user ? user.name : 'Khách vãng lai';
+    if (emailEl) emailEl.textContent = user ? user.email : 'chua_dang_nhap@kokoro.me';
+
+    // 2. Metrics & Stats
+    const entriesCountEl = document.getElementById('profile-stat-entries');
+    const streakEl = document.getElementById('profile-stat-streak');
+    const photosCountEl = document.getElementById('profile-stat-photos');
+
+    let totalPhotos = 0;
+    this.entries.forEach((e) => {
+      if (e.photos) totalPhotos += e.photos.length;
+    });
+
+    if (entriesCountEl) entriesCountEl.textContent = this.entries.length;
+    if (streakEl) streakEl.textContent = `${this.stats ? this.stats.streakDays || 0 : 0} ngày`;
+    if (photosCountEl) photosCountEl.textContent = totalPhotos;
+
+    // 3. Mood distribution breakdown
+    if (this.stats && this.stats.moodBreakdown) {
+      const breakdown = this.stats.moodBreakdown;
+      ['serene', 'cozy', 'reflective', 'grateful', 'energetic'].forEach((m) => {
+        const info = breakdown[m] || { percent: 0 };
+        const barEl = document.getElementById(`profile-bar-${m}`);
+        const legEl = document.getElementById(`profile-leg-${m}`);
+        if (barEl) barEl.style.width = `${info.percent}%`;
+        if (legEl) legEl.textContent = `${Math.round(info.percent)}%`;
+      });
+    }
+
+    // 4. Passcode PIN Status Badge
+    const pinBadge = document.getElementById('profile-action-pin-badge');
+    if (pinBadge) {
+      const isPinSet = window.PasscodeLock && window.PasscodeLock.isPasscodeSetForUser && window.PasscodeLock.isPasscodeSetForUser();
+      pinBadge.textContent = isPinSet ? 'Đang bật' : 'Chưa bật';
+      pinBadge.className = isPinSet ? 'badge-pill badge-active' : 'badge-pill badge-inactive';
+    }
+
+    // 5. Theme Label
+    const themeLabel = document.getElementById('profile-theme-label');
+    if (themeLabel) {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      themeLabel.textContent = isDark ? 'Tối (Night Sakura)' : 'Sáng';
+    }
+
+    // 6. Show PWA Install item if available
+    const pwaAction = document.getElementById('profile-action-pwa');
+    const headerPwaBtn = document.getElementById('pwa-install-btn');
+    if (pwaAction && headerPwaBtn && headerPwaBtn.style.display !== 'none') {
+      pwaAction.style.display = 'flex';
+    }
   },
 
   /**

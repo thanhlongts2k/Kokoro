@@ -1,8 +1,22 @@
 /**
- * KOKORO (心) — REST API CLIENT MODULE
- * Designed for dynamic relative URL resolution to seamlessly support
- * local development (port 5050) and Nginx reverse proxy subpaths (e.g. /kokoro/)
+ * Global Body Scroll Lock helper for Modals & Lightbox (SSoT)
+ * Prevents body scroll leakage and suppresses native scrollbars
  */
+function lockBodyScroll(locked) {
+  if (locked) {
+    document.body.classList.add('modal-scroll-locked');
+    document.documentElement.classList.add('modal-scroll-locked');
+  } else {
+    // Only remove if no other modal/lightbox remains active
+    const hasActive = document.querySelector('.modal-overlay.active, .lightbox-modal.active, #delete-confirm-modal.active, #passcode-lock-overlay.active');
+    if (!hasActive) {
+      document.body.classList.remove('modal-scroll-locked');
+      document.documentElement.classList.remove('modal-scroll-locked');
+    }
+  }
+}
+window.lockBodyScroll = lockBodyScroll;
+
 
 const KokoroAPI = (() => {
   // Dynamically resolve base path regardless of whether app is at root '/' or '/kokoro/'
@@ -195,10 +209,12 @@ const KokoroAPI = (() => {
 
     async saveOfflineEntry(entryData) {
       const db = await this.openOfflineDB();
+      const currentUserId = entryData.user_id || (window.KokoroAuth && window.KokoroAuth.currentUser ? window.KokoroAuth.currentUser.id : null);
       return new Promise((resolve, reject) => {
         const tx = db.transaction('offline_entries', 'readwrite');
         const store = tx.objectStore('offline_entries');
         const req = store.add({
+          user_id: currentUserId,
           title: entryData.title,
           content: entryData.content,
           mood: entryData.mood,
@@ -239,8 +255,13 @@ const KokoroAPI = (() => {
       const pending = await this.getOfflineEntries();
       if (!pending || pending.length === 0) return 0;
 
+      const currentUserId = window.KokoroAuth && window.KokoroAuth.currentUser ? window.KokoroAuth.currentUser.id : null;
+      // Multi-account data isolation: only sync entries belonging to current user
+      const userPending = pending.filter(item => !item.user_id || item.user_id === currentUserId);
+      if (userPending.length === 0) return 0;
+
       let syncedCount = 0;
-      for (const item of pending) {
+      for (const item of userPending) {
         try {
           const formData = new FormData();
           formData.append('title', item.title || 'Khoảnh khắc tĩnh lặng');
