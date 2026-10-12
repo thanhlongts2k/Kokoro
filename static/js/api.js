@@ -106,6 +106,8 @@ const KokoroAPI = (() => {
     async getEntries(filters = {}) {
       const params = new URLSearchParams();
       if (filters.mood && filters.mood !== 'all') params.append('mood', filters.mood);
+      if (filters.category_id && filters.category_id !== 'all') params.append('category_id', filters.category_id);
+      if (filters.category && filters.category !== 'all') params.append('category_id', filters.category);
       if (filters.tag) params.append('tag', filters.tag);
       if (filters.month) params.append('month', filters.month);
       if (filters.search) params.append('search', filters.search);
@@ -181,9 +183,46 @@ const KokoroAPI = (() => {
       return await request('/stats/summary', { method: 'GET' });
     },
 
+    // GET /api/categories
+    async getCategories() {
+      return await request('/categories', { method: 'GET' });
+    },
+
+    // POST /api/categories
+    async createCategory(data) {
+      return await request('/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    },
+
+    // PUT /api/categories/:id
+    async updateCategory(id, data) {
+      return await request(`/categories/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    },
+
+    // DELETE /api/categories/:id
+    async deleteCategory(id) {
+      return await request(`/categories/${id}`, { method: 'DELETE' });
+    },
+
     // GET /api/tags
     async getTags() {
       return await request('/tags', { method: 'GET' });
+    },
+
+    // POST /api/tags
+    async createTag(name) {
+      return await request('/tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
     },
 
     // PUT /api/tags/:id

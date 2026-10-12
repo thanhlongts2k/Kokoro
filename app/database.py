@@ -48,8 +48,32 @@ def get_cursor(cursor_factory=RealDictCursor):
         finally:
             cursor.close()
 
+DEFAULT_CATEGORIES = [
+    {"name": "Bình yên", "icon": "🌸", "color": "#ec4899", "sort_order": 0},
+    {"name": "Ấm áp", "icon": "☕", "color": "#f59e0b", "sort_order": 1},
+    {"name": "Chiêm nghiệm", "icon": "🌙", "color": "#8b5cf6", "sort_order": 2},
+    {"name": "Biết ơn", "icon": "🍵", "color": "#10b981", "sort_order": 3},
+    {"name": "Năng lượng", "icon": "⚡", "color": "#3b82f6", "sort_order": 4},
+]
+
+def seed_default_categories(user_id: int, cur=None):
+    """Seed initial 5 default categories for a user if they have none."""
+    query = """
+        INSERT INTO categories (user_id, name, icon, color, sort_order)
+        VALUES (%s, %s, %s, %s, %s)
+        ON CONFLICT (user_id, name) DO NOTHING;
+    """
+    if cur is not None:
+        for cat in DEFAULT_CATEGORIES:
+            cur.execute(query, (user_id, cat["name"], cat["icon"], cat["color"], cat["sort_order"]))
+    else:
+        with get_db() as conn:
+            with conn.cursor() as local_cur:
+                for cat in DEFAULT_CATEGORIES:
+                    local_cur.execute(query, (user_id, cat["name"], cat["icon"], cat["color"], cat["sort_order"]))
+
 def init_db():
-    """Initialize PostgreSQL schema with all required tables and indexes."""
+    """Initialize PostgreSQL schema with all required tables, indexes, and migrations."""
     schema_sql = """
     -- 1. USERS TABLE
     CREATE TABLE IF NOT EXISTS users (
@@ -106,11 +130,29 @@ def init_db():
         PRIMARY KEY (entry_id, tag_id)
     );
 
+    -- 6. CATEGORIES TABLE (v1.6.0)
+    CREATE TABLE IF NOT EXISTS categories (
+        id SERIAL PRIMARY KEY,
+        user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(100) NOT NULL,
+        icon VARCHAR(50) DEFAULT '📁',
+        color VARCHAR(50) DEFAULT '#ec4899',
+        sort_order INT DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (user_id, name)
+    );
+
+    -- MIGRATION: ALTER ENTRIES ADD category_id (v1.6.0)
+    ALTER TABLE entries ADD COLUMN IF NOT EXISTS category_id INT REFERENCES categories(id) ON DELETE SET NULL;
+
     -- INDEXES FOR PERFORMANCE
     CREATE INDEX IF NOT EXISTS idx_entries_user_date ON entries(user_id, entry_date DESC);
     CREATE INDEX IF NOT EXISTS idx_entries_user_mood ON entries(user_id, mood);
+    CREATE INDEX IF NOT EXISTS idx_entries_user_cat ON entries(user_id, category_id);
     CREATE INDEX IF NOT EXISTS idx_entry_photos_entry ON entry_photos(entry_id, sort_order ASC);
     CREATE INDEX IF NOT EXISTS idx_tags_user ON tags(user_id);
+    CREATE INDEX IF NOT EXISTS idx_entry_tags_tag_id ON entry_tags(tag_id);
+    CREATE INDEX IF NOT EXISTS idx_categories_user ON categories(user_id, sort_order ASC);
     """
 
     with get_db() as conn:
@@ -128,7 +170,22 @@ def init_db():
                 SET last_login = CURRENT_TIMESTAMP;
                 """)
 
-    logger.info("PostgreSQL database tables and indexes initialized successfully.")
+            # Clean legacy dummy categories ('Đời thường', 'Công việc', 'Tình cảm', 'Du lịch', 'Học tập') that have no entries
+            legacy_names = ('Đời thường', 'Công việc', 'Tình cảm', 'Du lịch', 'Học tập')
+            cur.execute("""
+                DELETE FROM categories 
+                WHERE name IN %s 
+                  AND id NOT IN (SELECT category_id FROM entries WHERE category_id IS NOT NULL);
+            """, (legacy_names,))
+
+            # Seed default 5 moods for all users if missing
+            cur.execute("SELECT id FROM users;")
+            user_rows = cur.fetchall()
+            for u in user_rows:
+                uid = u[0] if isinstance(u, (tuple, list)) else u["id"]
+                seed_default_categories(uid, cur=cur)
+
+    logger.info("PostgreSQL database tables, indexes, and categories initialized successfully.")
 
 def close_pool():
     global _pool

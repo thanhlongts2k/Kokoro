@@ -121,9 +121,19 @@ Cơ sở dữ liệu cục bộ: **`kokoro_db`** (Port `5432`).
 | `sort_order` | INT DEFAULT 0 | Thứ tự hiển thị trong album |
 | `created_at` | TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP | Thời gian tải lên |
 
-### 4.4. Bảng `tags` & `entry_tags`
-- `tags`: `id SERIAL PRIMARY KEY`, `user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE`, `name VARCHAR(100) NOT NULL`, `created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`, `UNIQUE (user_id, name)`.
-- `entry_tags`: `entry_id INT NOT NULL REFERENCES entries(id) ON DELETE CASCADE`, `tag_id INT NOT NULL REFERENCES tags(id) ON DELETE CASCADE`, `PRIMARY KEY (entry_id, tag_id)`.
+### 4.5. Bảng `categories` (v1.6.0 — Quản Lý Danh Mục & Moods Động)
+| Cột | Kiểu | Mô tả |
+| :--- | :--- | :--- |
+| `id` | SERIAL PRIMARY KEY | Khóa chính |
+| `user_id` | INT NOT NULL REFERENCES users(id) ON DELETE CASCADE | Khóa ngoại người dùng sở hữu |
+| `name` | VARCHAR(100) NOT NULL | Tên danh mục/mood (Bình yên, Ấm áp, Hạnh phúc...) |
+| `icon` | VARCHAR(50) DEFAULT '📁' | Biểu tượng icon emoji (🌸, ☕, 🌙, 🍵, ⚡, 🥰...) |
+| `color` | VARCHAR(50) DEFAULT '#ec4899' | Mã màu sắc pastel nhận diện |
+| `sort_order` | INT DEFAULT 0 | Thứ tự sắp xếp hiển thị |
+| `created_at` | TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP | Thời gian khởi tạo |
+| *Ràng buộc* | `UNIQUE (user_id, name)` | Chống trùng lặp tên danh mục trong cùng tài khoản |
+
+*Khóa ngoại mở rộng:* Bảng `entries` có thêm cột `category_id INT REFERENCES categories(id) ON DELETE SET NULL` (khi xóa danh mục, bài viết tự động chuyển về chưa phân loại, tuyệt đối không bị xóa mất).
 
 ---
 
@@ -135,17 +145,30 @@ Cơ sở dữ liệu cục bộ: **`kokoro_db`** (Port `5432`).
 - `POST /api/auth/logout`: Xóa phiên đăng nhập.
 
 ### 5.2. Diary Entries (`/api/entries`)
-- `GET /api/entries`: Danh sách bài viết (hỗ trợ phân trang `page`, `limit`, lọc theo `mood`, `tag`, `month`, `search`).
-- `POST /api/entries`: Tạo bài viết mới kèm danh sách ảnh và tags.
-- `GET /api/entries/{id}`: Xem chi tiết bài viết kèm toàn bộ ảnh.
-- `PUT /api/entries/{id}`: Cập nhật nội dung, cảm xúc, ngày viết và danh sách ảnh.
+- `GET /api/entries`: Danh sách bài viết (hỗ trợ lọc theo `category_id`, `mood`, `tag`, `month`, `search`).
+- `POST /api/entries`: Tạo bài viết mới kèm `category_id`, ảnh và tags (trả về HTTP 201 Created).
+- `GET /api/entries/{id}`: Xem chi tiết bài viết kèm toàn bộ ảnh và thông tin danh mục liên kết.
+- `PUT /api/entries/{id}`: Cập nhật nội dung, cảm xúc, danh mục, ngày viết và ảnh.
 - `DELETE /api/entries/{id}`: Xóa bài viết và giải phóng các file ảnh liên quan.
 
-### 5.3. Media Upload (`/api/media`)
+### 5.3. Categories & Dynamic Moods (`/api/categories` - v1.6.0)
+- `GET /api/categories`: Lấy danh sách danh mục/moods của user kèm số lượng bài viết (`usage_count`).
+- `POST /api/categories`: Tạo danh mục mới (validate tên không rỗng, kiểm tra trùng lặp).
+- `PUT /api/categories/{id}`: Cập nhật tên, icon, màu sắc và tự động đồng bộ `entries.mood`.
+- `DELETE /api/categories/{id}`: Xóa danh mục an toàn, tự động set `entries.category_id = NULL`.
+
+### 5.4. Tags Management (`/api/tags` - v1.6.0)
+- `GET /api/tags`: Lấy danh sách toàn bộ tag của user kèm `usage_count`.
+- `POST /api/tags`: Chủ động tạo thẻ mới trước khi viết bài (chuẩn hóa `#tag`).
+- `PUT /api/tags/{id}`: Đổi tên thẻ (tự động gộp nếu trùng thẻ đích).
+- `DELETE /api/tags/{id}`: Xóa thẻ.
+- `DELETE /api/tags/cleanup-orphans`: Dọn dẹp tất cả thẻ có `usage_count = 0`.
+
+### 5.5. Media Upload (`/api/media`)
 - `POST /api/media/upload`: Tải lên 1 hoặc nhiều ảnh (Multipart Form), nén WebP và tạo thumbnail.
 - `GET /uploads/{filename}`: Phục vụ xem ảnh gốc hoặc thumbnail.
 
-### 5.4. Statistics (`/api/stats`)
+### 5.6. Statistics (`/api/stats`)
 - `GET /api/stats/summary`: Thống kê tổng số ngày viết, chuỗi liên tiếp (streak), biểu đồ phân bổ tâm trạng (Mood breakdown).
 
 ---

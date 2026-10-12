@@ -41,9 +41,12 @@ async def get_entries(request: Request) -> JSONResponse:
     tag = query_params.get("tag")
     month = query_params.get("month")
     search = query_params.get("search")
+    category_param = query_params.get("category_id") or query_params.get("category")
 
     sql = """
-        SELECT e.id, e.user_id, e.title, e.content, e.mood, e.weather, 
+        SELECT e.id, e.user_id, e.category_id,
+               c.name AS category_name, c.icon AS category_icon, c.color AS category_color,
+               e.title, e.content, e.mood, e.weather, 
                e.entry_date, e.is_pinned, e.created_at, e.updated_at,
                COALESCE(
                    json_agg(DISTINCT jsonb_build_object(
@@ -58,6 +61,7 @@ async def get_entries(request: Request) -> JSONResponse:
                    array_agg(DISTINCT t.name) FILTER (WHERE t.name IS NOT NULL), '{}'
                ) AS tags
         FROM entries e
+        LEFT JOIN categories c ON e.category_id = c.id
         LEFT JOIN entry_photos p ON e.id = p.entry_id
         LEFT JOIN entry_tags et ON e.id = et.entry_id
         LEFT JOIN tags t ON et.tag_id = t.id
@@ -68,6 +72,17 @@ async def get_entries(request: Request) -> JSONResponse:
     if mood and mood != "all":
         sql += " AND e.mood = %s"
         params.append(mood)
+
+    if category_param and category_param != "all":
+        if category_param in ("uncategorized", "null", "none"):
+            sql += " AND e.category_id IS NULL"
+        else:
+            try:
+                cat_id = int(category_param)
+                sql += " AND e.category_id = %s"
+                params.append(cat_id)
+            except (ValueError, TypeError):
+                pass
 
     if tag:
         clean_tag = tag if tag.startswith("#") else f"#{tag}"
@@ -86,7 +101,7 @@ async def get_entries(request: Request) -> JSONResponse:
         params.extend([f"%{clean_search}%", f"%{clean_search}%", f"%{clean_search}%", f"%{tag_search}%"])
 
     sql += """
-        GROUP BY e.id
+        GROUP BY e.id, c.id
         ORDER BY e.is_pinned DESC, e.entry_date DESC, e.created_at DESC
     """
 
@@ -112,6 +127,15 @@ async def get_entries(request: Request) -> JSONResponse:
                 entry["updatedAt"] = entry["updated_at"].isoformat()
                 entry["updated_at"] = entry["updated_at"].isoformat()
             
+            entry["categoryId"] = entry.get("category_id")
+            entry["category_id"] = entry.get("category_id")
+            entry["categoryName"] = entry.get("category_name")
+            entry["category_name"] = entry.get("category_name")
+            entry["categoryIcon"] = entry.get("category_icon")
+            entry["category_icon"] = entry.get("category_icon")
+            entry["categoryColor"] = entry.get("category_color")
+            entry["category_color"] = entry.get("category_color")
+
             # Map mood label with icon
             mood_labels = {
                 "serene": "Serene 🌸",
@@ -179,6 +203,19 @@ async def create_entry(request: Request) -> JSONResponse:
             if clean:
                 tag_list.append(clean if clean.startswith("#") else f"#{clean}")
 
+    # Parse category_id
+    category_id_raw = form.get("category_id")
+    category_id = None
+    if category_id_raw and str(category_id_raw).strip() and str(category_id_raw).strip().lower() != "null":
+        try:
+            val = int(category_id_raw)
+            with get_cursor() as check_cur:
+                check_cur.execute("SELECT id FROM categories WHERE id = %s AND user_id = %s;", (val, user_id))
+                if check_cur.fetchone():
+                    category_id = val
+        except (ValueError, TypeError):
+            category_id = None
+
     # Process photo files
     photo_files = form.getlist("photos")
     processed_photos = []
@@ -206,16 +243,16 @@ async def create_entry(request: Request) -> JSONResponse:
                 # 1. Insert Entry scoped to authenticated user_id
                 if custom_created_at:
                     cur.execute("""
-                        INSERT INTO entries (user_id, title, content, mood, weather, entry_date, created_at, is_pinned)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, FALSE)
+                        INSERT INTO entries (user_id, category_id, title, content, mood, weather, entry_date, created_at, is_pinned)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, FALSE)
                         RETURNING id, created_at;
-                    """, (user_id, title, content, mood, weather, entry_date, custom_created_at))
+                    """, (user_id, category_id, title, content, mood, weather, entry_date, custom_created_at))
                 else:
                     cur.execute("""
-                        INSERT INTO entries (user_id, title, content, mood, weather, entry_date, is_pinned)
-                        VALUES (%s, %s, %s, %s, %s, %s, FALSE)
+                        INSERT INTO entries (user_id, category_id, title, content, mood, weather, entry_date, is_pinned)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, FALSE)
                         RETURNING id, created_at;
-                    """, (user_id, title, content, mood, weather, entry_date))
+                    """, (user_id, category_id, title, content, mood, weather, entry_date))
                 entry_id, created_at = cur.fetchone()
 
                 # 2. Insert Photos
@@ -333,6 +370,23 @@ async def update_entry(request: Request) -> JSONResponse:
             if clean:
                 tag_list.append(clean if clean.startswith("#") else f"#{clean}")
 
+    # Parse category_id
+    category_id_raw = form.get("category_id")
+    category_id = None
+    update_category = False
+    if category_id_raw is not None:
+        update_category = True
+        raw_str = str(category_id_raw).strip()
+        if raw_str and raw_str.lower() != "null" and raw_str != "":
+            try:
+                val = int(raw_str)
+                with get_cursor() as check_cur:
+                    check_cur.execute("SELECT id FROM categories WHERE id = %s AND user_id = %s;", (val, user_id))
+                    if check_cur.fetchone():
+                        category_id = val
+            except (ValueError, TypeError):
+                category_id = None
+
     # Process any newly uploaded photo files
     photo_files = form.getlist("photos")
     processed_photos = []
@@ -367,18 +421,32 @@ async def update_entry(request: Request) -> JSONResponse:
                     return JSONResponse({"status": "error", "message": "Vui lòng nhập nội dung hoặc đính kèm ít nhất một hình ảnh 🌸"}, status_code=400)
 
                 # 1. Update entry metadata
-                if custom_created_at:
-                    cur.execute("""
-                        UPDATE entries
-                        SET title = %s, content = %s, mood = %s, weather = %s, entry_date = %s, created_at = %s, updated_at = NOW()
-                        WHERE id = %s AND user_id = %s;
-                    """, (title, content, mood, weather, entry_date, custom_created_at, entry_id, user_id))
+                if update_category:
+                    if custom_created_at:
+                        cur.execute("""
+                            UPDATE entries
+                            SET category_id = %s, title = %s, content = %s, mood = %s, weather = %s, entry_date = %s, created_at = %s, updated_at = NOW()
+                            WHERE id = %s AND user_id = %s;
+                        """, (category_id, title, content, mood, weather, entry_date, custom_created_at, entry_id, user_id))
+                    else:
+                        cur.execute("""
+                            UPDATE entries
+                            SET category_id = %s, title = %s, content = %s, mood = %s, weather = %s, entry_date = %s, updated_at = NOW()
+                            WHERE id = %s AND user_id = %s;
+                        """, (category_id, title, content, mood, weather, entry_date, entry_id, user_id))
                 else:
-                    cur.execute("""
-                        UPDATE entries
-                        SET title = %s, content = %s, mood = %s, weather = %s, entry_date = %s, updated_at = NOW()
-                        WHERE id = %s AND user_id = %s;
-                    """, (title, content, mood, weather, entry_date, entry_id, user_id))
+                    if custom_created_at:
+                        cur.execute("""
+                            UPDATE entries
+                            SET title = %s, content = %s, mood = %s, weather = %s, entry_date = %s, created_at = %s, updated_at = NOW()
+                            WHERE id = %s AND user_id = %s;
+                        """, (title, content, mood, weather, entry_date, custom_created_at, entry_id, user_id))
+                    else:
+                        cur.execute("""
+                            UPDATE entries
+                            SET title = %s, content = %s, mood = %s, weather = %s, entry_date = %s, updated_at = NOW()
+                            WHERE id = %s AND user_id = %s;
+                        """, (title, content, mood, weather, entry_date, entry_id, user_id))
 
                 if cur.rowcount == 0:
                     return JSONResponse({
@@ -857,7 +925,9 @@ async def get_entry_by_id(request: Request) -> JSONResponse:
     try:
         with get_cursor() as cur:
             cur.execute("""
-                SELECT e.id, e.user_id, e.title, e.content, e.mood, e.weather, 
+                SELECT e.id, e.user_id, e.category_id,
+                       c.name AS category_name, c.icon AS category_icon, c.color AS category_color,
+                       e.title, e.content, e.mood, e.weather, 
                        e.entry_date, e.is_pinned, e.created_at, e.updated_at,
                        COALESCE(
                            json_agg(
@@ -876,11 +946,12 @@ async def get_entry_by_id(request: Request) -> JSONResponse:
                            array_agg(DISTINCT t.name) FILTER (WHERE t.name IS NOT NULL), '{}'
                        ) AS tags
                 FROM entries e
+                LEFT JOIN categories c ON e.category_id = c.id
                 LEFT JOIN entry_photos p ON e.id = p.entry_id
                 LEFT JOIN entry_tags et ON e.id = et.entry_id
                 LEFT JOIN tags t ON et.tag_id = t.id
                 WHERE e.id = %s AND e.user_id = %s
-                GROUP BY e.id;
+                GROUP BY e.id, c.id;
             """, (entry_id, user_id))
             row = cur.fetchone()
             if not row:
@@ -901,6 +972,15 @@ async def get_entry_by_id(request: Request) -> JSONResponse:
                 entry["updatedAt"] = entry["updated_at"].isoformat()
                 entry["updated_at"] = entry["updated_at"].isoformat()
 
+            entry["categoryId"] = entry.get("category_id")
+            entry["category_id"] = entry.get("category_id")
+            entry["categoryName"] = entry.get("category_name")
+            entry["category_name"] = entry.get("category_name")
+            entry["categoryIcon"] = entry.get("category_icon")
+            entry["category_icon"] = entry.get("category_icon")
+            entry["categoryColor"] = entry.get("category_color")
+            entry["category_color"] = entry.get("category_color")
+
             mood_labels = {
                 "serene": "Serene 🌸",
                 "cozy": "Cozy ☕",
@@ -915,6 +995,240 @@ async def get_entry_by_id(request: Request) -> JSONResponse:
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500, headers=NO_CACHE_HEADERS)
 
+# =========================================================================
+# CATEGORIES CRUD REST APIS (v1.6.0)
+# =========================================================================
+async def get_categories(request: Request) -> JSONResponse:
+    """
+    Retrieve categories strictly scoped to the authenticated user with usage counts.
+    Matches entries by category_id or legacy mood keys/names.
+    Ordered by sort_order ASC, id ASC.
+    """
+    user, err_resp = require_auth(request)
+    if err_resp:
+        return err_resp
+
+    user_id = user["id"]
+    try:
+        with get_cursor() as cur:
+            cur.execute("""
+                SELECT c.id, c.user_id, c.name, c.icon, c.color, c.sort_order, c.created_at,
+                       COUNT(DISTINCT e.id) AS usage_count
+                FROM categories c
+                LEFT JOIN entries e ON (
+                    e.user_id = %s AND (
+                        e.category_id = c.id
+                        OR LOWER(e.mood) = LOWER(c.name)
+                        OR (c.name = 'Bình yên' AND e.mood = 'serene')
+                        OR (c.name = 'Ấm áp' AND e.mood = 'cozy')
+                        OR (c.name = 'Chiêm nghiệm' AND e.mood = 'reflective')
+                        OR (c.name = 'Biết ơn' AND e.mood = 'grateful')
+                        OR (c.name = 'Năng lượng' AND e.mood = 'energetic')
+                    )
+                )
+                WHERE c.user_id = %s
+                GROUP BY c.id
+                ORDER BY c.sort_order ASC, c.id ASC;
+            """, (user_id, user_id))
+            rows = cur.fetchall()
+            categories = []
+            for r in rows:
+                item = dict(r)
+                if item.get("created_at"):
+                    item["createdAt"] = item["created_at"].isoformat()
+                    item["created_at"] = item["created_at"].isoformat()
+                categories.append(item)
+
+        return JSONResponse({
+            "status": "success",
+            "categories": categories
+        }, headers=NO_CACHE_HEADERS)
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500, headers=NO_CACHE_HEADERS)
+
+async def create_category(request: Request) -> JSONResponse:
+    """
+    Create a new category for the authenticated user.
+    Body: {"name": str, "icon": Optional[str], "color": Optional[str]}
+    """
+    user, err_resp = require_auth(request)
+    if err_resp:
+        return err_resp
+
+    user_id = user["id"]
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    name = (data.get("name") or "").strip()
+    if not name:
+        return JSONResponse({"status": "error", "message": "Tên danh mục không được để trống 🌸"}, status_code=400, headers=NO_CACHE_HEADERS)
+
+    icon = (data.get("icon") or "📁").strip() or "📁"
+    color = (data.get("color") or "#ec4899").strip() or "#ec4899"
+
+    try:
+        with get_cursor() as cur:
+            # Check for duplicate category name for this user
+            cur.execute("SELECT id FROM categories WHERE user_id = %s AND LOWER(name) = LOWER(%s);", (user_id, name))
+            if cur.fetchone():
+                return JSONResponse({"status": "error", "message": f"Danh mục '{name}' đã tồn tại."}, status_code=409, headers=NO_CACHE_HEADERS)
+
+            cur.execute("""
+                INSERT INTO categories (user_id, name, icon, color, sort_order)
+                VALUES (%s, %s, %s, %s, COALESCE((SELECT MAX(sort_order) + 1 FROM categories WHERE user_id = %s), 0))
+                RETURNING id, name, icon, color, sort_order, created_at;
+            """, (user_id, name, icon, color, user_id))
+            row = cur.fetchone()
+            cat = dict(row)
+            cat["usage_count"] = 0
+            if cat.get("created_at"):
+                cat["createdAt"] = cat["created_at"].isoformat()
+                cat["created_at"] = cat["created_at"].isoformat()
+
+        return JSONResponse({
+            "status": "success",
+            "message": "Đã tạo danh mục thành công 🌸",
+            "category": cat
+        }, status_code=201, headers=NO_CACHE_HEADERS)
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500, headers=NO_CACHE_HEADERS)
+
+async def update_category(request: Request) -> JSONResponse:
+    """
+    Update an existing category (name, icon, color, sort_order) for the authenticated user.
+    """
+    user, err_resp = require_auth(request)
+    if err_resp:
+        return err_resp
+
+    user_id = user["id"]
+    cat_id = request.path_params.get("id")
+    try:
+        cat_id = int(cat_id)
+    except (ValueError, TypeError):
+        return JSONResponse({"status": "error", "message": "ID không hợp lệ"}, status_code=400, headers=NO_CACHE_HEADERS)
+
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    name = data.get("name")
+    if name is not None:
+        name = name.strip()
+        if not name:
+            return JSONResponse({"status": "error", "message": "Tên danh mục không được để trống 🌸"}, status_code=400, headers=NO_CACHE_HEADERS)
+
+    icon = data.get("icon")
+    if icon is not None:
+        icon = icon.strip() or "📁"
+
+    color = data.get("color")
+    if color is not None:
+        color = color.strip() or "#ec4899"
+
+    sort_order = data.get("sort_order")
+    if sort_order is not None:
+        try:
+            sort_order = int(sort_order)
+        except (ValueError, TypeError):
+            sort_order = None
+
+    try:
+        with get_cursor() as cur:
+            cur.execute("SELECT id, name, icon, color, sort_order FROM categories WHERE id = %s AND user_id = %s;", (cat_id, user_id))
+            existing = cur.fetchone()
+            if not existing:
+                return JSONResponse({"status": "error", "message": "Không tìm thấy danh mục hoặc bạn không có quyền sửa."}, status_code=404, headers=NO_CACHE_HEADERS)
+
+            if name and name.lower() != existing["name"].lower():
+                cur.execute("SELECT id FROM categories WHERE user_id = %s AND LOWER(name) = LOWER(%s) AND id != %s;", (user_id, name, cat_id))
+                if cur.fetchone():
+                    return JSONResponse({"status": "error", "message": f"Danh mục '{name}' đã tồn tại."}, status_code=409, headers=NO_CACHE_HEADERS)
+
+            cur.execute("""
+                UPDATE categories
+                SET name = COALESCE(%s, name),
+                    icon = COALESCE(%s, icon),
+                    color = COALESCE(%s, color),
+                    sort_order = COALESCE(%s, sort_order)
+                WHERE id = %s AND user_id = %s
+                RETURNING id, name, icon, color, sort_order, created_at;
+            """, (name, icon, color, sort_order, cat_id, user_id))
+            row = cur.fetchone()
+            cat = dict(row)
+
+            # Sync entries.mood if name changed
+            if name and name != existing["name"]:
+                cur.execute("""
+                    UPDATE entries 
+                    SET mood = %s 
+                    WHERE user_id = %s AND (category_id = %s OR mood = %s);
+                """, (name, user_id, cat_id, existing["name"]))
+
+            # Get current usage count
+            cur.execute("""
+                SELECT COUNT(DISTINCT id) AS count FROM entries 
+                WHERE user_id = %s AND (
+                    category_id = %s 
+                    OR LOWER(mood) = LOWER(%s)
+                );
+            """, (user_id, cat_id, cat["name"]))
+            cat["usage_count"] = cur.fetchone()["count"]
+            if cat.get("created_at"):
+                cat["createdAt"] = cat["created_at"].isoformat()
+                cat["created_at"] = cat["created_at"].isoformat()
+
+        return JSONResponse({
+            "status": "success",
+            "message": "Đã cập nhật danh mục thành công 🌸",
+            "category": cat
+        }, headers=NO_CACHE_HEADERS)
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500, headers=NO_CACHE_HEADERS)
+
+async def delete_category(request: Request) -> JSONResponse:
+    """
+    Delete a category for the authenticated user.
+    Entries belonging to this category will automatically have category_id set to NULL and mood preserved.
+    """
+    user, err_resp = require_auth(request)
+    if err_resp:
+        return err_resp
+
+    user_id = user["id"]
+    cat_id = request.path_params.get("id")
+    try:
+        cat_id = int(cat_id)
+    except (ValueError, TypeError):
+        return JSONResponse({"status": "error", "message": "ID không hợp lệ"}, status_code=400, headers=NO_CACHE_HEADERS)
+
+    try:
+        with get_cursor() as cur:
+            cur.execute("SELECT id, name FROM categories WHERE id = %s AND user_id = %s;", (cat_id, user_id))
+            cat = cur.fetchone()
+            if not cat:
+                return JSONResponse({"status": "error", "message": "Không tìm thấy danh mục để xóa."}, status_code=404, headers=NO_CACHE_HEADERS)
+
+            cur.execute("""
+                UPDATE entries 
+                SET category_id = NULL, mood = 'serene' 
+                WHERE user_id = %s AND (category_id = %s OR mood = %s);
+            """, (user_id, cat_id, cat["name"]))
+            cur.execute("DELETE FROM categories WHERE id = %s AND user_id = %s;", (cat_id, user_id))
+
+        return JSONResponse({
+            "status": "success",
+            "message": f"Đã xóa danh mục '{cat['name']}' thành công 🌸"
+        }, headers=NO_CACHE_HEADERS)
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500, headers=NO_CACHE_HEADERS)
+
+# =========================================================================
+# TAGS APIS
+# =========================================================================
 async def get_tags(request: Request) -> JSONResponse:
     """
     Retrieve tags strictly scoped to the authenticated user with usage counts.
@@ -943,6 +1257,55 @@ async def get_tags(request: Request) -> JSONResponse:
             "status": "success",
             "tags": tags
         }, headers=NO_CACHE_HEADERS)
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500, headers=NO_CACHE_HEADERS)
+
+async def create_tag(request: Request) -> JSONResponse:
+    """
+    Proactively create a new tag for the authenticated user.
+    Body: {"name": "#tagname"}
+    """
+    user, err_resp = require_auth(request)
+    if err_resp:
+        return err_resp
+
+    user_id = user["id"]
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    raw_name = (data.get("name") or "").strip()
+    if not raw_name:
+        return JSONResponse({"status": "error", "message": "Tên thẻ không được để trống 🏷️"}, status_code=400, headers=NO_CACHE_HEADERS)
+
+    clean_name = raw_name if raw_name.startswith("#") else f"#{raw_name}"
+    clean_name = "#" + clean_name.lstrip("#").strip()
+    if clean_name == "#":
+        return JSONResponse({"status": "error", "message": "Tên thẻ không hợp lệ 🏷️"}, status_code=400, headers=NO_CACHE_HEADERS)
+
+    try:
+        with get_cursor() as cur:
+            cur.execute("""
+                INSERT INTO tags (user_id, name)
+                VALUES (%s, %s)
+                ON CONFLICT (user_id, name) DO UPDATE SET name = EXCLUDED.name
+                RETURNING id, name, created_at;
+            """, (user_id, clean_name))
+            row = cur.fetchone()
+            tag = dict(row)
+
+            cur.execute("SELECT COUNT(DISTINCT entry_id) AS usage_count FROM entry_tags WHERE tag_id = %s;", (tag["id"],))
+            tag["usage_count"] = cur.fetchone()["usage_count"]
+            if tag.get("created_at"):
+                tag["createdAt"] = tag["created_at"].isoformat()
+                tag["created_at"] = tag["created_at"].isoformat()
+
+        return JSONResponse({
+            "status": "success",
+            "message": f"Đã tạo thẻ {clean_name} thành công 🏷️",
+            "tag": tag
+        }, status_code=201, headers=NO_CACHE_HEADERS)
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500, headers=NO_CACHE_HEADERS)
 
@@ -1076,7 +1439,12 @@ entry_routes = [
     Route("/api/entries/{id:int}", delete_entry, methods=["DELETE"]),
     Route("/api/entries/{id:int}/pin", toggle_pin_entry, methods=["PATCH"]),
     Route("/api/stats/summary", get_stats, methods=["GET"]),
+    Route("/api/categories", get_categories, methods=["GET"]),
+    Route("/api/categories", create_category, methods=["POST"]),
+    Route("/api/categories/{id:int}", update_category, methods=["PUT"]),
+    Route("/api/categories/{id:int}", delete_category, methods=["DELETE"]),
     Route("/api/tags", get_tags, methods=["GET"]),
+    Route("/api/tags", create_tag, methods=["POST"]),
     Route("/api/tags/cleanup-orphans", cleanup_orphan_tags, methods=["DELETE"]),
     Route("/api/tags/{id:int}", update_tag, methods=["PUT"]),
     Route("/api/tags/{id:int}", delete_tag, methods=["DELETE"]),

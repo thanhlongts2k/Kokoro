@@ -208,20 +208,26 @@
 - [x] **Nâng cấp phiên bản hệ thống lên v1.5.6**:
   - [x] Cập nhật `app/config.py`, `static/sw.js`, và `static/index.html`.
 
-### 🔹 Giai đoạn 8: Cảm Hứng & Chia Sẻ (v1.6.0 - Planned)
-- [ ] Gợi ý câu hỏi suy ngẫm mỗi ngày (Daily Zen Prompt):
-  - [ ] Bộ danh mục 60+ câu hỏi chánh niệm, triết lý sống Nhật Bản offline trong `static/js/daily-prompt.js`.
-  - [ ] Thuật toán chọn câu hỏi theo ngày (deterministic seed hash theo `YYYY-MM-DD`), offline 100%, bảo mật riêng tư tuyệt đối, tự đổi câu hỏi vào 00:00.
-  - [ ] Giao diện thẻ kính mờ Soft Sakura "Góc Suy Ngẫm Hôm Nay ✨" ở đầu Timeline Feed, hỗ trợ thu gọn/đóng trong ngày.
-  - [ ] Tương tác 1-click: Nhấp vào prompt tự động mở Editor Modal và chèn câu hỏi làm gợi ý viết bài.
-  - [ ] Nút "Đổi câu khác 🎲" xoay vòng câu hỏi ngẫu nhiên trong ngày.
-- [ ] Xuất bài viết thành ảnh thẻ kỷ niệm (Aesthetic Journal Card Export):
-  - [ ] Pure HTML5 Canvas 2D Engine (`static/js/card-export.js`) không dùng thư viện ngoài (0KB external dependency), 100% offline-first.
-  - [ ] Render ảnh thẻ độ phân giải cao 2K sắc nét cho thiết bị di động / màn hình Retina.
-  - [ ] Hỗ trợ 2 phong cách giao diện: Soft Sakura 🌸 (Hồng phấn thanh nhã) và Night Sakura 🌙 (Tím sương khói huyền bí).
-  - [ ] Hỗ trợ 2 tỉ lệ chuẩn mạng xã hội: Thẻ vuông 1:1 (1080x1080) và Story 9:16 (1080x1920).
-  - [ ] Bổ sung nút "Lưu ảnh kỷ niệm 📷" trên từng thẻ bài viết ở Timeline Feed.
-  - [ ] Modal xem trước tương tác (`#card-export-modal`) cho phép tùy chọn theme, tỉ lệ và bấm 1-click tải ảnh PNG về máy.
-- [ ] Nâng cấp Service Worker cache lên `kokoro-v1.5.0` và kiểm thử hồi quy toàn diện.
+### 🔹 Giai đoạn 8: Phân Hệ Quản Lý Danh Mục Cảm Xúc & Thẻ Chủ Đề (v1.6.0 Architecture)
+- [x] **Giai đoạn 8.1 (v1.6.0-beta.1) — CSDL & Hệ Thống REST API Backend:**
+  - [x] Tạo bảng `categories` và khóa ngoại `entries.category_id REFERENCES categories(id) ON DELETE SET NULL`.
+  - [x] Đánh chỉ mục hiệu năng `idx_categories_user`, `idx_entries_user_cat`, `idx_entry_tags_tag_id`.
+  - [x] Khởi tạo 5 tâm trạng cốt lõi (Bình yên 🌸, Ấm áp ☕, Chiêm nghiệm 🌙, Biết ơn 🍵, Năng lượng ⚡) làm danh mục mặc định.
+  - [x] Xây dựng đầy đủ REST API: `GET /api/categories`, `POST /api/categories`, `PUT /api/categories/{id}`, `DELETE /api/categories/{id}`.
+  - [x] Bổ sung API `POST /api/tags` chủ động tạo thẻ mới trước khi viết bài.
+  - [x] Cập nhật API bài viết: `GET /api/entries`, `POST /api/entries`, `PUT /api/entries/{id}` hỗ trợ `category_id`.
+  - [x] Chuẩn hóa token precedence trong `app/auth.py` và bổ sung phương thức client trong `static/js/api.js`.
+  - [x] Viết bộ kiểm thử tích hợp tự động `tests/test_v160_backend_api.py` đạt 100% PASS (7/7 tests).
+- [ ] **Giai đoạn 8.2 (v1.6.0-beta.2) — Modal Quản Lý Danh Mục & Thẻ Client UI:**
+  - [ ] Khắc phục triệt để lỗi kéo chéo / xô lệch thanh danh mục trên iOS PWA (`overflow-y: hidden`, `touch-action: pan-x`).
+  - [ ] Thiết kế lại Modal `#category-tag-manager-modal` với Tab 1 "📁 Danh mục cảm xúc" và Tab 2 "🏷️ Thẻ chủ đề".
+  - [ ] Bộ chọn Emoji Popover (20 icon tinh tế) và bảng 7 mã màu Pastel chữa lành.
+  - [ ] Bộ điều khiển `static/js/tag-manager.js` kết nối đầy đủ CRUD API cho cả danh mục và thẻ.
+  - [ ] Viết bộ kiểm thử giao diện `tests/test_v160_modal_client.py` đạt 100% PASS.
+- [ ] **Giai đoạn 8.3 (v1.6.0 Release) — Tích Hợp Đồng Bộ Toàn Hệ Thống:**
+  - [ ] Tích hợp bộ chọn Mood/Danh mục động vào Form Soạn thảo (`static/js/editor.js`).
+  - [ ] Tích hợp bộ lọc Mood/Danh mục động ngoài Timeline Feed và Kho Kỷ niệm (`static/js/app.js`).
+  - [ ] Nâng cấp Service Worker cache lên `kokoro-v1.6.0` và kiểm thử hồi quy toàn diện.
+
 
 

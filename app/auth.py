@@ -15,7 +15,7 @@ from starlette.requests import Request
 
 from psycopg2.extras import RealDictCursor
 from app.config import Config
-from app.database import get_db, get_cursor
+from app.database import get_db, get_cursor, seed_default_categories
 
 SESSION_COOKIE_NAME = "kokoro_session"
 JWT_ALGORITHM = "HS256"
@@ -87,6 +87,7 @@ def upsert_user(google_id: str, email: str, name: str, avatar_url: Optional[str]
                     RETURNING id, google_id, email, name, avatar_url, created_at, last_login;
                 """, (google_id, email, name, avatar_url))
                 user = cur.fetchone()
+                seed_default_categories(user["id"], cur=cur)
 
             user_dict = dict(user)
             if user_dict.get("created_at"):
@@ -125,12 +126,13 @@ def get_current_user(request: Request) -> Optional[Dict[str, Any]]:
     2. Authorization Header: `Bearer <token>`
     3. Dev Mock User Header: `X-Mock-User-Id` (when MOCK_AUTH=True)
     """
-    token = request.cookies.get(SESSION_COOKIE_NAME)
+    token = None
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:].strip()
 
     if not token:
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:].strip()
+        token = request.cookies.get(SESSION_COOKIE_NAME)
 
     if token:
         payload = verify_session_token(token)

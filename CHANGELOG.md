@@ -4,6 +4,27 @@ Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal 
 
 ---
 
+## [1.6.0-beta.1] - 2026-10-12
+### Added & Architected (Database Migration & Dynamic Moods / Categories REST API)
+- **Thiết Kế & Triển Khai Bảng `categories` & Khóa Ngoại `entries.category_id` (`app/database.py`):**
+  - Tạo bảng `categories` (id SERIAL PRIMARY KEY, user_id INT FK, name VARCHAR(100), icon VARCHAR(50), color VARCHAR(50), sort_order INT, created_at TIMESTAMPTZ, UNIQUE(user_id, name)).
+  - Bổ sung cột khóa ngoại `entries.category_id REFERENCES categories(id) ON DELETE SET NULL` bảo vệ an toàn 100% dữ liệu nhật ký khi xóa danh mục/mood.
+  - Tối ưu hóa truy vấn với 3 chỉ mục PostgreSQL: `idx_categories_user`, `idx_entries_user_cat`, và `idx_entry_tags_tag_id`.
+  - Khởi tạo 5 tâm trạng cốt lõi của Kokoro làm danh mục mặc định: Bình yên 🌸 (`#ec4899`), Ấm áp ☕ (`#f59e0b`), Chiêm nghiệm 🌙 (`#8b5cf6`), Biết ơn 🍵 (`#10b981`), Năng lượng ⚡ (`#3b82f6`).
+- **Hệ Thống REST API CRUD Danh Mục / Moods Đầy Đủ (`app/routes/entry_routes.py`):**
+  - `GET /api/categories`: Lấy danh sách danh mục/moods thuộc sở hữu của người dùng hiện tại kèm số lượng bài viết (`usage_count`) và sắp xếp theo `sort_order`.
+  - `POST /api/categories`: Tạo danh mục/mood mới, validate tên không được rỗng và kiểm tra trùng lặp tên.
+  - `PUT /api/categories/{id}`: Cập nhật tên, icon emoji, màu sắc và tự động đồng bộ trường `entries.mood`.
+  - `DELETE /api/categories/{id}`: Xóa danh mục an toàn, tự động chuyển các bài viết liên kết về `category_id = NULL` và fallback `mood = 'serene'`, không xóa bài viết.
+  - `POST /api/tags`: Cho phép chủ động tạo hashtag mới trước khi viết bài với chuẩn hóa ký tự `#`.
+  - Cập nhật `GET /api/entries`, `POST /api/entries`, `PUT /api/entries/{id}` hỗ trợ lọc và lưu trữ `category_id` kết hợp metadata (tên, icon, màu).
+- **Chuẩn Hóa Ưu Tiên Xác Thực API Token & Cô Lập Người Dùng (`app/auth.py`):**
+  - Ưu tiên cờ `Authorization: Bearer <token>` trước cookie trình duyệt, đảm bảo các API clients và test suites vận hành độc lập, không bị rò rỉ session giữa các người dùng.
+- **Client API Wrapper Cho Categories & Tags (`static/js/api.js`):**
+  - Bổ sung `getCategories()`, `createCategory()`, `updateCategory()`, `deleteCategory()`, `createTag()`.
+- **Bộ Kiểm Thử Tự Động Toàn Diện (`tests/test_v160_backend_api.py`):**
+  - Bao phủ 7 ca kiểm thử nghiêm ngặt đạt 100% PASS (Seeding, Validation, Update Sync, Safe Delete, Proactive Tag, Data Isolation, Entry Joined Filter).
+
 ## [1.5.6] - 2026-10-12
 ### Fixed & Hardened (Security Hotfix, Stored XSS Mitigation, History API & Mobile Accessibility)
 - **[P0 - CRITICAL SECURITY] Vá Triệt Để Lỗ Hổng Stored XSS (`static/js/api.js`, `static/js/app.js`, `static/js/tag-manager.js`, `static/js/auth.js`, `static/js/editor.js`):**
