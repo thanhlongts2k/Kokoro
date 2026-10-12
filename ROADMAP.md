@@ -161,7 +161,35 @@
   - [x] Tự động xóa tags mồ côi trong PostgreSQL.
 - [x] Bộ test hồi quy và test mới pass 100% (`test_v15_media_lifecycle.py`, `verify_mobile_editor_overflow.py`).
 
-### 🔹 Giai đoạn 8: Cảm Hứng & Chia Sẻ (v1.5.0 - Planned)
+### 🔹 Giai đoạn 7.8: Sửa Lỗi WebKit iOS PWA, Quản Lý Thẻ & Tối Ưu Preview (v1.5.2 & v1.5.3 Release)
+- [x] Bypass triệt để Service Worker với toàn bộ API (`/api/`) ngăn Safari WebKit nuốt body stream multipart khi tạo/sửa bài.
+- [x] Tích hợp `pillow-heif` giải mã ảnh chụp iPhone `.heic`/`.heif` sang `.webp` chuẩn hóa.
+- [x] Khóa cứng `#lightbox-controls-bar` triệt tiêu lỗi thanh công cụ phóng to ảnh nổi lơ lửng khi modal đóng.
+- [x] Nâng cấp kích thước và tỷ lệ lưới xem trước ảnh thumbnail trong Editor (`minmax(96px, 1fr)`).
+- [x] Xây dựng endpoint `GET /api/tags` và đồng bộ số lượng thẻ chủ đề, tâm trạng ngoài trang chủ.
+
+### 🔹 Giai đoạn 7.9: Tái Cấu Trúc Bẻ Khóa God Component, Datetime Picker & Capsule Mood Chips (v1.5.4 Release)
+- [x] Tái cấu trúc chip cảm xúc Mobile thành thanh kẹo con nhộng (`.mood-chip-pill`, `.mood-count-badge`), fix triệt để lỗi đếm số 0 bằng hàm SSoT `updateMoodCountBadges(stats)`.
+- [x] Xây dựng module Custom Date & Time Picker độc lập (`static/js/datetime-picker.js`), mini-calendar + time spinners, trigger pill `📅 DD/MM/YYYY, HH:MM`, backend hỗ trợ `created_at` tùy chỉnh.
+- [x] Bẻ khóa God Component (Decoupling Architecture):
+  - [x] Tách `static/js/toast.js` (`window.KokoroToast`) quản lý deduplication và giới hạn tối đa 2 toast.
+  - [x] Tách `static/js/tag-manager.js` (`window.KokoroTagManager`) quản lý quick chips và popular tags widget.
+  - [x] Tinh gọn `editor.js` và `app.js` theo Clean Architecture.
+- [x] Cập nhật phiên bản hệ thống lên `v1.5.4` (`app/config.py`, `static/sw.js`, `static/index.html`).
+- [x] Bộ kiểm thử tự động đạt 100% PASS.
+
+### 🔹 Giai đoạn 7.10: Tái Cấu Trúc Toàn Diện Giao Diện, Smooth Time Wheel, State Isolation & Tag Management (v1.5.5 Release)
+- [x] Khóa cứng `#lightbox-controls-bar` tại DOM inline style và JS hard-lock `lightbox.js`, tiêu diệt 100% bug thanh điều khiển nổi lơ lửng.
+- [x] Khắc phục méo/dẹp ảnh dọc chụp màn hình điện thoại (9:16, 9:20) trên Timeline Feed bằng Adaptive Container (`aspect-ratio: auto; max-height: 480px; object-fit: contain;`).
+- [x] Nâng cấp bộ chọn giờ Smooth Time Picker cho Mobile: Soft Sakura Time Wheel Card + `<input type="time">` kích hoạt Native iOS/Android drum wheel spinner với haptics và quán tính cuộn.
+- [x] Tái cấu trúc Kho Kỷ Niệm (`#view-memories`): Cô lập dải filter của Timeline vào trong `#view-timeline`, thiết kế lại thanh filter Kho Kỷ niệm thành capsule pills `.memories-mood-scroll`, bổ sung bộ lọc Hashtag cuộn ngang `#memories-tag-chips`.
+- [x] Cô lập trạng thái (State Isolation): Duy trì snapshot `allEntries` bất biến, tách biệt `timelineState` và `memoriesState`, chống rò rỉ bộ lọc giữa các màn hình.
+- [x] Sửa lỗi sticky hover/focus chip hashtag trên mobile (`chip.blur()`, `@media (hover: hover)`, `:active` scale).
+- [x] Bổ sung phân hệ "Quản lý Danh mục & Thẻ chủ đề" trong Profile (`#category-tag-manager-modal`) với 2 tab (Tâm trạng & Thẻ), đổi tên thẻ, merge tự động, xóa thẻ và dọn dẹp thẻ mồ côi 0 bài.
+- [x] Bổ sung Backend REST API: `PUT /api/tags/{id}`, `DELETE /api/tags/{id}`, `DELETE /api/tags/cleanup-orphans`.
+- [x] Nâng phiên bản hệ thống lên `v1.5.5` và kiểm thử tự động toàn diện đạt 100% PASS.
+
+### 🔹 Giai đoạn 8: Cảm Hứng & Chia Sẻ (v1.6.0 - Planned)
 - [ ] Gợi ý câu hỏi suy ngẫm mỗi ngày (Daily Zen Prompt):
   - [ ] Bộ danh mục 60+ câu hỏi chánh niệm, triết lý sống Nhật Bản offline trong `static/js/daily-prompt.js`.
   - [ ] Thuật toán chọn câu hỏi theo ngày (deterministic seed hash theo `YYYY-MM-DD`), offline 100%, bảo mật riêng tư tuyệt đối, tự đổi câu hỏi vào 00:00.

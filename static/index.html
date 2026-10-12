@@ -35,10 +35,10 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <!-- Stylesheets (Relative paths for Nginx reverse proxy subpath support) -->
-  <link rel="stylesheet" href="./css/tokens.css?v=1.5.0">
-  <link rel="stylesheet" href="./css/glass.css?v=1.5.0">
-  <link rel="stylesheet" href="./css/components.css?v=1.5.0">
-  <link rel="stylesheet" href="./css/layout.css?v=1.5.0">
+  <link rel="stylesheet" href="./css/tokens.css?v=1.5.5">
+  <link rel="stylesheet" href="./css/glass.css?v=1.5.5">
+  <link rel="stylesheet" href="./css/components.css?v=1.5.5">
+  <link rel="stylesheet" href="./css/layout.css?v=1.5.5">
 </head>
 <body>
 
@@ -177,14 +177,6 @@
          ==================================================================== -->
     <main class="main-wrapper app-dashboard-layout">
 
-      <!-- Mobile Horizontal Quick Mood Filter -->
-      <div class="mobile-mood-scroll mood-filter-chips" id="mobile-mood-chips">
-        <button class="btn-glass active" data-filter-mood="all">Tất cả 🌸</button>
-        <button class="btn-glass" data-filter-mood="serene">Bình yên 🌸</button>
-        <button class="btn-glass" data-filter-mood="cozy">Ấm áp ☕</button>
-        <button class="btn-glass" data-filter-mood="reflective">Chiêm nghiệm 🌙</button>
-        <button class="btn-glass" data-filter-mood="grateful">Biết ơn 🍵</button>
-      </div>
 
       <!-- 2.1. LEFT SIDEBAR (CALENDAR & MOOD FILTERS) -->
       <aside class="sidebar-left dashboard-col-left">
@@ -212,20 +204,25 @@
             <i class="bi bi-emoji-smile" style="color: var(--sakura-500); margin-right: 6px;"></i> Cảm xúc chủ đạo
           </h4>
           <div style="display: flex; flex-direction: column; gap: 8px;">
-            <button class="btn-glass active" data-filter-mood="all" style="justify-content: flex-start; width: 100%; border-radius: var(--radius-sm);">
-              <i class="bi bi-grid"></i> Tất cả bài viết
+            <button class="btn-glass active" data-filter-mood="all" style="justify-content: space-between; width: 100%; border-radius: var(--radius-sm);">
+              <span style="display: flex; align-items: center; gap: 8px;"><i class="bi bi-grid"></i> Tất cả bài viết</span>
+              <span class="mood-count-badge" data-count-mood="all"></span>
             </button>
-            <button class="btn-glass" data-filter-mood="serene" style="justify-content: flex-start; width: 100%; border-radius: var(--radius-sm);">
-              <span>🌸</span> Thanh bình (Serene)
+            <button class="btn-glass" data-filter-mood="serene" style="justify-content: space-between; width: 100%; border-radius: var(--radius-sm);">
+              <span style="display: flex; align-items: center; gap: 8px;"><span>🌸</span> Thanh bình (Serene)</span>
+              <span class="mood-count-badge" data-count-mood="serene"></span>
             </button>
-            <button class="btn-glass" data-filter-mood="cozy" style="justify-content: flex-start; width: 100%; border-radius: var(--radius-sm);">
-              <span>☕</span> Ấm áp (Cozy)
+            <button class="btn-glass" data-filter-mood="cozy" style="justify-content: space-between; width: 100%; border-radius: var(--radius-sm);">
+              <span style="display: flex; align-items: center; gap: 8px;"><span>☕</span> Ấm áp (Cozy)</span>
+              <span class="mood-count-badge" data-count-mood="cozy"></span>
             </button>
-            <button class="btn-glass" data-filter-mood="reflective" style="justify-content: flex-start; width: 100%; border-radius: var(--radius-sm);">
-              <span>🌙</span> Chiêm nghiệm (Reflective)
+            <button class="btn-glass" data-filter-mood="reflective" style="justify-content: space-between; width: 100%; border-radius: var(--radius-sm);">
+              <span style="display: flex; align-items: center; gap: 8px;"><span>🌙</span> Chiêm nghiệm (Reflective)</span>
+              <span class="mood-count-badge" data-count-mood="reflective"></span>
             </button>
-            <button class="btn-glass" data-filter-mood="grateful" style="justify-content: flex-start; width: 100%; border-radius: var(--radius-sm);">
-              <span>🍵</span> Biết ơn (Grateful)
+            <button class="btn-glass" data-filter-mood="grateful" style="justify-content: space-between; width: 100%; border-radius: var(--radius-sm);">
+              <span style="display: flex; align-items: center; gap: 8px;"><span>🍵</span> Biết ơn (Grateful)</span>
+              <span class="mood-count-badge" data-count-mood="grateful"></span>
             </button>
           </div>
         </div>
@@ -235,13 +232,8 @@
           <h4 style="font-size: 13px; font-weight: 800; margin: 0 0 12px 0; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;">
             <i class="bi bi-tags" style="color: var(--sakura-500); margin-right: 6px;"></i> Thẻ chủ đề
           </h4>
-          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-            <span class="tag-pill" data-tag="#healing">#healing</span>
-            <span class="tag-pill" data-tag="#sakura">#sakura</span>
-            <span class="tag-pill" data-tag="#matcha">#matcha</span>
-            <span class="tag-pill" data-tag="#reading">#reading</span>
-            <span class="tag-pill" data-tag="#morning">#morning</span>
-            <span class="tag-pill" data-tag="#gratitude">#gratitude</span>
+          <div id="sidebar-popular-tags" style="display: flex; flex-wrap: wrap; gap: 6px;">
+            <!-- Dynamically populated from KokoroAPI.getTags() -->
           </div>
         </div>
       </aside>
@@ -260,6 +252,39 @@
              VIEW 1: TIMELINE (DEFAULT)
              ========================================== -->
         <div id="view-timeline" class="c-view active">
+          <!-- Mobile Horizontal Quick Mood Filter (Isolated inside Timeline) -->
+          <div class="mobile-mood-scroll mood-filter-chips" id="mobile-mood-chips">
+            <button class="btn-glass mood-chip-pill active" data-filter-mood="all">
+              <span class="chip-icon">🌸</span>
+              <span class="chip-label">Tất cả</span>
+              <span class="mood-count-badge" data-count-mood="all"></span>
+            </button>
+            <button class="btn-glass mood-chip-pill" data-filter-mood="serene">
+              <span class="chip-icon">🌸</span>
+              <span class="chip-label">Bình yên</span>
+              <span class="mood-count-badge" data-count-mood="serene"></span>
+            </button>
+            <button class="btn-glass mood-chip-pill" data-filter-mood="cozy">
+              <span class="chip-icon">☕</span>
+              <span class="chip-label">Ấm áp</span>
+              <span class="mood-count-badge" data-count-mood="cozy"></span>
+            </button>
+            <button class="btn-glass mood-chip-pill" data-filter-mood="reflective">
+              <span class="chip-icon">🌙</span>
+              <span class="chip-label">Chiêm nghiệm</span>
+              <span class="mood-count-badge" data-count-mood="reflective"></span>
+            </button>
+            <button class="btn-glass mood-chip-pill" data-filter-mood="grateful">
+              <span class="chip-icon">🍵</span>
+              <span class="chip-label">Biết ơn</span>
+              <span class="mood-count-badge" data-count-mood="grateful"></span>
+            </button>
+            <button class="btn-glass mood-chip-pill" data-filter-mood="energetic">
+              <span class="chip-icon">⚡</span>
+              <span class="chip-label">Năng lượng</span>
+              <span class="mood-count-badge" data-count-mood="energetic"></span>
+            </button>
+          </div>
           <!-- Welcoming Healing Card -->
           <div class="glass-panel welcome-banner-card" style="padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
             <div>
@@ -351,14 +376,43 @@
               </span>
             </div>
 
-            <!-- Mood Filter for Memories -->
-            <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch;" id="memories-mood-filters">
-              <button class="c-chip active" data-memories-mood="all">Tất cả ảnh</button>
-              <button class="c-chip" data-memories-mood="serene">🌸 Bình yên</button>
-              <button class="c-chip" data-memories-mood="cozy">☕ Ấm áp</button>
-              <button class="c-chip" data-memories-mood="reflective">🌙 Chiêm nghiệm</button>
-              <button class="c-chip" data-memories-mood="grateful">🍵 Biết ơn</button>
-              <button class="c-chip" data-memories-mood="energetic">⚡ Năng lượng</button>
+            <!-- Unified Mood Filter for Memories -->
+            <div class="memories-mood-scroll mood-filter-chips" id="memories-mood-filters" style="margin-bottom: 8px;">
+              <button class="btn-glass mood-chip-pill active" data-memories-mood="all">
+                <span class="chip-icon">📸</span>
+                <span class="chip-label">Tất cả ảnh</span>
+                <span class="mood-count-badge" data-memories-count-mood="all">0</span>
+              </button>
+              <button class="btn-glass mood-chip-pill" data-memories-mood="serene">
+                <span class="chip-icon">🌸</span>
+                <span class="chip-label">Bình yên</span>
+                <span class="mood-count-badge" data-memories-count-mood="serene">0</span>
+              </button>
+              <button class="btn-glass mood-chip-pill" data-memories-mood="cozy">
+                <span class="chip-icon">☕</span>
+                <span class="chip-label">Ấm áp</span>
+                <span class="mood-count-badge" data-memories-count-mood="cozy">0</span>
+              </button>
+              <button class="btn-glass mood-chip-pill" data-memories-mood="reflective">
+                <span class="chip-icon">🌙</span>
+                <span class="chip-label">Chiêm nghiệm</span>
+                <span class="mood-count-badge" data-memories-count-mood="reflective">0</span>
+              </button>
+              <button class="btn-glass mood-chip-pill" data-memories-mood="grateful">
+                <span class="chip-icon">🍵</span>
+                <span class="chip-label">Biết ơn</span>
+                <span class="mood-count-badge" data-memories-count-mood="grateful">0</span>
+              </button>
+              <button class="btn-glass mood-chip-pill" data-memories-mood="energetic">
+                <span class="chip-icon">⚡</span>
+                <span class="chip-label">Năng lượng</span>
+                <span class="mood-count-badge" data-memories-count-mood="energetic">0</span>
+              </button>
+            </div>
+
+            <!-- Hashtag Filter for Memories -->
+            <div class="memories-tags-scroll" id="memories-tag-chips">
+              <!-- Rendered dynamically by app.js -->
             </div>
           </div>
 
@@ -443,6 +497,18 @@
               <div class="c-profile-menu-left">
                 <i class="bi bi-shield-lock c-profile-menu-icon"></i>
                 <div style="color: var(--text-primary); font-weight: 700;">Khóa màn hình ngay</div>
+              </div>
+              <i class="bi bi-chevron-right" style="font-size: 12px; color: var(--text-muted);"></i>
+            </button>
+
+            <!-- 2.1. Category & Tag Manager -->
+            <button class="c-profile-menu-item" id="profile-action-category-tags">
+              <div class="c-profile-menu-left">
+                <i class="bi bi-tags c-profile-menu-icon text-sakura"></i>
+                <div>
+                  <div style="color: var(--text-primary); font-weight: 700;">Quản lý Danh mục & Thẻ chủ đề</div>
+                  <div style="font-size: 11.5px; color: var(--text-muted);">Theo dõi tỷ lệ cảm xúc, đổi tên và dọn dẹp hashtag</div>
+                </div>
               </div>
               <i class="bi bi-chevron-right" style="font-size: 12px; color: var(--text-muted);"></i>
             </button>
@@ -553,7 +619,7 @@
         <div class="footer-brand">
           <img src="./icons/sakura.svg" alt="Kokoro Logo" class="footer-logo" />
           <span class="footer-title">Kokoro <span style="font-weight: 500; font-size: 14px; color: var(--sakura-500);">心</span></span>
-          <span class="footer-version-badge" id="app-version-badge">v1.5.0</span>
+          <span class="footer-version-badge" id="app-version-badge">v1.5.2</span>
         </div>
         <p class="footer-tagline">
           Lắng đọng tâm trí & lưu giữ những khoảnh khắc nhẹ nhàng trong không gian an yên.
@@ -643,6 +709,20 @@
             </div>
           </div>
 
+          <!-- Date & Time Picker Trigger -->
+          <div class="editor-datetime-section" style="margin-top: 4px; margin-bottom: 6px;">
+            <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">
+              Thời gian nhật ký
+            </label>
+            <button type="button" class="btn-glass datetime-trigger-pill" id="editor-datetime-btn" style="border-radius: 20px; font-size: 13px; font-weight: 600; padding: 7px 14px; gap: 8px;">
+              <i class="bi bi-calendar-event text-sakura"></i>
+              <span id="editor-datetime-display">Hôm nay</span>
+              <i class="bi bi-chevron-down" style="font-size: 11px; opacity: 0.7; margin-left: 4px;"></i>
+            </button>
+            <input type="hidden" id="editor-entry-date-input" value="" />
+            <input type="hidden" id="editor-created-at-input" value="" />
+          </div>
+
           <!-- Title Input -->
           <div>
             <input type="text" id="editor-title-input" class="editor-input" placeholder="Tiêu đề nhật ký (ví dụ: Buổi sáng ngắm hoa anh đào...)" />
@@ -653,9 +733,10 @@
             <textarea id="editor-content-input" class="editor-input editor-textarea" placeholder="Chia sẻ cảm xúc, suy nghĩ hoặc một điều nhỏ bé khiến bạn mỉm cười hôm nay..."></textarea>
           </div>
 
-          <!-- Tags Input -->
+          <!-- Tags Input & Suggested Quick Chips -->
           <div>
             <input type="text" id="editor-tag-input" class="editor-input" placeholder="Thẻ chủ đề cách nhau bởi dấu cách (ví dụ: #healing #spring #matcha)" />
+            <div class="tag-quick-chips-grid" id="editor-suggested-tags"></div>
           </div>
 
           <!-- Photo Upload Dropzone -->
@@ -669,9 +750,9 @@
                 Nhấp để chọn ảnh hoặc kéo thả vào đây
               </div>
               <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
-                Hỗ trợ tải nhiều ảnh JPG, PNG, WebP
+                Hỗ trợ tải nhiều ảnh JPG, PNG, WebP, HEIC/HEIF
               </div>
-              <input type="file" id="editor-file-input" multiple accept="image/*" style="display: none;" />
+              <input type="file" id="editor-file-input" multiple accept="image/*,.heic,.heif,image/heic,image/heif" style="display: none;" />
             </div>
 
             <!-- Uploaded Previews Grid -->
@@ -713,7 +794,7 @@
          7. FULLSCREEN PHOTO LIGHTBOX MODAL
          ==================================================================== -->
     <div class="lightbox-modal" id="lightbox-modal">
-      <div class="lightbox-controls-bar" id="lightbox-controls-bar">
+      <div class="lightbox-controls-bar" id="lightbox-controls-bar" style="display: none !important; opacity: 0 !important; pointer-events: none !important;">
         <button class="lightbox-tool-btn" id="lightbox-zoom-in-btn" title="Phóng to (+)">
           <i class="bi bi-plus-lg"></i>
         </button>
@@ -863,17 +944,142 @@
       </div>
     </div>
 
+    <!-- ====================================================================
+         10. SOFT SAKURA CUSTOM DATE & TIME PICKER MODAL
+         ==================================================================== -->
+    <div class="modal-overlay" id="datetime-picker-modal">
+      <div class="glass-panel datetime-picker-card" id="datetime-picker-card">
+        <div class="datetime-picker-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <i class="bi bi-clock-history text-sakura" style="font-size: 18px;"></i>
+            <h4 style="font-size: 16px; font-weight: 800; margin: 0; color: var(--text-primary);">Thời Gian Nhật Ký 🌸</h4>
+          </div>
+          <button type="button" class="action-icon-btn" id="datetime-picker-close-btn" title="Đóng">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <div class="datetime-picker-body">
+          <!-- Calendar Date Picker -->
+          <div class="datetime-calendar-container">
+            <div class="cal-header" style="margin-bottom: 8px;">
+              <span class="cal-title" id="dt-cal-month-title">Tháng 10 2026</span>
+              <div style="display: flex; gap: 4px;">
+                <button type="button" class="action-icon-btn" id="dt-cal-prev-btn" style="width: 28px; height: 28px;" title="Tháng trước"><i class="bi bi-chevron-left"></i></button>
+                <button type="button" class="action-icon-btn" id="dt-cal-next-btn" style="width: 28px; height: 28px;" title="Tháng sau"><i class="bi bi-chevron-right"></i></button>
+              </div>
+            </div>
+            <!-- Weekday headers -->
+            <div class="dt-weekdays-grid">
+              <span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span>
+            </div>
+            <!-- Month days grid -->
+            <div class="dt-days-grid" id="dt-cal-days-grid"></div>
+          </div>
+
+          <!-- Time Wheel Card (Giờ & Phút Native Spinner) -->
+          <div class="datetime-time-container">
+            <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;">
+              Thời khắc (Giờ : Phút)
+            </label>
+            <div class="dt-time-wheel-card" id="dt-time-wheel-card">
+              <div class="dt-time-wheel-content">
+                <i class="bi bi-clock text-sakura dt-time-wheel-icon"></i>
+                <div class="dt-time-wheel-digits" id="dt-time-digits-display">12:00</div>
+                <div class="dt-time-wheel-sublabel">Chạm để cuộn giờ ✨</div>
+              </div>
+              <input type="time" id="dt-native-time-input" class="dt-native-time-input" value="12:00" />
+            </div>
+          </div>
+        </div>
+
+        <div class="datetime-picker-footer">
+          <button type="button" class="btn-glass" id="dt-btn-now" style="border-radius: 20px; font-size: 12.5px; padding: 6px 14px;">
+            <i class="bi bi-stopwatch text-sakura"></i> Hiện tại
+          </button>
+          <div style="display: flex; gap: 8px; margin-left: auto;">
+            <button type="button" class="btn-glass" id="dt-btn-cancel" style="border-radius: 20px; font-size: 12.5px; padding: 6px 14px;">Hủy</button>
+            <button type="button" class="btn-sakura" id="dt-btn-confirm" style="border-radius: 20px; font-size: 12.5px; padding: 6px 16px;">Xác nhận ✨</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         CATEGORY & TAG MANAGER MODAL (V1.5.5)
+         ==================================================================== -->
+    <div class="modal-overlay" id="category-tag-manager-modal" style="display: none; align-items: center; justify-content: center; z-index: 9998;">
+      <div class="glass-panel" style="width: 92%; max-width: 520px; max-height: 85vh; border-radius: var(--radius-xl); padding: 22px; display: flex; flex-direction: column; gap: 14px; box-shadow: var(--shadow-glass-lg); overflow: hidden;">
+        <!-- Header -->
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-glass-subtle); padding-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(244, 63, 94, 0.12); display: flex; align-items: center; justify-content: center;">
+              <i class="bi bi-tags text-sakura" style="font-size: 18px;"></i>
+            </div>
+            <div>
+              <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-primary);">Quản Lý Danh Mục & Thẻ</h3>
+              <p style="margin: 2px 0 0; font-size: 12px; color: var(--text-muted);">Quản trị hệ thống cảm xúc và nhãn hashtag</p>
+            </div>
+          </div>
+          <button type="button" class="action-icon-btn" id="cat-tag-modal-close" style="width: 32px; height: 32px;" title="Đóng"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <!-- Tabs Nav -->
+        <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--border-glass-subtle); padding-bottom: 10px;">
+          <button type="button" class="btn-glass mood-chip-pill active" id="tab-btn-cat-moods" style="padding: 6px 14px; font-size: 12px;">
+            <span class="chip-icon">🌸</span> Cảm xúc & Tâm trạng
+          </button>
+          <button type="button" class="btn-glass mood-chip-pill" id="tab-btn-cat-tags" style="padding: 6px 14px; font-size: 12px;">
+            <span class="chip-icon">🏷️</span> Thẻ chủ đề (Hashtags)
+          </button>
+        </div>
+
+        <!-- Tab 1: Moods Content -->
+        <div id="cat-tab-content-moods" style="display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: 52vh; padding-right: 4px;">
+          <div style="font-size: 12px; color: var(--text-muted);">
+            Thống kê số lượng và tỷ lệ bài viết theo từng cung bậc cảm xúc trong nhật ký của bạn:
+          </div>
+          <div id="cat-moods-list-container" style="display: flex; flex-direction: column; gap: 10px;">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Tab 2: Tags Content -->
+        <div id="cat-tab-content-tags" style="display: none; flex-direction: column; gap: 12px; overflow-y: auto; max-height: 52vh; padding-right: 4px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <span id="cat-total-tags-label" style="font-size: 12.5px; font-weight: 700; color: var(--text-secondary);">Tổng cộng: 0 thẻ</span>
+            <button type="button" class="btn-glass" id="cat-cleanup-orphans-btn" style="font-size: 11.5px; padding: 4px 10px; border-radius: var(--radius-pill); color: var(--text-muted);">
+              <i class="bi bi-trash3 text-sakura"></i> Dọn dẹp thẻ 0 bài
+            </button>
+          </div>
+          <div id="cat-tags-list-container" style="display: flex; flex-direction: column; gap: 8px;">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="display: flex; justify-content: flex-end; border-top: 1px solid var(--border-glass-subtle); padding-top: 12px;">
+          <button type="button" class="btn-glass" id="cat-tag-modal-btn-done" style="padding: 6px 18px; border-radius: var(--radius-pill); font-size: 12.5px; font-weight: 700;">
+            Hoàn tất ✨
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- Scripts Execution (Relative paths for reverse proxy subpath) -->
-  <script src="./js/mock-data.js?v=1.5.0"></script>
-  <script src="./js/api.js?v=1.5.0"></script>
-  <script src="./js/auth.js?v=1.5.0"></script>
-  <script src="./js/lightbox.js?v=1.5.0"></script>
-  <script src="./js/editor.js?v=1.5.0"></script>
-  <script src="./js/zen-audio.js?v=1.5.0"></script>
-  <script src="./js/passcode.js?v=1.5.0"></script>
-  <script src="./js/pwa.js?v=1.5.0"></script>
-  <script src="./js/app.js?v=1.5.0"></script>
+  <script src="./js/mock-data.js?v=1.5.5"></script>
+  <script src="./js/api.js?v=1.5.5"></script>
+  <script src="./js/auth.js?v=1.5.5"></script>
+  <script src="./js/toast.js?v=1.5.5"></script>
+  <script src="./js/datetime-picker.js?v=1.5.5"></script>
+  <script src="./js/tag-manager.js?v=1.5.5"></script>
+  <script src="./js/lightbox.js?v=1.5.5"></script>
+  <script src="./js/editor.js?v=1.5.5"></script>
+  <script src="./js/zen-audio.js?v=1.5.5"></script>
+  <script src="./js/passcode.js?v=1.5.5"></script>
+  <script src="./js/pwa.js?v=1.5.5"></script>
+  <script src="./js/app.js?v=1.5.5"></script>
 </body>
 </html>

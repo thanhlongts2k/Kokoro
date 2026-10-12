@@ -373,6 +373,113 @@
   font-weight: 600;
 }
 
+.tag-pill .tag-count {
+  font-size: 10px;
+  opacity: 0.75;
+  margin-left: 2px;
+  font-weight: 500;
+}
+
+/* Dynamic Mood Count Badges */
+.mood-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+  margin-left: 4px;
+}
+
+.mood-count-badge:empty {
+  display: none !important;
+}
+
+[data-theme="dark"] .mood-count-badge {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--text-secondary);
+}
+
+.btn-glass.active .mood-count-badge {
+  background: var(--sakura-100);
+  color: var(--sakura-700);
+}
+
+[data-theme="dark"] .btn-glass.active .mood-count-badge {
+  background: rgba(244, 114, 182, 0.25);
+  color: var(--sakura-200);
+}
+
+/* Editor Suggested Quick Tag Chips */
+.tag-quick-chips-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  min-height: 24px;
+}
+
+.tag-quick-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  border: 1px solid var(--border-glass-subtle);
+  background: var(--surface-glass-subtle);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.tag-quick-chip:focus {
+  outline: none;
+}
+
+@media (hover: hover) {
+  .tag-quick-chip:hover {
+    background: var(--surface-hover-overlay);
+    color: var(--surface-hover-text);
+    border-color: var(--sakura-300);
+    transform: translateY(-1px);
+  }
+}
+
+.tag-quick-chip:active {
+  transform: scale(0.96);
+}
+
+.tag-quick-chip.selected {
+  background: var(--sakura-100);
+  border-color: var(--sakura-500);
+  color: var(--sakura-700);
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(244, 114, 182, 0.2);
+}
+
+[data-theme="dark"] .tag-quick-chip.selected {
+  background: rgba(244, 114, 182, 0.25);
+  border-color: var(--sakura-400);
+  color: var(--sakura-200);
+}
+
+.tag-quick-chip-count {
+  font-size: 10px;
+  opacity: 0.75;
+  margin-left: 2px;
+  font-weight: 500;
+}
+
 /* --------------------------------------------------------------------------
    4. FORM INPUTS (.c-input)
    -------------------------------------------------------------------------- */
@@ -530,8 +637,8 @@
    -------------------------------------------------------------------------- */
 .uploaded-previews-grid {
   display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)) !important;
-  gap: 10px !important;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)) !important;
+  gap: 12px !important;
   margin-top: 12px !important;
   width: 100% !important;
   max-width: 100% !important;
@@ -539,15 +646,22 @@
   overflow-x: hidden !important;
 }
 
+@media (min-width: 769px) {
+  .uploaded-previews-grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
+  }
+}
+
 .preview-thumb-box {
   width: 100% !important;
   max-width: 100% !important;
   aspect-ratio: 1 !important;
-  border-radius: var(--radius-sm) !important;
+  border-radius: 12px !important;
   overflow: hidden !important;
   position: relative !important;
-  border: 1px solid var(--border-glass) !important;
-  background: rgba(0, 0, 0, 0.05);
+  border: 1.5px solid rgba(255, 183, 197, 0.35) !important;
+  background: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   box-sizing: border-box !important;
 }
 
@@ -556,28 +670,29 @@
   height: 100% !important;
   max-width: 100% !important;
   object-fit: cover !important;
+  object-position: center !important;
   display: block !important;
 }
 
 .preview-remove-btn {
   position: absolute !important;
-  top: 4px !important;
-  right: 4px !important;
-  width: 28px !important;
-  height: 28px !important;
-  min-width: 28px !important;
-  min-height: 28px !important;
+  top: 6px !important;
+  right: 6px !important;
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
   border-radius: 50% !important;
   background: rgba(225, 29, 72, 0.88) !important;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: #ffffff !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.85) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  font-size: 14px !important;
+  font-size: 13px !important;
   font-weight: 800 !important;
   line-height: 1 !important;
   cursor: pointer !important;
@@ -943,7 +1058,10 @@ body.modal-scroll-locked {
   top: max(16px, env(safe-area-inset-top));
   right: max(16px, env(safe-area-inset-right));
   z-index: 10000 !important;
-  display: flex;
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
   align-items: center;
   gap: 8px;
   background: rgba(20, 20, 30, 0.65);
@@ -953,11 +1071,17 @@ body.modal-scroll-locked {
   border-radius: var(--radius-pill);
   padding: 6px 10px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
-  pointer-events: none !important;
+  transition: opacity 0.2s ease;
 }
 
 .lightbox-modal.active .lightbox-controls-bar,
-.lightbox-modal.active #lightbox-controls-bar,
+.lightbox-modal.active #lightbox-controls-bar {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
 .lightbox-modal.active .lightbox-tool-btn {
   pointer-events: auto !important;
 }
@@ -1102,4 +1226,238 @@ body.modal-scroll-locked {
   #fab-create-btn {
     display: none !important;
   }
+}
+
+/* --------------------------------------------------------------------------
+   5. SOFT SAKURA CUSTOM DATE & TIME PICKER MODAL
+   -------------------------------------------------------------------------- */
+.datetime-trigger-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-glass-subtle);
+  border: 1px solid var(--border-glass-subtle);
+  color: var(--text-primary);
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.datetime-trigger-pill:hover {
+  background: var(--surface-hover-overlay);
+  border-color: var(--sakura-300);
+  transform: translateY(-1px);
+}
+
+.datetime-picker-card {
+  max-width: 360px;
+  width: 92%;
+  padding: 20px;
+  border-radius: var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--surface-glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-glass);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+}
+
+.datetime-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-glass-subtle);
+  padding-bottom: 12px;
+}
+
+.datetime-picker-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Mini Calendar Grid */
+.dt-weekdays-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.dt-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.dt-day-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.dt-day-cell:hover:not(.other-month) {
+  background: var(--sakura-100);
+  color: var(--sakura-700);
+}
+
+.dt-day-cell.selected {
+  background: var(--sakura-500) !important;
+  color: #ffffff !important;
+  font-weight: 800;
+  box-shadow: 0 4px 10px rgba(244, 114, 182, 0.4);
+}
+
+.dt-day-cell.today:not(.selected) {
+  border: 1px solid var(--sakura-400);
+  color: var(--sakura-600);
+  font-weight: 700;
+}
+
+.dt-day-cell.other-month {
+  color: var(--text-muted);
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Soft Sakura Time Wheel Card */
+.dt-time-wheel-card {
+  position: relative;
+  background: var(--surface-glass-subtle);
+  border: 1px solid var(--border-glass-subtle);
+  border-radius: var(--radius-lg);
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  overflow: hidden;
+}
+
+.dt-time-wheel-card:hover {
+  background: var(--surface-hover-overlay);
+  border-color: var(--sakura-300);
+}
+
+.dt-time-wheel-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.dt-time-wheel-icon {
+  font-size: 22px;
+}
+
+.dt-time-wheel-digits {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--text-primary);
+  font-family: var(--font-mono, monospace);
+}
+
+.dt-time-wheel-sublabel {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 6px;
+  font-weight: 500;
+}
+
+.dt-native-time-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+  font-size: 16px; /* Prevents auto-zoom on iOS Safari */
+}
+
+.datetime-picker-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border-glass-subtle);
+  padding-top: 12px;
+}
+
+/* Memories Mood & Hashtag Filter Components */
+.memories-mood-scroll {
+  display: flex !important;
+  gap: 10px;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 4px 2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.memories-mood-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.memories-tags-scroll {
+  display: flex !important;
+  gap: 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 6px 2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.memories-tags-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.memory-tag-chip {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 15px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--surface-glass-subtle);
+  border: 1px solid var(--border-glass-subtle);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.memory-tag-chip:hover {
+  background: var(--surface-hover-overlay);
+  color: var(--sakura-600);
+  border-color: var(--sakura-300);
+}
+
+.memory-tag-chip.active {
+  background: linear-gradient(135deg, rgba(251, 113, 133, 0.25), rgba(244, 63, 94, 0.35)) !important;
+  border-color: var(--sakura-500) !important;
+  color: var(--sakura-600) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(244, 63, 94, 0.2);
 }

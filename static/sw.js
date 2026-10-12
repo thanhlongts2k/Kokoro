@@ -1,21 +1,24 @@
-const CACHE_NAME = 'kokoro-v1.5.0';
+const CACHE_NAME = 'kokoro-v1.5.5';
 const STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './css/tokens.css?v=1.5.0',
-  './css/glass.css?v=1.5.0',
-  './css/components.css?v=1.5.0',
-  './css/layout.css?v=1.5.0',
-  './js/mock-data.js?v=1.5.0',
-  './js/api.js?v=1.5.0',
-  './js/auth.js?v=1.5.0',
-  './js/app.js?v=1.5.0',
-  './js/editor.js?v=1.5.0',
-  './js/zen-audio.js?v=1.5.0',
-  './js/passcode.js?v=1.5.0',
-  './js/lightbox.js?v=1.5.0',
-  './js/pwa.js?v=1.5.0',
+  './css/tokens.css?v=1.5.5',
+  './css/glass.css?v=1.5.5',
+  './css/components.css?v=1.5.5',
+  './css/layout.css?v=1.5.5',
+  './js/mock-data.js?v=1.5.5',
+  './js/api.js?v=1.5.5',
+  './js/auth.js?v=1.5.5',
+  './js/toast.js?v=1.5.5',
+  './js/datetime-picker.js?v=1.5.5',
+  './js/tag-manager.js?v=1.5.5',
+  './js/app.js?v=1.5.5',
+  './js/editor.js?v=1.5.5',
+  './js/zen-audio.js?v=1.5.5',
+  './js/passcode.js?v=1.5.5',
+  './js/lightbox.js?v=1.5.5',
+  './js/pwa.js?v=1.5.5',
   './audio/rain.mp3',
   './audio/furin.mp3',
   './audio/waves.mp3',
@@ -45,19 +48,13 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: Cache-First for static assets, Network-First for APIs & Navigation
+// Fetch: Pure native bypass for /api/, Cache-First for static assets, Network-First for Navigation
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // API calls: Network-First
+  // API calls: Pure native bypass. Never intercept or proxy /api/ through SW
+  // to prevent WebKit/Safari multipart form-data body stripping.
   if (url.pathname.includes('/api/')) {
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        return new Response(JSON.stringify({ error: 'Offline mode active' }), {
-          headers: { 'Content-Type': 'application/json' }
-        });
-      })
-    );
     return;
   }
 

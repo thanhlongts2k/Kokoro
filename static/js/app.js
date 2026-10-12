@@ -5,7 +5,10 @@
  */
 
 const KokoroApp = {
-  entries: [],
+  allEntries: [], // SSoT: Master snapshot of all entries without temporary filters
+  entries: [],    // Filtered entries displayed in Timeline Feed
+  timelineState: { mood: 'all', tag: null, search: '' },
+  memoriesState: { mood: 'all', tag: null },
   activeMoodFilter: 'all',
   activeTagFilter: null,
   activeDateFilter: null,
@@ -17,12 +20,15 @@ const KokoroApp = {
   calMonth: new Date().getMonth(),
   selectedCalDate: new Date().toISOString().split('T')[0],
   activeMemoriesMood: 'all',
+  activeMemoriesTag: null,
   stats: null,
 
   async init() {
     this.initTheme();
 
     // Initialize submodules
+    if (window.KokoroDateTimePicker) window.KokoroDateTimePicker.init();
+    if (window.KokoroTagManager && window.KokoroTagManager.initModal) window.KokoroTagManager.initModal();
     if (window.Lightbox) window.Lightbox.init();
     if (window.Editor) window.Editor.init();
     if (window.ZenAudio) window.ZenAudio.init();
@@ -234,13 +240,15 @@ const KokoroApp = {
       });
     }
 
-    // Memories Mood Filter Chips
+    // Memories Mood Filter Chips (Capsule Pill UI)
     const memMoodBtns = document.querySelectorAll('[data-memories-mood]');
     memMoodBtns.forEach((btn) => {
       btn.addEventListener('click', (e) => {
         memMoodBtns.forEach((b) => b.classList.remove('active'));
         e.currentTarget.classList.add('active');
-        this.activeMemoriesMood = e.currentTarget.dataset.memoriesMood;
+        const mood = e.currentTarget.dataset.memoriesMood;
+        this.memoriesState.mood = mood;
+        this.activeMemoriesMood = mood;
         this.renderMemoriesGallery();
       });
     });
@@ -377,6 +385,7 @@ const KokoroApp = {
         clearTimeout(searchDebounceTimer);
         searchDebounceTimer = setTimeout(() => {
           this.searchQuery = val.trim();
+          this.timelineState.search = this.searchQuery;
           this.loadEntries();
         }, 300);
       });
@@ -387,6 +396,7 @@ const KokoroApp = {
         searchInput.value = '';
         searchClearBtn.style.display = 'none';
         this.searchQuery = '';
+        this.timelineState.search = '';
         this.loadEntries();
         searchInput.focus();
       });
@@ -467,32 +477,50 @@ const KokoroApp = {
 
   /**
    * Fetch entries from PostgreSQL API with currently applied filters
+   * Keeps master snapshot in this.allEntries to prevent state leak across screens.
    */
   async loadEntries() {
     this.isLoading = true;
     try {
-      const filters = {};
-      if (this.activeMoodFilter && this.activeMoodFilter !== 'all') {
-        filters.mood = this.activeMoodFilter;
-      }
-      if (this.activeTagFilter) {
-        filters.tag = this.activeTagFilter;
-      }
-      if (this.searchQuery) {
-        filters.search = this.searchQuery;
+      // 1. Fetch full master snapshot without filters for SSoT
+      const allRes = await window.KokoroAPI.getEntries({});
+      if (allRes && allRes.status === 'success') {
+        this.allEntries = allRes.entries || [];
+      } else {
+        this.allEntries = [];
       }
 
-      const res = await window.KokoroAPI.getEntries(filters);
-      if (res && res.status === 'success') {
-        this.entries = res.entries || [];
+      // 2. Fetch timeline specific filtered entries
+      const filters = {};
+      const activeMood = this.timelineState.mood || this.activeMoodFilter;
+      if (activeMood && activeMood !== 'all') {
+        filters.mood = activeMood;
+      }
+      const activeTag = this.timelineState.tag || this.activeTagFilter;
+      if (activeTag) {
+        filters.tag = activeTag;
+      }
+      const searchQ = this.timelineState.search || this.searchQuery;
+      if (searchQ) {
+        filters.search = searchQ;
+      }
+
+      if (Object.keys(filters).length === 0) {
+        this.entries = [...this.allEntries];
       } else {
-        this.entries = [];
+        const res = await window.KokoroAPI.getEntries(filters);
+        if (res && res.status === 'success') {
+          this.entries = res.entries || [];
+        } else {
+          this.entries = [];
+        }
       }
     } catch (err) {
       console.warn('[KokoroApp] Lỗi tải dữ liệu từ API:', err);
       if (err.message && (err.message.includes('401') || err.message.includes('đăng nhập'))) {
         if (window.KokoroAuth) window.KokoroAuth.showLoginModal();
       }
+      this.allEntries = [];
       this.entries = [];
     } finally {
       this.isLoading = false;
@@ -502,7 +530,33 @@ const KokoroApp = {
       if (this.currentView === 'memories') this.renderMemoriesGallery();
       if (this.currentView === 'profile') this.renderProfileView();
       this.renderStats();
+      this.updateMoodCountBadges(this.stats);
+      this.updateMemoriesMoodBadges();
     }
+  },
+
+  /**
+   * Update photo count badges in Memories Mood Filter chips
+   */
+  updateMemoriesMoodBadges() {
+    const badges = document.querySelectorAll('[data-memories-count-mood]');
+    if (!badges || !badges.length) return;
+
+    const counts = { all: 0, serene: 0, cozy: 0, reflective: 0, grateful: 0, energetic: 0 };
+    (this.allEntries || []).forEach((entry) => {
+      if (entry.photos && entry.photos.length > 0) {
+        const photoNum = entry.photos.length;
+        counts.all += photoNum;
+        if (counts[entry.mood] !== undefined) {
+          counts[entry.mood] += photoNum;
+        }
+      }
+    });
+
+    badges.forEach((b) => {
+      const mood = b.dataset.memoriesCountMood;
+      b.textContent = counts[mood] !== undefined ? counts[mood] : 0;
+    });
   },
 
   /**
@@ -522,10 +576,49 @@ const KokoroApp = {
         if (photosEl) photosEl.innerHTML = `<i class="bi bi-camera text-sakura"></i> ${res.totalPhotos || 0} ảnh`;
 
         this.renderMoodBreakdown(res.moodBreakdown, res.totalEntries);
+        this.updateMoodCountBadges(res);
+        await this.loadPopularTags();
         if (this.currentView === 'profile') this.renderProfileView();
       }
     } catch (err) {
       console.warn('[KokoroApp] Không thể tải stats:', err);
+    }
+  },
+
+  /**
+   * Synchronize mood filter counts across Desktop Sidebar and Mobile Chips (SSoT)
+   * Safe fallback ensures count is 0 when empty and matches PostgreSQL database.
+   */
+  updateMoodCountBadges(stats) {
+    const s = stats || this.stats;
+    if (!s) return;
+    const badges = document.querySelectorAll('[data-count-mood]');
+    badges.forEach((badge) => {
+      const moodKey = badge.dataset.countMood;
+      let count = 0;
+      if (moodKey === 'all') {
+        count = s.totalEntries || 0;
+      } else {
+        count = (s.moodCounts && s.moodCounts[moodKey]) ? s.moodCounts[moodKey] : 0;
+      }
+      badge.textContent = count;
+    });
+  },
+
+  renderCategoryBadges(stats) {
+    this.updateMoodCountBadges(stats);
+  },
+
+  /**
+   * Fetch and render dynamic Popular Tags widget in Desktop Sidebar via TagManager
+   */
+  async loadPopularTags() {
+    const container = document.getElementById('sidebar-popular-tags');
+    if (!container) return;
+    if (window.KokoroTagManager) {
+      await window.KokoroTagManager.loadPopularTags(container, this.activeTagFilter, (tag) => {
+        this.setTagFilter(tag);
+      });
     }
   },
 
@@ -566,8 +659,16 @@ const KokoroApp = {
 
   async setMoodFilter(mood) {
     this.activeMoodFilter = mood;
+    this.timelineState.mood = mood;
     this.activeTagFilter = null;
+    this.timelineState.tag = null;
     this.activeDateFilter = null;
+
+    // Reset tag pill active states in sidebar
+    const tagContainer = document.getElementById('sidebar-popular-tags');
+    if (tagContainer) {
+      tagContainer.querySelectorAll('.tag-pill').forEach((p) => p.classList.remove('active'));
+    }
 
     // Update active style on filter buttons
     document.querySelectorAll('[data-filter-mood]').forEach((btn) => {
@@ -582,11 +683,24 @@ const KokoroApp = {
   },
 
   async setTagFilter(tag) {
-    if (this.activeTagFilter === tag) {
+    if (this.activeTagFilter && this.activeTagFilter.toLowerCase() === tag.toLowerCase()) {
       this.activeTagFilter = null;
+      this.timelineState.tag = null;
     } else {
       this.activeTagFilter = tag;
+      this.timelineState.tag = tag;
     }
+
+    // Synchronize active highlight across Popular Tags widget
+    const tagContainer = document.getElementById('sidebar-popular-tags');
+    if (tagContainer) {
+      tagContainer.querySelectorAll('.tag-pill').forEach((pill) => {
+        const pTag = pill.dataset.tag;
+        const isActive = this.activeTagFilter && this.activeTagFilter.toLowerCase() === pTag.toLowerCase();
+        pill.classList.toggle('active', isActive);
+      });
+    }
+
     await this.loadEntries();
   },
 
@@ -601,11 +715,19 @@ const KokoroApp = {
 
   async clearFilters() {
     this.activeMoodFilter = 'all';
+    this.timelineState.mood = 'all';
     this.activeTagFilter = null;
+    this.timelineState.tag = null;
     this.activeDateFilter = null;
     document.querySelectorAll('[data-filter-mood]').forEach((b) => b.classList.remove('active'));
     const allBtn = document.querySelector('[data-filter-mood="all"]');
     if (allBtn) allBtn.classList.add('active');
+
+    const tagContainer = document.getElementById('sidebar-popular-tags');
+    if (tagContainer) {
+      tagContainer.querySelectorAll('.tag-pill').forEach((pill) => pill.classList.remove('active'));
+    }
+
     await this.loadEntries();
   },
 
@@ -1013,11 +1135,11 @@ const KokoroApp = {
       this.renderProfileView();
     }
 
-    // 5. Toggle mobile mood chips visibility (Mobile ONLY <= 768px):
-    // Never show mobile horizontal scroll chips on Desktop/Tablet
+    // 5. Toggle mobile mood chips visibility (Mobile ONLY <= 768px in Timeline):
+    // Strictly isolate inside timeline view, never show on memories/calendar/profile
     const mobileMoodChips = document.getElementById('mobile-mood-chips');
     if (mobileMoodChips) {
-      if (window.innerWidth <= 768 && (viewName === 'timeline' || viewName === 'memories')) {
+      if (window.innerWidth <= 768 && viewName === 'timeline') {
         mobileMoodChips.style.display = 'flex';
       } else {
         mobileMoodChips.style.display = 'none';
@@ -1162,47 +1284,104 @@ const KokoroApp = {
   },
 
   /**
-   * View 3: Render Memories Photo Gallery Grid with Mood Filter & Lightbox Integration
+   * View 3: Render Memories Photo Gallery Grid with Mood & Hashtag Filters & Lightbox Integration
+   * Operates strictly on master this.allEntries to isolate state from timeline search/mood filters.
    */
   renderMemoriesGallery() {
     const gridEl = document.getElementById('memories-photo-grid');
     const badgeEl = document.getElementById('memories-total-badge');
     if (!gridEl) return;
 
-    // Collect all photos across all entries
-    const allPhotos = [];
-    this.entries.forEach((e) => {
-      if (e.photos && e.photos.length > 0) {
-        e.photos.forEach((p) => {
-          allPhotos.push({
-            ...p,
-            entryId: e.id,
-            entryTitle: e.title,
-            entryDate: e.entryDate,
-            displayDate: e.displayDate || e.entryDate,
-            mood: e.mood,
-            moodLabel: e.moodLabel || e.mood
-          });
+    const sourceEntries = (this.allEntries && this.allEntries.length > 0) ? this.allEntries : this.entries;
+    const entriesWithPhotos = sourceEntries.filter((e) => e.photos && e.photos.length > 0);
+
+    // 1. Extract and render dynamic hashtags for Memories View
+    const tagCounts = {};
+    entriesWithPhotos.forEach((e) => {
+      if (e.tags && Array.isArray(e.tags)) {
+        e.tags.forEach((t) => {
+          const cleanTag = t.trim().toLowerCase();
+          if (cleanTag) {
+            tagCounts[cleanTag] = (tagCounts[cleanTag] || 0) + 1;
+          }
         });
       }
     });
 
-    // Filter by active memories mood
+    const tagScrollEl = document.getElementById('memories-tag-chips');
+    if (tagScrollEl) {
+      const tagList = Object.keys(tagCounts);
+      if (tagList.length === 0) {
+        tagScrollEl.innerHTML = '';
+        tagScrollEl.style.display = 'none';
+      } else {
+        tagScrollEl.style.display = 'flex';
+        tagScrollEl.innerHTML = tagList.map((tag) => {
+          const isSelected = this.memoriesState.tag === tag;
+          return `
+            <button type="button" class="memory-tag-chip ${isSelected ? 'active' : ''}" data-memories-tag="${tag}">
+              <span>#${tag}</span>
+              <span style="opacity: 0.7; font-size: 11px;">(${tagCounts[tag]})</span>
+            </button>
+          `;
+        }).join('');
+
+        tagScrollEl.querySelectorAll('.memory-tag-chip').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            const clickedTag = e.currentTarget.dataset.memoriesTag;
+            if (this.memoriesState.tag === clickedTag) {
+              this.memoriesState.tag = null;
+            } else {
+              this.memoriesState.tag = clickedTag;
+            }
+            this.renderMemoriesGallery();
+          });
+        });
+      }
+    }
+
+    // 2. Collect photos filtered by hashtag (if selected)
+    const allPhotos = [];
+    entriesWithPhotos.forEach((e) => {
+      if (this.memoriesState.tag) {
+        const hasTag = e.tags && Array.isArray(e.tags) && e.tags.some((t) => t.trim().toLowerCase() === this.memoriesState.tag);
+        if (!hasTag) return;
+      }
+      e.photos.forEach((p) => {
+        allPhotos.push({
+          ...p,
+          entryId: e.id,
+          entryTitle: e.title,
+          entryDate: e.entryDate,
+          displayDate: e.displayDate || e.entryDate,
+          mood: e.mood,
+          moodLabel: e.moodLabel || e.mood
+        });
+      });
+    });
+
+    // 3. Filter by active memories mood
     let filteredPhotos = allPhotos;
-    if (this.activeMemoriesMood && this.activeMemoriesMood !== 'all') {
-      filteredPhotos = allPhotos.filter((p) => p.mood === this.activeMemoriesMood);
+    const activeMood = this.memoriesState.mood || this.activeMemoriesMood;
+    if (activeMood && activeMood !== 'all') {
+      filteredPhotos = allPhotos.filter((p) => p.mood === activeMood);
     }
 
     if (badgeEl) {
       badgeEl.textContent = `📸 ${filteredPhotos.length} ảnh`;
     }
 
+    this.updateMemoriesMoodBadges();
+
+    // 4. Render photo grid or empty state
     if (filteredPhotos.length === 0) {
       gridEl.innerHTML = `
         <div class="glass-panel" style="padding: 44px 20px; text-align: center; grid-column: 1 / -1; border-radius: var(--radius-lg);">
           <div style="font-size: 38px; margin-bottom: 8px;">📷</div>
-          <div style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Chưa có hình ảnh kỷ niệm nào</div>
-          <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 18px;">Hãy đính kèm hình ảnh vào các bài viết nhật ký để lưu giữ kỷ niệm tại đây nhé! 🌸</div>
+          <div style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Chưa có hình ảnh kỷ niệm phù hợp</div>
+          <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 18px;">
+            ${this.memoriesState.tag ? `Không tìm thấy hình ảnh nào với thẻ #${this.memoriesState.tag}.` : 'Hãy đính kèm hình ảnh vào các bài viết nhật ký để lưu giữ kỷ niệm tại đây nhé! 🌸'}
+          </div>
           <button class="c-btn c-btn--primary" onclick="if(window.Editor){ window.Editor.open(); }">
             <i class="bi bi-plus-lg"></i> Viết bài & Thêm ảnh
           </button>
@@ -1306,34 +1485,14 @@ const KokoroApp = {
 
   /**
    * Delicate Soft Sakura Toast Notification
+   * Delegates to standalone KokoroToast module.
    * @param {string} message 
-   * @param {'success'|'error'|'warning'} type 
+   * @param {'success'|'error'|'warning'|'info'} type 
    */
   showToast(message, type = 'success') {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    toast.className = 'toast-item';
-
-    let icon = '🌸';
-    if (type === 'error') icon = '⚠️';
-    if (type === 'success') icon = '✨';
-
-    toast.innerHTML = `
-      <span class="toast-icon">${icon}</span>
-      <span>${message}</span>
-    `;
-
-    container.appendChild(toast);
-
-    // Auto dismiss after 3.2s
-    setTimeout(() => {
-      toast.classList.add('hide');
-      setTimeout(() => {
-        if (toast.parentNode) toast.parentNode.removeChild(toast);
-      }, 350);
-    }, 3200);
+    if (window.KokoroToast) {
+      window.KokoroToast.show(message, type);
+    }
   }
 };
 

@@ -162,19 +162,49 @@
   gap: 24px;
 }
 
-/* Mobile Quick Mood Scroll Bar */
+/* Mobile Quick Mood Horizontal Capsule Scroll Bar */
 .mobile-mood-scroll {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-  margin-bottom: 12px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  display: flex !important;
+  gap: 10px !important;
+  overflow-x: auto !important;
+  white-space: nowrap !important;
+  padding: 6px 16px !important;
+  margin: 0 -16px 14px -16px !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+  box-sizing: border-box !important;
 }
 
 .mobile-mood-scroll::-webkit-scrollbar {
-  display: none;
+  display: none !important;
+}
+
+/* Horizontal Capsule Pill */
+.mood-chip-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  padding: 0 14px !important;
+  border-radius: 20px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all var(--transition-fast) !important;
+  box-sizing: border-box !important;
+}
+
+.mood-chip-pill .chip-icon {
+  font-size: 14px !important;
+  line-height: 1 !important;
+}
+
+.mood-chip-pill .chip-label {
+  white-space: nowrap !important;
 }
 
 /* Left Sidebar (Desktop) */
@@ -350,8 +380,21 @@
   grid-template-columns: 1fr;
 }
 .photo-gallery-grid[data-count="1"] .gallery-item {
-  aspect-ratio: 16 / 9;
-  max-height: 380px;
+  aspect-ratio: auto !important;
+  max-height: 480px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: var(--radius-md);
+}
+.photo-gallery-grid[data-count="1"] .gallery-item img {
+  width: auto !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: 480px !important;
+  object-fit: contain !important;
+  border-radius: var(--radius-md);
 }
 
 /* 2 Photos: 50 / 50 */
@@ -758,8 +801,8 @@
 
 .uploaded-previews-grid {
   display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)) !important;
-  gap: 10px !important;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)) !important;
+  gap: 12px !important;
   margin-top: 12px !important;
   width: 100% !important;
   max-width: 100% !important;
@@ -767,15 +810,22 @@
   overflow-x: hidden !important;
 }
 
+@media (min-width: 769px) {
+  .uploaded-previews-grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
+  }
+}
+
 .preview-thumb-box {
   width: 100% !important;
   max-width: 100% !important;
   aspect-ratio: 1 !important;
-  border-radius: var(--radius-sm) !important;
+  border-radius: 12px !important;
   overflow: hidden !important;
   position: relative !important;
-  border: 1px solid var(--border-glass) !important;
-  background: rgba(0, 0, 0, 0.05);
+  border: 1.5px solid rgba(255, 183, 197, 0.35) !important;
+  background: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   box-sizing: border-box !important;
 }
 
@@ -789,23 +839,23 @@
 
 .preview-remove-btn {
   position: absolute !important;
-  top: 4px !important;
-  right: 4px !important;
-  width: 28px !important;
-  height: 28px !important;
-  min-width: 28px !important;
-  min-height: 28px !important;
+  top: 6px !important;
+  right: 6px !important;
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
   border-radius: 50% !important;
   background: rgba(225, 29, 72, 0.88) !important;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: #ffffff !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.85) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  font-size: 14px !important;
+  font-size: 13px !important;
   font-weight: 800 !important;
   line-height: 1 !important;
   cursor: pointer !important;
@@ -911,7 +961,10 @@ body.modal-scroll-locked {
   top: max(16px, env(safe-area-inset-top));
   right: max(16px, env(safe-area-inset-right));
   z-index: 10000 !important;
-  display: flex;
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
   align-items: center;
   gap: 8px;
   background: rgba(20, 20, 30, 0.65);
@@ -921,11 +974,17 @@ body.modal-scroll-locked {
   border-radius: var(--radius-pill);
   padding: 6px 10px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
-  pointer-events: none !important;
+  transition: opacity 0.2s ease;
 }
 
 .lightbox-modal.active .lightbox-controls-bar,
-.lightbox-modal.active #lightbox-controls-bar,
+.lightbox-modal.active #lightbox-controls-bar {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
 .lightbox-modal.active .lightbox-tool-btn {
   pointer-events: auto !important;
 }
@@ -1156,13 +1215,17 @@ body.modal-scroll-locked {
   .editor-dialog {
     width: 100% !important;
     max-width: 100% !important;
-    max-height: 94dvh !important;
+    max-height: min(92dvh, calc(100dvh - 32px)) !important;
     border-radius: 24px 24px 0 0 !important;
     overscroll-behavior: contain !important;
+    overflow: hidden !important;
     overflow-x: hidden !important;
+    padding-bottom: 0 !important;
     box-sizing: border-box !important;
     touch-action: pan-y !important;
     min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
   .editor-body {
@@ -1172,6 +1235,9 @@ body.modal-scroll-locked {
     box-sizing: border-box !important;
     overflow-x: hidden !important;
     min-width: 0 !important;
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
   }
 
   .editor-header {
@@ -1179,13 +1245,15 @@ body.modal-scroll-locked {
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
+    flex-shrink: 0 !important;
   }
 
   .editor-footer {
-    padding: 12px 16px env(safe-area-inset-bottom, 16px) !important;
+    padding: 14px 16px max(16px, env(safe-area-inset-bottom, 16px)) !important;
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
+    flex-shrink: 0 !important;
   }
 
   /* Passcode Modal Mobile */

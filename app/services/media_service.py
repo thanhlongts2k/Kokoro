@@ -3,6 +3,13 @@ import uuid
 from pathlib import Path
 from typing import Tuple, List, Optional
 from PIL import Image, ImageOps
+
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+except ImportError:
+    pass
+
 from app.config import Config
 
 ORIGINALS_DIR = Config.UPLOAD_DIR / "originals"

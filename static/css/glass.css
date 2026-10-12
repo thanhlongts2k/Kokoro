@@ -246,10 +246,12 @@ html, body {
 
 @media (max-width: 768px) {
   .toast-container {
-    bottom: 84px; /* Above mobile bottom navigation */
+    top: max(16px, env(safe-area-inset-top, 16px));
+    bottom: auto;
     right: 16px;
     left: 16px;
     align-items: center;
+    z-index: 10001;
   }
 }
 

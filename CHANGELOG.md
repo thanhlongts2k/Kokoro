@@ -4,6 +4,124 @@ Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal 
 
 ---
 
+## [1.5.5] - 2026-10-12
+### Added & Fixed (System Refactor, Adaptive Media, Smooth Time Wheel, Memories Redesign & Tag Management)
+- **Tiêu Diệt Triệt Để Ghost Lightbox Controls (`static/index.html`, `static/js/lightbox.js`, `static/css/components.css`, `static/css/layout.css`):**
+  - Khóa cứng tại cây DOM với inline style phòng thủ trực tiếp: `style="display: none !important; opacity: 0 !important; pointer-events: none !important;"`.
+  - JS Hard-Lock trong `lightbox.js`: Quản lý `this.controlsBarEl.style.cssText` trực tiếp trong `init()`, `open()`, và `close()`.
+  - Dọn sạch CSS selector, triệt tiêu 100% tình trạng thanh công cụ nổi lơ lửng khi modal đóng.
+- **Khắc Phục Lỗi Méo / Dẹp Ảnh Dọc Chụp Màn Hình Điện Thoại (`static/css/layout.css`, `static/css/components.css`):**
+  - Xóa bỏ `aspect-ratio: 16 / 9;` cứng nhắc ở bài viết 1 ảnh trên Timeline Feed. Chuyển sang cơ chế Adaptive Container: `aspect-ratio: auto !important; max-height: 480px !important; display: flex !important; align-items: center !important; justify-content: center !important; background: rgba(0, 0, 0, 0.03);`.
+  - Ảnh hiển thị `object-fit: contain !important; max-height: 480px !important; width: auto !important; max-width: 100% !important; border-radius: var(--radius-md);`, bảo toàn hoàn hảo tỷ lệ dọc 9:16, 9:20 của ảnh chụp màn hình điện thoại.
+  - Khung xem trước Editor Preview: Thêm `object-fit: cover !important; object-position: center !important;`.
+- **Nâng Cấp Bộ Chọn Giờ Smooth Time Picker Cho Mobile (`static/js/datetime-picker.js`, `static/index.html`, `static/css/components.css`):**
+  - Thay thế cụm nút bấm mũi tên `^`/`v` thô sơ bằng khối "Soft Sakura Time Wheel Card" thanh nhã `[ 🕒 14 : 34 ]` kèm nhãn phụ `Chạm để cuộn giờ ✨`.
+  - Phủ vô hình `<input type="time" id="dt-native-time-input">` (`opacity: 0; position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer;`) kích hoạt trực tiếp **Bộ bánh xe cuộn Native (iOS Drum Wheel Spinner)** có sẵn quán tính mượt mà và haptic feedback trên iPhone/Android.
+  - Tự động cập nhật giờ:phút hiển thị theo thời gian thực khi cuộn; giữ nguyên phím tắt `[ ⏱️ Hiện tại ]` và `[ ✨ Xác nhận ]`.
+- **Tái Cấu Trúc Đồng Bộ Màn Hình "Kho Kỷ Niệm" (`#view-memories`) (`static/index.html`, `static/js/app.js`, `static/css/components.css`):**
+  - Di chuyển container `#mobile-mood-chips` vào hẳn bên trong `#view-timeline`, đảm bảo thanh này chỉ xuất hiện ở tab Timeline, không bao giờ xuất hiện ở Kỷ niệm hay Lịch.
+  - Thay thế cụm nút tròn cũ bị bóp méo trong Kho Kỷ niệm bằng thanh nhộng nằm ngang `.memories-mood-scroll` chứa các chip `.mood-chip-pill` chuẩn Design System.
+  - Bổ sung bộ lọc Hashtag cuộn ngang cho Kho Kỷ niệm (`#memories-tag-chips`): Tự động trích xuất các hashtag từ những bài viết có ảnh; bấm vào tag để lọc nhanh ảnh theo chủ đề (toggle filter).
+- **Cô Lập Trạng Thái (State Isolation) & Chống Rò Rỉ Filter Giữa Các Màn Hình (`static/js/app.js`):**
+  - Giữ nguyên bản snapshot dữ liệu bài viết đầy đủ `this.allEntries`, không bao giờ bị ghi đè bởi kết quả filter tạm thời.
+  - Tách biệt hoàn toàn trạng thái lọc giữa các màn hình: `this.timelineState = { mood: 'all', tag: null, search: '' }` và `this.memoriesState = { mood: 'all', tag: null }`.
+  - Khi chuyển từ Timeline sang Memories: Tự động render kho ảnh độc lập, không bị kẹt query tìm kiếm hay tag từ Timeline.
+- **Fix Chip Hashtag Dính Focus & Bổ Sung Phân Hệ Quản Lý Danh Mục Thẻ (`static/js/tag-manager.js`, `static/css/components.css`, `static/index.html`, `app/routes/entry_routes.py`, `static/js/api.js`):**
+  - Fix Sticky Hover trên Mobile: Gọi `e.currentTarget.blur()` giải phóng focus state sau khi chạm chip; bọc hover vào `@media (hover: hover)`; hàm `syncChipStates()` đồng bộ trạng thái `.selected` chuẩn xác.
+  - Thêm phân hệ "Quản lý Danh mục & Thẻ" trong Trang Cá nhân (`#view-profile`) với modal kính mờ `#category-tag-manager-modal`:
+    + Tab 1 - Tâm trạng: Xem số lượng và tỷ lệ phần trăm bài viết theo từng mood.
+    + Tab 2 - Thẻ chủ đề: Xem danh sách toàn bộ tag, số lượng bài dùng (`usage_count`), nút `[ ✏️ Đổi tên ]`, nút `[ 🗑️ Xóa ]` và nút `[ 🧹 Dọn dẹp thẻ mồ côi (0 bài) ]`.
+  - Backend REST API hỗ trợ:
+    + `PUT /api/tags/{id}`: Đổi tên thẻ chủ đề (tự động merge nếu tên mới đã tồn tại).
+    + `DELETE /api/tags/{id}`: Xóa thẻ chủ đề và gỡ khỏi các bài viết liên quan.
+    + `DELETE /api/tags/cleanup-orphans`: Xóa sạch toàn bộ thẻ mồ côi (usage_count = 0) của user hiện tại.
+- **Nâng Cấp Phiên Bản Hệ Thống Lên v1.5.5:**
+  - Cập nhật `APP_VERSION = "v1.5.5"` trong `app/config.py`.
+  - Cập nhật `CACHE_NAME = 'kokoro-v1.5.5'` và hash assets trong `static/sw.js`.
+  - Cập nhật toàn bộ script/link query string `?v=1.5.5` trong `static/index.html`.
+  - Viết test suite `tests/test_v155_tag_manager_and_media.py` kiểm thử toàn diện các API mới và chạy toàn bộ regression tests đạt **PASS 100%**.
+
+## [1.5.4] - 2026-10-12
+### Added & Refactored (Decoupling Architecture, Custom Date & Time Picker & Capsule Mood Chips)
+- **Tái Cấu Trúc Dải Chip Cảm Xúc Mobile & Khắc Phục Triệt Để Bug Đếm Số 0 (`static/css/layout.css`, `static/css/components.css`, `static/index.html`, `static/js/app.js`):**
+  - Chuyển đổi dải chip trên Mobile từ dạng hình bầu dục méo mó sang thanh kẹo con nhộng (Horizontal Capsule/Pill) sang trọng: `.mobile-mood-scroll` (`overflow-x: auto; white-space: nowrap; scrollbar-width: none;`), `.mood-chip-pill` (`height: 36px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; padding: 0 14px; font-size: 13px; font-weight: 600;`).
+  - Badge số lượng `.mood-count-badge`: Viên nhộng nhỏ 18px (`min-width: 18px; height: 18px; border-radius: 10px; font-size: 11px;`), ẩn khi rỗng (`:empty { display: none !important; }`), đảm bảo hiển thị trên 1 dòng duy nhất `[Icon] [Tên Mood] [Số Lượng]`, triệt tiêu hoàn toàn rớt dòng chữ.
+  - Sửa lỗi số đếm về 0: Khởi tạo badge rỗng trong HTML, hợp nhất cập nhật số đếm về một hàm SSoT duy nhất `updateMoodCountBadges(stats)` với fallback an toàn `(stats.moodCounts && stats.moodCounts[moodKey]) ? stats.moodCounts[moodKey] : 0`, gọi đồng bộ trong cả `loadStats()` và `loadEntries()`.
+- **Xây Dựng Module Custom Date & Time Picker Độc Lập (`static/js/datetime-picker.js`, `app/routes/entry_routes.py`, `static/css/components.css`, `static/index.html`):**
+  - Module `window.KokoroDateTimePicker` độc lập hoàn toàn, không nhồi nhét vào `editor.js`.
+  - Giao diện kính mờ Soft Sakura gồm Mini Calendar chọn ngày, chuyển tháng trước/sau, bộ chọn Giờ (00-23) và Phút (00-59) cảm ứng, phím tắt "⏱️ Hiện tại" và nút "✨ Xác nhận".
+  - Tích hợp trigger pill `📅 DD/MM/YYYY, HH:MM` ngay phía trên tiêu đề trong Editor Modal; tự động nạp thời gian khi sửa bài cũ.
+  - Backend `app/routes/entry_routes.py`: Hỗ trợ `create_entry` và `update_entry` nhận `created_at` ISO-8601 tùy chỉnh từ client và lưu trực tiếp vào cột `created_at` trong PostgreSQL `entries`.
+- **Bẻ Khóa God Component & Tái Cấu Trúc Kiến Trúc (Decoupling Architecture) (`static/js/toast.js`, `static/js/tag-manager.js`, `static/js/editor.js`, `static/js/app.js`):**
+  - **Tách Toast Notification sang `static/js/toast.js` (`window.KokoroToast`):** Độc lập quản lý deduplication, giới hạn tối đa 2 toast, timer và animation Soft Sakura; `app.js` đóng vai trò coordinator ủy quyền.
+  - **Tách Tag Management sang `static/js/tag-manager.js` (`window.KokoroTagManager`):** Độc lập quản lý gợi ý Quick Tag Chips trong Editor và Popular Tags Widget ở Desktop Sidebar; chuẩn hóa prefix `#` và đồng bộ highlight.
+  - **Tinh Gọn `editor.js` & `app.js`:** `editor.js` chỉ giữ vai trò Form & Media Controller; `app.js` chỉ giữ vai trò App Coordinator điều phối Router Views và Auth.
+- **Nâng Cấp Phiên Bản Hệ Thống Lên v1.5.4:**
+  - Cập nhật `APP_VERSION = "v1.5.4"` trong `app/config.py`.
+  - Cập nhật `CACHE_NAME = 'kokoro-v1.5.4'` và danh mục assets trong `static/sw.js`.
+  - Nhúng các file script mới vào `index.html` kèm tham số chống cache `?v=1.5.4`.
+
+## [1.5.3] - 2026-10-12
+### Added & Fixed (Tag Management, Dynamic Category Synchronization & Lightbox Guard)
+- **Khắc Phục Triệt Để Bug Ghost Lightbox Controls (`static/css/layout.css`, `static/css/components.css`):**
+  - Khóa cứng thanh công cụ `#lightbox-controls-bar` ở trạng thái mặc định (khi modal đóng):
+    `display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;`.
+  - Chỉ khi modal có class `.active` (`.lightbox-modal.active #lightbox-controls-bar`), thanh công cụ mới hiển thị:
+    `display: flex !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important;`.
+  - Triệt tiêu 100% tình trạng thanh điều khiển phóng to ảnh nổi lơ lửng ở góc trên bên phải màn hình khi mở Editor Modal hoặc duyệt bài viết.
+- **Nâng Cấp Lưới Thumbnail Preview Trong Editor (`static/css/components.css`, `static/css/layout.css`):**
+  - Tái cấu trúc `.uploaded-previews-grid`: Tăng kích thước ô preview lên `minmax(96px, 1fr)` trên Mobile và `minmax(110px, 1fr)` trên Desktop, khoảng cách `gap: 12px`.
+  - `.preview-thumb-box`: Bo góc `12px`, viền kính mờ tinh tế, đổ bóng nhẹ `box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08)`.
+  - Nút xóa `✕` (`.preview-remove-btn`): Kích thước chuẩn 26x26px, đặt gọn gàng ở góc trên bên phải (`top: 6px; right: 6px;`), không che khuất trọng tâm ảnh.
+  - Khung ảnh giữ nguyên `aspect-ratio: 1`, `object-fit: cover;`, hiển thị đầy đặn, không méo hình khi chọn nhiều ảnh cùng lúc.
+- **Xây Dựng Hệ Thống Quản Lý & Gợi Ý Thẻ Chủ Đề (Tag Management & Quick Chips) (`app/routes/entry_routes.py`, `static/js/api.js`, `static/js/editor.js`, `static/index.html`):**
+  - **Backend API:** Thêm endpoint `GET /api/tags` xác thực nghiêm ngặt theo `user_id`. Truy vấn bảng `tags`, `entry_tags` và `entries`, trả về danh sách thẻ chủ đề kèm số lượng bài viết (`usage_count`), sắp xếp giảm dần theo độ phổ biến (`ORDER BY usage_count DESC, t.name ASC`).
+  - **Frontend Client:** Bổ sung phương thức `KokoroAPI.getTags()`.
+  - **Editor Quick Chips:** Thêm vùng chứa chip `#editor-suggested-tags` ngay dưới `#editor-tag-input`. Khi mở Editor, tự động tải các tag của người dùng và render dạng chip nhanh kèm số bài viết. Bấm vào chip gợi ý sẽ toggle thêm/bớt tag trực tiếp vào ô nhập liệu và cập nhật highlight tức thì.
+- **Đồng Bộ Động Số Lượng Danh Mục & Thẻ Chủ Đề Ngoài Trang Chủ (`static/js/app.js`, `static/index.html`):**
+  - Xóa bỏ hoàn toàn các thẻ hashtag tĩnh và số đếm tĩnh hardcoded ở Sidebar Desktop và Mobile Chips.
+  - Tự động đồng bộ số lượng bài viết lên các nút lọc Cảm xúc (Mood Filters) ở cả Desktop Sidebar và Mobile Chips: `Tất cả bài viết (N)`, `Thanh bình (N)`, `Ấm áp (N)`... từ PostgreSQL qua `KokoroAPI.getStats()`.
+  - Tải danh sách tag từ `KokoroAPI.getTags()` và render động toàn bộ Widget "Thẻ chủ đề" (Popular Tags) ở Sidebar Desktop kèm số lượng bài tương ứng. Bấm vào thẻ chủ đề sẽ kích hoạt ngay bộ lọc bài viết theo tag đó.
+- **Kiểm Thử & Xác Nhận Hệ Thống:**
+  - Viết test suite tự động `tests/test_v153_tags_and_sync.py` kiểm tra xác thực, bảo mật cô lập tài khoản, sắp xếp `usage_count DESC`, và tăng/giảm đếm tag khi tạo/xóa bài viết — Kết quả: **PASS 100%**.
+  - Toàn bộ regression suites (`test_v15_media_lifecycle.py`, `test_v14_features.py`, `test_audit_ios_update.py`) đạt **PASS 100%**.
+
+## [1.5.2] - 2026-10-12
+### Fixed & Hardened (iOS WebKit Service Worker Bypass & HEIC/HEIF Integration)
+- **Bypass Triệt Để Service Worker Với Toàn Bộ API (`static/sw.js`):**
+  - Chuyển toàn bộ request `/api/` sang chế độ Pure Native Bypass (`if (url.pathname.includes('/api/')) return;`), nhường 100% quyền xử lý cho native network fetch của trình duyệt.
+  - Xóa bỏ hoàn toàn bug WebKit trên iOS Safari làm rỗng stream `multipart/form-data` của request PUT/POST khi bị proxy qua `event.respondWith()`.
+  - Loại bỏ bẫy mã HTTP 200 OK giả mạo khi khối `catch` trong Service Worker vô tình nuốt lỗi kết nối.
+  - Nâng cấp `CACHE_NAME` lên `kokoro-v1.5.2` và cập nhật query string `?v=1.5.2` cho toàn bộ tài nguyên tĩnh.
+- **Hỗ Trợ Định Dạng Ảnh iPhone HEIC/HEIF Ở Frontend (`static/js/editor.js`, `static/index.html`):**
+  - Khắc phục hiện tượng iOS Safari trả về `file.type = ""` cho file ảnh `.heic`/`.heif` bằng cách bổ sung kiểm tra phần mở rộng file (`.jpg`, `.jpeg`, `.png`, `.webp`, `.heic`, `.heif`).
+  - Hiển thị placeholder biểu tượng camera thanh lịch kèm tên file và nút xóa `✕` cho ảnh HEIC trong trường hợp trình duyệt chưa hỗ trợ hiển thị Blob URL của file HEIC.
+  - Cập nhật thuộc tính `accept="image/*,.heic,.heif,image/heic,image/heif"` trên `<input type="file">`.
+- **Tích Hợp `pillow-heif` Ở Backend Cho Media Lifecycle (`app/services/media_service.py`):**
+  - Cài đặt thư viện `pillow-heif` (v1.8.1) và tự động đăng ký `register_heif_opener()` khi nạp module.
+  - Pillow hiện tự động giải mã và chuyển đổi trơn tru mọi ảnh chụp trực tiếp từ camera/thư viện iPhone (`.heic`, `.heif`) sang chuẩn `.webp` chất lượng cao kèm thumbnail 400px.
+- **Thắt Chặt Toàn Vẹn Dữ Liệu PUT Entry (`app/routes/entry_routes.py`):**
+  - Bổ sung Payload Integrity Guard trong `update_entry`: Nếu form nhận vào hoàn toàn trống trơn (do WebKit rỗng body hoặc request dị thường), server lập tức từ chối với lỗi `HTTP 400: Dữ liệu cập nhật không hợp lệ hoặc payload bị rỗng`.
+  - Bảo đảm không bao giờ xảy ra tình trạng silent pass gán dữ liệu mặc định rỗng vào bài viết đã có dữ liệu.
+
+## [1.5.1] - 2026-10-12
+### Fixed & Hardened (iOS PWA & Media Lifecycle Hardening Release)
+- **Triệt Tiêu Bug "Báo Cập Nhật Thành Công Nhưng Dữ Liệu & Ảnh Không Đổi" Trên iPhone (`app/routes/entry_routes.py`, `static/js/api.js`):**
+  - **Backend Invariant:** Bổ sung kiểm tra nghiêm ngặt `if cur.rowcount == 0: return 404` trong `update_entry`, xóa bỏ hoàn toàn lỗ hổng silent pass khi ID hoặc `user_id` không khớp.
+  - **Chống Aggressive Safari Caching:** Đính kèm header chống cache tuyệt đối (`Cache-Control: no-cache, no-store, must-revalidate, max-age=0`, `Pragma: no-cache`, `Expires: 0`) trên toàn bộ endpoint `GET /api/entries`, `GET /api/entries/{id}`, `GET /api/stats/summary`.
+  - **Client Cache-Busting:** Bổ sung timestamp param `_t=${Date.now()}` và cấu hình `{ cache: 'no-store' }` vào fetch request trong `KokoroAPI.getEntries()`.
+- **Dọn Dẹp Deadlock Offline Queue & Vòng Lặp 17 Lỗi 400 (`static/js/api.js`):**
+  - Trong `syncOfflineQueue`: Tự động loại bỏ và xóa vĩnh viễn khỏi IndexedDB các bản ghi ngoại tuyến không hợp lệ khi server phản hồi mã lỗi `4xx` (Bad Request / Data error), chấm dứt triệt để vòng lặp gửi request lỗi liên thanh.
+- **Khắc Phục Spam Toast "Thác Lũ" & Khóa Re-entrancy Form (`static/js/editor.js`, `static/js/app.js`, `static/css/glass.css`):**
+  - **Re-entrancy Lock:** Thêm cờ `isSaving` vào `Editor.save()` ngăn chặn triệt để click đúp hoặc spam tap vào nút "Lưu bài viết" khi đang xử lý.
+  - **Ép Commit Bàn Phím Ảo iOS:** Kích hoạt `document.activeElement?.blur()` trước khi đọc `.value` để ép bộ gõ tiếng Việt trên iOS Safari flush dữ liệu vào DOM.
+  - **Thuật toán Toast Deduplication & Eviction:** Nâng cấp `showToast()` tự động phát hiện thông báo trùng nội dung (reset thời gian hiển thị, không nhân bản phần tử DOM) và giới hạn tối đa 2 Toast hiển thị đồng thời (tự động thu hồi Toast cũ nhất).
+  - **Vị Trí Toast Thông Minh:** Trên mobile (`@media (max-width: 768px)`), đưa `.toast-container` lên phía trên đỉnh màn hình (`top: max(16px, env(safe-area-inset-top))`), không bao giờ che khuất cụm nút bấm ở đáy.
+- **Khắc Phục Nút Bấm Dưới Đáy Modal Bị Cắt Xén Trên iPhone (`static/css/layout.css`):**
+  - Tái cấu trúc `.editor-dialog` trên mobile: Khóa `overflow: hidden !important;`, `max-height: min(92dvh, calc(100dvh - 32px)) !important;`, loại bỏ double padding đáy.
+  - Khóa `.editor-body`: `flex: 1 1 auto !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch !important;`.
+  - Khóa `.editor-footer`: `flex-shrink: 0 !important; padding: 14px 16px max(16px, env(safe-area-inset-bottom, 16px)) !important;` giúp cụm nút "Hủy bỏ" và "Lưu nhật ký" luôn nằm thoáng đãng phía trên thanh Home Indicator của iPhone.
+
 ## [1.5.0] - 2026-10-12
 ### Added & Refactored (Go-Live Readiness Release)
 - **Hoàn Thiện Nghiệp Vụ Hình Ảnh & Media Lifecycle Đầy Đủ (`static/js/editor.js`, `app/routes/entry_routes.py`, `app/services/media_service.py`):**

@@ -8,6 +8,13 @@ from app.database import get_db, get_cursor
 from app.services.media_service import MediaService
 from app.auth import get_current_user
 
+
+NO_CACHE_HEADERS = {
+    "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+    "Pragma": "no-cache",
+    "Expires": "0"
+}
+
 def require_auth(request: Request):
     """Helper to check current user or return 401 response tuple (user, error_response)."""
     user = get_current_user(request)
@@ -16,7 +23,7 @@ def require_auth(request: Request):
             "status": "error",
             "message": "Vui lòng đăng nhập để xem và quản lý nhật ký 🌸",
             "authenticated": False
-        }, status_code=401)
+        }, status_code=401, headers=NO_CACHE_HEADERS)
     return user, None
 
 async def get_entries(request: Request) -> JSONResponse:
@@ -117,9 +124,9 @@ async def get_entries(request: Request) -> JSONResponse:
             entry["moodLabel"] = mood_labels.get(entry["mood"], entry["mood"].capitalize())
             entries.append(entry)
 
-        return JSONResponse({"status": "success", "count": len(entries), "entries": entries})
+        return JSONResponse({"status": "success", "count": len(entries), "entries": entries}, headers=NO_CACHE_HEADERS)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e), "entries": []}, status_code=500)
+        return JSONResponse({"status": "error", "message": str(e), "entries": []}, status_code=500, headers=NO_CACHE_HEADERS)
 
 async def create_entry(request: Request) -> JSONResponse:
     """
@@ -156,6 +163,14 @@ async def create_entry(request: Request) -> JSONResponse:
         except ValueError:
             entry_date = datetime.now().date()
 
+    created_at_str = form.get("created_at", "").strip()
+    custom_created_at = None
+    if created_at_str:
+        try:
+            custom_created_at = datetime.fromisoformat(created_at_str)
+        except Exception:
+            custom_created_at = None
+
     raw_tags = form.get("tags", "")
     tag_list = []
     if raw_tags:
@@ -189,11 +204,18 @@ async def create_entry(request: Request) -> JSONResponse:
         with get_db() as conn:
             with conn.cursor() as cur:
                 # 1. Insert Entry scoped to authenticated user_id
-                cur.execute("""
-                    INSERT INTO entries (user_id, title, content, mood, weather, entry_date, is_pinned)
-                    VALUES (%s, %s, %s, %s, %s, %s, FALSE)
-                    RETURNING id, created_at;
-                """, (user_id, title, content, mood, weather, entry_date))
+                if custom_created_at:
+                    cur.execute("""
+                        INSERT INTO entries (user_id, title, content, mood, weather, entry_date, created_at, is_pinned)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, FALSE)
+                        RETURNING id, created_at;
+                    """, (user_id, title, content, mood, weather, entry_date, custom_created_at))
+                else:
+                    cur.execute("""
+                        INSERT INTO entries (user_id, title, content, mood, weather, entry_date, is_pinned)
+                        VALUES (%s, %s, %s, %s, %s, %s, FALSE)
+                        RETURNING id, created_at;
+                    """, (user_id, title, content, mood, weather, entry_date))
                 entry_id, created_at = cur.fetchone()
 
                 # 2. Insert Photos
@@ -257,8 +279,23 @@ async def update_entry(request: Request) -> JSONResponse:
             return JSONResponse({"status": "error", "message": "Không tìm thấy bài viết hoặc bạn không có quyền sửa."}, status_code=404)
 
     form = await request.form()
-    title = form.get("title", "").strip() or "Khoảnh khắc tĩnh lặng"
-    content = form.get("content", "").strip()
+
+    # Payload integrity guard: Reject completely empty form (e.g. WebKit empty body drop)
+    has_any_field = any([
+        form.get("title") is not None,
+        form.get("content") is not None,
+        form.get("mood") is not None,
+        form.get("deleted_photo_ids") is not None,
+        len(form.getlist("photos")) > 0
+    ])
+    if not has_any_field:
+        return JSONResponse({
+            "status": "error",
+            "message": "Dữ liệu cập nhật không hợp lệ hoặc payload bị rỗng 🌸"
+        }, status_code=400, headers=NO_CACHE_HEADERS)
+
+    title = (form.get("title") or "").strip() or "Khoảnh khắc tĩnh lặng"
+    content = (form.get("content") or "").strip()
 
     deleted_photo_ids_raw = form.get("deleted_photo_ids", "")
     deleted_photo_ids = []
@@ -279,6 +316,14 @@ async def update_entry(request: Request) -> JSONResponse:
             entry_date = datetime.strptime(entry_date_str, "%Y-%m-%d").date()
         except ValueError:
             pass
+
+    created_at_str = form.get("created_at", "").strip()
+    custom_created_at = None
+    if created_at_str:
+        try:
+            custom_created_at = datetime.fromisoformat(created_at_str)
+        except Exception:
+            custom_created_at = None
 
     raw_tags = form.get("tags", "")
     tag_list = []
@@ -322,11 +367,24 @@ async def update_entry(request: Request) -> JSONResponse:
                     return JSONResponse({"status": "error", "message": "Vui lòng nhập nội dung hoặc đính kèm ít nhất một hình ảnh 🌸"}, status_code=400)
 
                 # 1. Update entry metadata
-                cur.execute("""
-                    UPDATE entries
-                    SET title = %s, content = %s, mood = %s, weather = %s, entry_date = %s, updated_at = NOW()
-                    WHERE id = %s AND user_id = %s;
-                """, (title, content, mood, weather, entry_date, entry_id, user_id))
+                if custom_created_at:
+                    cur.execute("""
+                        UPDATE entries
+                        SET title = %s, content = %s, mood = %s, weather = %s, entry_date = %s, created_at = %s, updated_at = NOW()
+                        WHERE id = %s AND user_id = %s;
+                    """, (title, content, mood, weather, entry_date, custom_created_at, entry_id, user_id))
+                else:
+                    cur.execute("""
+                        UPDATE entries
+                        SET title = %s, content = %s, mood = %s, weather = %s, entry_date = %s, updated_at = NOW()
+                        WHERE id = %s AND user_id = %s;
+                    """, (title, content, mood, weather, entry_date, entry_id, user_id))
+
+                if cur.rowcount == 0:
+                    return JSONResponse({
+                        "status": "error",
+                        "message": "Không tìm thấy bài viết hoặc bạn không có quyền sửa."
+                    }, status_code=404, headers=NO_CACHE_HEADERS)
 
                 # 2. Delete removed photos from DB & collect disk paths
                 if deleted_photo_ids:
@@ -389,7 +447,7 @@ async def update_entry(request: Request) -> JSONResponse:
             "status": "success",
             "message": "Đã cập nhật bài viết thành công! ✨",
             "entry_id": entry_id
-        })
+        }, headers=NO_CACHE_HEADERS)
     except Exception as e:
         if processed_photos:
             MediaService.delete_photo_files([p["file_path"] for p in processed_photos])
@@ -779,17 +837,247 @@ async def get_stats(request: Request) -> JSONResponse:
             "serenePercent": serene_percent,
             "moodBreakdown": mood_breakdown,
             "moodCounts": raw_moods
-        })
+        }, headers=NO_CACHE_HEADERS)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500, headers=NO_CACHE_HEADERS)
+
+async def get_entry_by_id(request: Request) -> JSONResponse:
+    """Retrieve a single entry by id strictly owned by current user."""
+    user, err_resp = require_auth(request)
+    if err_resp:
+        return err_resp
+
+    user_id = user["id"]
+    entry_id = request.path_params.get("id")
+    try:
+        entry_id = int(entry_id)
+    except (ValueError, TypeError):
+        return JSONResponse({"status": "error", "message": "ID không hợp lệ"}, status_code=400, headers=NO_CACHE_HEADERS)
+
+    try:
+        with get_cursor() as cur:
+            cur.execute("""
+                SELECT e.id, e.user_id, e.title, e.content, e.mood, e.weather, 
+                       e.entry_date, e.is_pinned, e.created_at, e.updated_at,
+                       COALESCE(
+                           json_agg(
+                               json_build_object(
+                                   'id', p.id,
+                                   'url', p.file_path,
+                                   'thumbUrl', p.thumb_path,
+                                   'filename', p.file_name,
+                                   'size', p.file_size,
+                                   'width', p.width,
+                                   'height', p.height
+                               ) ORDER BY p.sort_order
+                           ) FILTER (WHERE p.id IS NOT NULL), '[]'
+                       ) AS photos,
+                       COALESCE(
+                           array_agg(DISTINCT t.name) FILTER (WHERE t.name IS NOT NULL), '{}'
+                       ) AS tags
+                FROM entries e
+                LEFT JOIN entry_photos p ON e.id = p.entry_id
+                LEFT JOIN entry_tags et ON e.id = et.entry_id
+                LEFT JOIN tags t ON et.tag_id = t.id
+                WHERE e.id = %s AND e.user_id = %s
+                GROUP BY e.id;
+            """, (entry_id, user_id))
+            row = cur.fetchone()
+            if not row:
+                return JSONResponse({"status": "error", "message": "Không tìm thấy bài viết"}, status_code=404, headers=NO_CACHE_HEADERS)
+
+            entry = dict(row)
+            if entry.get("entry_date"):
+                d = entry["entry_date"]
+                created = entry.get("created_at")
+                time_str = created.strftime("%H:%M") if created else "08:00"
+                entry["displayDate"] = f"{d.strftime('%d/%m/%Y')}, {time_str}"
+                entry["entryDate"] = d.isoformat()
+                entry["entry_date"] = d.isoformat()
+            if entry.get("created_at"):
+                entry["createdAt"] = entry["created_at"].isoformat()
+                entry["created_at"] = entry["created_at"].isoformat()
+            if entry.get("updated_at"):
+                entry["updatedAt"] = entry["updated_at"].isoformat()
+                entry["updated_at"] = entry["updated_at"].isoformat()
+
+            mood_labels = {
+                "serene": "Serene 🌸",
+                "cozy": "Cozy ☕",
+                "reflective": "Reflective 🌙",
+                "grateful": "Grateful 🍵",
+                "energetic": "Energetic ⚡",
+                "melancholy": "Melancholy 🌧️"
+            }
+            entry["moodLabel"] = mood_labels.get(entry["mood"], entry["mood"].capitalize())
+
+            return JSONResponse({"status": "success", "entry": entry}, headers=NO_CACHE_HEADERS)
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500, headers=NO_CACHE_HEADERS)
+
+async def get_tags(request: Request) -> JSONResponse:
+    """
+    Retrieve tags strictly scoped to the authenticated user with usage counts.
+    Ordered by usage_count DESC, t.name ASC.
+    """
+    user, err_resp = require_auth(request)
+    if err_resp:
+        return err_resp
+
+    user_id = user["id"]
+    try:
+        with get_cursor() as cur:
+            cur.execute("""
+                SELECT t.id, t.name, COUNT(DISTINCT e.id) AS usage_count
+                FROM tags t
+                LEFT JOIN entry_tags et ON t.id = et.tag_id
+                LEFT JOIN entries e ON et.entry_id = e.id AND e.user_id = %s
+                WHERE t.user_id = %s
+                GROUP BY t.id, t.name
+                ORDER BY usage_count DESC, t.name ASC;
+            """, (user_id, user_id))
+            rows = cur.fetchall()
+            tags = [{"id": r["id"], "name": r["name"], "usage_count": r["usage_count"]} for r in rows]
+
+        return JSONResponse({
+            "status": "success",
+            "tags": tags
+        }, headers=NO_CACHE_HEADERS)
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500, headers=NO_CACHE_HEADERS)
+
+async def update_tag(request: Request) -> JSONResponse:
+    """
+    Rename an existing tag for the authenticated user.
+    If the new name already exists, merges associations and removes the old tag.
+    """
+    user, err_resp = require_auth(request)
+    if err_resp:
+        return err_resp
+
+    user_id = user["id"]
+    tag_id = request.path_params.get("id")
+
+    try:
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
+
+        raw_name = data.get("name", "").strip()
+        if not raw_name:
+            return JSONResponse({"status": "error", "message": "Tên thẻ không được để trống."}, status_code=400, headers=NO_CACHE_HEADERS)
+
+        new_name = raw_name if raw_name.startswith("#") else f"#{raw_name}"
+
+        with get_cursor() as cur:
+            # Check if tag exists for this user
+            cur.execute("SELECT id, name FROM tags WHERE id = %s AND user_id = %s;", (tag_id, user_id))
+            tag_row = cur.fetchone()
+            if not tag_row:
+                return JSONResponse({"status": "error", "message": "Không tìm thấy thẻ chủ đề."}, status_code=404, headers=NO_CACHE_HEADERS)
+
+            # Check if target name already exists
+            cur.execute("SELECT id FROM tags WHERE user_id = %s AND name = %s AND id != %s;", (user_id, new_name, tag_id))
+            target_row = cur.fetchone()
+
+            if target_row:
+                target_id = target_row["id"]
+                # Merge entry_tags to target_id
+                cur.execute("""
+                    INSERT INTO entry_tags (entry_id, tag_id)
+                    SELECT entry_id, %s FROM entry_tags WHERE tag_id = %s
+                    ON CONFLICT (entry_id, tag_id) DO NOTHING;
+                """, (target_id, tag_id))
+                cur.execute("DELETE FROM entry_tags WHERE tag_id = %s;", (tag_id,))
+                cur.execute("DELETE FROM tags WHERE id = %s AND user_id = %s;", (tag_id, user_id))
+                final_id = target_id
+            else:
+                cur.execute("UPDATE tags SET name = %s WHERE id = %s AND user_id = %s;", (new_name, tag_id, user_id))
+                final_id = tag_id
+
+        return JSONResponse({
+            "status": "success",
+            "message": "Đã đổi tên thẻ chủ đề thành công.",
+            "tag": {"id": final_id, "name": new_name}
+        }, headers=NO_CACHE_HEADERS)
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500, headers=NO_CACHE_HEADERS)
+
+
+async def delete_tag(request: Request) -> JSONResponse:
+    """
+    Delete a tag and its associations for the authenticated user.
+    """
+    user, err_resp = require_auth(request)
+    if err_resp:
+        return err_resp
+
+    user_id = user["id"]
+    tag_id = request.path_params.get("id")
+
+    try:
+        with get_cursor() as cur:
+            cur.execute("SELECT id FROM tags WHERE id = %s AND user_id = %s;", (tag_id, user_id))
+            if not cur.fetchone():
+                return JSONResponse({"status": "error", "message": "Không tìm thấy thẻ chủ đề."}, status_code=404, headers=NO_CACHE_HEADERS)
+
+            cur.execute("DELETE FROM entry_tags WHERE tag_id = %s;", (tag_id,))
+            cur.execute("DELETE FROM tags WHERE id = %s AND user_id = %s;", (tag_id, user_id))
+
+        return JSONResponse({
+            "status": "success",
+            "message": "Đã xóa thẻ chủ đề thành công."
+        }, headers=NO_CACHE_HEADERS)
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500, headers=NO_CACHE_HEADERS)
+
+
+async def cleanup_orphan_tags(request: Request) -> JSONResponse:
+    """
+    Remove all tags with usage_count = 0 for the authenticated user.
+    """
+    user, err_resp = require_auth(request)
+    if err_resp:
+        return err_resp
+
+    user_id = user["id"]
+
+    try:
+        with get_cursor() as cur:
+            cur.execute("""
+                DELETE FROM tags
+                WHERE user_id = %s
+                  AND id NOT IN (
+                      SELECT et.tag_id
+                      FROM entry_tags et
+                      JOIN entries e ON et.entry_id = e.id
+                      WHERE e.user_id = %s
+                  );
+            """, (user_id, user_id))
+            deleted_count = cur.rowcount
+
+        return JSONResponse({
+            "status": "success",
+            "message": f"Đã dọn dẹp {deleted_count} thẻ chủ đề mồ côi.",
+            "deleted_count": deleted_count
+        }, headers=NO_CACHE_HEADERS)
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500, headers=NO_CACHE_HEADERS)
+
 
 entry_routes = [
     Route("/api/entries", get_entries, methods=["GET"]),
     Route("/api/entries", create_entry, methods=["POST"]),
     Route("/api/entries/export", export_entries, methods=["GET"]),
     Route("/api/entries/import", import_entries, methods=["POST"]),
+    Route("/api/entries/{id:int}", get_entry_by_id, methods=["GET"]),
     Route("/api/entries/{id:int}", update_entry, methods=["PUT"]),
     Route("/api/entries/{id:int}", delete_entry, methods=["DELETE"]),
     Route("/api/entries/{id:int}/pin", toggle_pin_entry, methods=["PATCH"]),
     Route("/api/stats/summary", get_stats, methods=["GET"]),
+    Route("/api/tags", get_tags, methods=["GET"]),
+    Route("/api/tags/cleanup-orphans", cleanup_orphan_tags, methods=["DELETE"]),
+    Route("/api/tags/{id:int}", update_tag, methods=["PUT"]),
+    Route("/api/tags/{id:int}", delete_tag, methods=["DELETE"]),
 ]

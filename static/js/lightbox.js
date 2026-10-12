@@ -46,6 +46,11 @@ const Lightbox = {
     if (!this.modalEl || !this.imgEl) return;
     this.initialized = true;
 
+    // Hard-lock controls bar hidden on startup
+    if (this.controlsBarEl) {
+      this.controlsBarEl.style.cssText = 'display: none !important; opacity: 0 !important; pointer-events: none !important;';
+    }
+
     this.bindToolbarButtons();
     this.bindMouseEvents();
     this.bindTouchEvents();
@@ -408,6 +413,9 @@ const Lightbox = {
     }
 
     this.modalEl.classList.add('active');
+    if (this.controlsBarEl) {
+      this.controlsBarEl.style.cssText = 'display: flex !important; opacity: 1 !important; pointer-events: auto !important;';
+    }
 
     // Strict Body Scroll Lock
     if (window.lockBodyScroll) {
@@ -422,6 +430,9 @@ const Lightbox = {
     if (!this.modalEl) return;
 
     this.modalEl.classList.remove('active');
+    if (this.controlsBarEl) {
+      this.controlsBarEl.style.cssText = 'display: none !important; opacity: 0 !important; pointer-events: none !important;';
+    }
     this.resetZoom(false);
 
     // Release Body Scroll Lock

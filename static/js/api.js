@@ -94,9 +94,17 @@ const KokoroAPI = (() => {
       if (filters.tag) params.append('tag', filters.tag);
       if (filters.month) params.append('month', filters.month);
       if (filters.search) params.append('search', filters.search);
+      params.append('_t', Date.now()); // Anti-cache timestamp for iOS Safari / WebKit
 
-      const qs = params.toString() ? `?${params.toString()}` : '';
-      return await request(`/entries${qs}`, { method: 'GET' });
+      const qs = `?${params.toString()}`;
+      return await request(`/entries${qs}`, {
+        method: 'GET',
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
     },
 
     // POST /api/entries (multipart/form-data)
@@ -110,7 +118,9 @@ const KokoroAPI = (() => {
         });
         const data = await parseResponse(response);
         if (!response.ok) {
-          throw new Error(data.message || data.error || `Lỗi khi lưu bài viết (HTTP ${response.status})`);
+          const err = new Error(data.message || data.error || `Lỗi khi lưu bài viết (HTTP ${response.status})`);
+          err.status = response.status;
+          throw err;
         }
         return data;
       } catch (err) {
@@ -130,7 +140,9 @@ const KokoroAPI = (() => {
         });
         const data = await parseResponse(response);
         if (!response.ok) {
-          throw new Error(data.message || `Lỗi cập nhật nhật ký (HTTP ${response.status})`);
+          const err = new Error(data.message || `Lỗi cập nhật nhật ký (HTTP ${response.status})`);
+          err.status = response.status;
+          throw err;
         }
         return data;
       } catch (err) {
@@ -152,6 +164,30 @@ const KokoroAPI = (() => {
     // GET /api/stats/summary
     async getStats() {
       return await request('/stats/summary', { method: 'GET' });
+    },
+
+    // GET /api/tags
+    async getTags() {
+      return await request('/tags', { method: 'GET' });
+    },
+
+    // PUT /api/tags/:id
+    async updateTag(tagId, newName) {
+      return await request(`/tags/${tagId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName })
+      });
+    },
+
+    // DELETE /api/tags/:id
+    async deleteTag(tagId) {
+      return await request(`/tags/${tagId}`, { method: 'DELETE' });
+    },
+
+    // DELETE /api/tags/cleanup-orphans
+    async cleanupOrphanTags() {
+      return await request('/tags/cleanup-orphans', { method: 'DELETE' });
     },
 
     // GET /api/entries/export (JSON attachment download)
@@ -273,8 +309,18 @@ const KokoroAPI = (() => {
 
           if (item.photos && item.photos.length > 0) {
             for (const file of item.photos) {
-              formData.append('photos', file);
+              if (file && (file instanceof Blob || (typeof file === 'object' && file.name))) {
+                formData.append('photos', file);
+              }
             }
+          }
+
+          // If item has neither content nor valid photos, immediately drop it
+          const validPhotos = formData.getAll('photos');
+          if (!item.content && validPhotos.length === 0) {
+            console.warn(`[KokoroOffline] Bản ghi ngoại tuyến ${item.id} không có dữ liệu hợp lệ, tự động dọn dẹp khỏi IndexedDB.`);
+            await this.deleteOfflineEntry(item.id);
+            continue;
           }
 
           await this.createEntry(formData);
@@ -282,6 +328,18 @@ const KokoroAPI = (() => {
           syncedCount++;
         } catch (err) {
           console.warn(`[KokoroOffline] Lỗi khi đồng bộ bài viết ${item.id}:`, err);
+          // If server returned 4xx (Client Error / Bad Request), payload is malformed
+          // Permanently delete it from IndexedDB to break the infinite error loop
+          const isClientError = (err && (err.status >= 400 && err.status < 500)) ||
+                                (err.message && (err.message.includes('400') || err.message.includes('422') || err.message.includes('nhập nội dung')));
+          if (isClientError) {
+            console.warn(`[KokoroOffline] Xóa bản ghi lỗi ${item.id} khỏi IndexedDB để chấm dứt vòng lặp lỗi.`);
+            try {
+              await this.deleteOfflineEntry(item.id);
+            } catch (delErr) {
+              console.error('[KokoroOffline] Không thể xóa bản ghi lỗi:', delErr);
+            }
+          }
         }
       }
       return syncedCount;
