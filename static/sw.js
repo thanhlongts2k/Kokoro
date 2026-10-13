@@ -7,6 +7,7 @@ const STATIC_ASSETS = [
   './css/glass.css?v=1.6.5',
   './css/components.css?v=1.6.5',
   './css/layout.css?v=1.6.5',
+  './js/constants.js?v=1.6.5',
   './js/api.js?v=1.6.5',
   './js/auth.js?v=1.6.5',
   './js/toast.js?v=1.6.5',

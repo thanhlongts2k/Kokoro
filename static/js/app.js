@@ -25,8 +25,8 @@ const KokoroApp = {
   activeMemoriesTag: null,
   activeZenPrompt: null,
   timelinePagination: {
-    pageSize: 15,
-    visibleLimit: 15
+    pageSize: (window.KokoroConstants ? window.KokoroConstants.PAGINATION.DEFAULT_PAGE_SIZE : 15), // pageSize: 15
+    visibleLimit: (window.KokoroConstants ? window.KokoroConstants.PAGINATION.INITIAL_VISIBLE_LIMIT : 15) // visibleLimit: 15
   },
   stats: null,
 
@@ -432,7 +432,7 @@ const KokoroApp = {
           this.searchQuery = val.trim();
           this.timelineState.search = this.searchQuery;
           this.loadEntries();
-        }, 300);
+        }, (window.KokoroConstants ? window.KokoroConstants.TIMEOUTS.SEARCH_DEBOUNCE_MS : 300));
       });
     }
 

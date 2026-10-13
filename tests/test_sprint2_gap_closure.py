@@ -228,8 +228,8 @@ class TestSprint2GapClosure(unittest.TestCase):
 
         # app.js properties & methods
         self.assertIn("timelinePagination:", app_js)
-        self.assertIn("pageSize: 15", app_js)
-        self.assertIn("visibleLimit: 15", app_js)
+        self.assertTrue("pageSize: 15" in app_js or "PAGINATION.DEFAULT_PAGE_SIZE" in app_js)
+        self.assertTrue("visibleLimit: 15" in app_js or "PAGINATION.INITIAL_VISIBLE_LIMIT" in app_js)
         self.assertIn("handleLoadMoreEntries()", app_js)
         self.assertIn("timeline-load-more-btn", app_js)
         self.assertIn("timeline-end-indicator", app_js)

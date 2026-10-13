@@ -321,7 +321,7 @@ const Editor = {
           this.draftBannerEl.style.display = 'flex';
         }
       }
-    }, 1000);
+    }, (window.KokoroConstants ? window.KokoroConstants.TIMEOUTS.DRAFT_AUTOSAVE_MS : 1000));
   },
 
   checkAndRestoreDraft() {
