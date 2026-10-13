@@ -46,26 +46,26 @@ class TestKokoroV163CardExport(unittest.TestCase):
     def test_01_version_and_sw_alignment(self):
         """Verify Config, Auth config API, Service Worker and Footer are aligned to v1.6.3 or later"""
         # 1. Config.APP_VERSION
-        self.assertIn(Config.APP_VERSION, ("v1.6.3", "v1.6.4", "v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6"))
+        self.assertIn(Config.APP_VERSION, ("v1.6.3", "v1.6.4", "v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7"))
 
         # 2. GET /api/auth/config
         resp = self.client.get("/api/auth/config")
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
-        self.assertIn(data.get("version"), ("v1.6.3", "v1.6.4", "v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6"))
+        self.assertIn(data.get("version"), ("v1.6.3", "v1.6.4", "v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7"))
 
         # 3. static/sw.js
         sw_path = BASE_DIR / "static" / "sw.js"
         sw_content = sw_path.read_text(encoding="utf-8")
-        self.assertTrue(any(v in sw_content for v in ("kokoro-v1.6.3", "kokoro-v1.6.4", "kokoro-v1.6.5", "kokoro-v1.7.0", "kokoro-v1.7.1", "kokoro-v1.7.2", "kokoro-v1.7.3", "kokoro-v1.7.4", "kokoro-v1.7.5", "kokoro-v1.7.6")))
-        self.assertTrue(any(v in sw_content for v in ("card-export.js?v=1.6.3", "card-export.js?v=1.6.4", "card-export.js?v=1.6.5", "card-export.js?v=1.7.0", "card-export.js?v=1.7.1", "card-export.js?v=1.7.2", "card-export.js?v=1.7.3", "card-export.js?v=1.7.4", "card-export.js?v=1.7.5", "card-export.js?v=1.7.6")))
-        self.assertTrue(any(v in sw_content for v in ("components.css?v=1.6.3", "components.css?v=1.6.4", "components.css?v=1.6.5", "components.css?v=1.7.0", "components.css?v=1.7.1", "components.css?v=1.7.2", "components.css?v=1.7.3", "components.css?v=1.7.4", "components.css?v=1.7.5", "components.css?v=1.7.6")))
+        self.assertTrue(any(v in sw_content for v in ("kokoro-v1.6.3", "kokoro-v1.6.4", "kokoro-v1.6.5", "kokoro-v1.7.0", "kokoro-v1.7.1", "kokoro-v1.7.2", "kokoro-v1.7.3", "kokoro-v1.7.4", "kokoro-v1.7.5", "kokoro-v1.7.6", "kokoro-v1.7.7")))
+        self.assertTrue(any(v in sw_content for v in ("card-export.js?v=1.6.3", "card-export.js?v=1.6.4", "card-export.js?v=1.6.5", "card-export.js?v=1.7.0", "card-export.js?v=1.7.1", "card-export.js?v=1.7.2", "card-export.js?v=1.7.3", "card-export.js?v=1.7.4", "card-export.js?v=1.7.5", "card-export.js?v=1.7.6", "card-export.js?v=1.7.7")))
+        self.assertTrue(any(v in sw_content for v in ("components.css?v=1.6.3", "components.css?v=1.6.4", "components.css?v=1.6.5", "components.css?v=1.7.0", "components.css?v=1.7.1", "components.css?v=1.7.2", "components.css?v=1.7.3", "components.css?v=1.7.4", "components.css?v=1.7.5", "components.css?v=1.7.6", "components.css?v=1.7.7")))
 
         # 4. static/index.html footer badge
         index_path = BASE_DIR / "static" / "index.html"
         index_content = index_path.read_text(encoding="utf-8")
-        self.assertTrue(any(f'id="app-version-badge">{v}</span>' in index_content for v in ("v1.6.3", "v1.6.4", "v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6")))
-        self.assertTrue(any(f'href="./css/components.css?v={v}"' in index_content for v in ("1.6.3", "1.6.4", "1.6.5", "1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6")))
+        self.assertTrue(any(f'id="app-version-badge">{v}</span>' in index_content for v in ("v1.6.3", "v1.6.4", "v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7")))
+        self.assertTrue(any(f'href="./css/components.css?v={v}"' in index_content for v in ("1.6.3", "1.6.4", "1.6.5", "1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7")))
 
     def test_02_script_loading_order_guard(self):
         """Ensure card-export.js is loaded BEFORE app.js to prevent ReferenceError"""

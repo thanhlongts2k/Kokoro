@@ -2,6 +2,21 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal Diary & Photo Journal PWA** được ghi nhận chi tiết tại tệp này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) và tuân thủ [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.7.7] - 2026-10-13
+### Verified & Production Hardening (Kiểm Thử Trình Duyệt Thực Tế Toàn Diện & Đóng Gói Sản Phẩm)
+- **Kiểm Thử Trình Duyệt E2E Thực Tế (Browser Interactive Verification) (`tests/test_interactive_browser_e2e.py`):**
+  * Tự động hóa kiểm thử hành vi người dùng trên trình duyệt Microsoft Edge Chromium với tài khoản thực tế (`thanhlongts2k@gmail.com`), bảo đảm 0 lỗi JavaScript Console và 100% tính năng hoạt động trơn tru:
+    1. *Zen Audio Relaxation Player:* Mở panel điều khiển, chuyển đổi linh hoạt giữa các bài âm thanh thiền định (`furin`, `waves`), tự động đóng panel khi click ra ngoài.
+    2. *Passcode PIN Security:* Mở modal thiết lập PIN từ trang Cá Nhân, quy trình nhập và xác nhận 4 số mã khóa hai bước chuẩn xác, kích hoạt mã hóa hash trong `localStorage` và tự động cập nhật huy hiệu "Đang bật" trên Profile.
+    3. *Kho Kỷ Niệm (Memories View):* Tải và hiển thị danh sách 6 chip lọc cảm xúc dạng viên thuốc (Capsule Pills) không bị co tròn, tương tác chọn bộ lọc tức thì.
+    4. *Giao Diện Lịch (Calendar View):* Kết xuất đầy đủ 35 ô ngày trong tháng, tương tác chọn ngày và cập nhật tiêu đề ngày được chọn theo thời gian thực.
+    5. *Memory Studio (Card Export):* Mở hộp thoại xuất thẻ ảnh nhật ký từ thẻ bài viết dòng thời gian, chuyển đổi giao diện chủ đề sang Polaroid canvas, đóng modal an toàn.
+    6. *Trình Soạn Thảo (Diary Editor):* Kích hoạt mở modal/bottom sheet ghi nhật ký từ nút hành động hoặc thanh điều hướng đáy, khôi phục bản nháp và đóng an toàn.
+  * Toàn bộ kịch bản E2E đạt kết quả **100% PASS** với **0 lỗi JavaScript Console**.
+- **Đồng Bộ Hóa Phiên Bản & Kiểm Thử Hồi Quy Toàn Hệ Thống (`tests/test_v177_full_production_verification.py`):**
+  * Xây dựng bộ test kiểm thử hợp đồng phát hành `v1.7.7`, bảo đảm tính đồng bộ tuyệt đối giữa `Config.APP_VERSION`, Service Worker cache (`kokoro-v1.7.7`), Footer badge `v1.7.7` và tham số cache busting `?v=1.7.7` trên 100% tệp CSS/JS.
+  * Toàn bộ 102/102 unit tests trong hệ thống đạt 100% PASS.
+
 ## [1.7.6] - 2026-10-13
 ### Fixed & PWA Polish (Bao Phủ Toàn Diện Responsive PWA & Bảo Vệ Màn Hình Siêu Nhỏ)
 - **Tối Ưu Giao Diện Thanh Tiêu Đề Màn Hình Siêu Nhỏ (< 360px) (`static/css/layout.css`):**

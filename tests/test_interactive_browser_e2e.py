@@ -195,6 +195,24 @@ async def main():
         assert export_modal_closed, "Card export modal must not have 'active' class"
         print("PASS: Card Export Modal closed.")
 
+        # ---------------------------------------------------------------------
+        # 6. TEST EDITOR OPEN/CLOSE & BOTTOM SHEET INTERACTION
+        # ---------------------------------------------------------------------
+        print("\n--- 6. Testing Editor Open/Close & Bottom Sheet Interaction ---")
+        add_btn = page.locator('.welcome-banner-card .btn-sakura, .bottom-nav-item[data-tab="editor"]').first
+        await add_btn.click()
+        await asyncio.sleep(0.4)
+        editor_active = await page.evaluate("() => document.getElementById('editor-modal-overlay').classList.contains('active')")
+        assert editor_active, "Editor modal must open on Add Entry click"
+        print("PASS: Editor bottom sheet opened via UI button.")
+
+        close_btn = page.locator("#editor-cancel-btn")
+        await close_btn.click()
+        await asyncio.sleep(0.3)
+        editor_closed = await page.evaluate("() => !document.getElementById('editor-modal-overlay').classList.contains('active')")
+        assert editor_closed, "Editor modal must close on Cancel click"
+        print("PASS: Editor bottom sheet closed safely.")
+
         # Check console errors
         print("\n--- Console Error Audit ---")
         real_errors = [
