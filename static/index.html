@@ -35,10 +35,10 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <!-- Stylesheets (Relative paths for Nginx reverse proxy subpath support) -->
-  <link rel="stylesheet" href="./css/tokens.css?v=1.6.1">
-  <link rel="stylesheet" href="./css/glass.css?v=1.6.1">
-  <link rel="stylesheet" href="./css/components.css?v=1.6.1">
-  <link rel="stylesheet" href="./css/layout.css?v=1.6.1">
+  <link rel="stylesheet" href="./css/tokens.css?v=1.6.2">
+  <link rel="stylesheet" href="./css/glass.css?v=1.6.2">
+  <link rel="stylesheet" href="./css/components.css?v=1.6.2">
+  <link rel="stylesheet" href="./css/layout.css?v=1.6.2">
 </head>
 <body>
 
@@ -307,6 +307,33 @@
             <button type="button" id="search-clear-btn" class="action-icon-btn" style="width: 26px; height: 26px; display: none;" title="Xóa từ khóa">
               <i class="bi bi-x-lg" style="font-size: 11px;"></i>
             </button>
+          </div>
+
+          <!-- Daily Zen Prompt Healing Card (v1.6.2) -->
+          <div class="glass-panel daily-zen-card" id="daily-zen-card" style="display: none;">
+            <div class="zen-card-header">
+              <div class="zen-card-tag">
+                <span class="zen-tag-icon" id="zen-prompt-icon">🌸</span>
+                <span class="zen-tag-label" id="zen-prompt-pillar">Gợi Ý Chánh Niệm Hôm Nay</span>
+              </div>
+              <button type="button" class="zen-dismiss-btn" id="zen-prompt-dismiss-btn" title="Thu gọn gợi ý hôm nay">
+                <i class="bi bi-x-lg" style="font-size: 12px;"></i>
+              </button>
+            </div>
+            <div class="zen-card-body">
+              <p class="zen-prompt-text" id="zen-prompt-text">
+                "Một tách trà, một ngọn gió hay một ánh mắt ấm áp nào đã vô tình sưởi ấm bạn hôm nay?"
+              </p>
+            </div>
+            <div class="zen-card-footer">
+              <button type="button" class="btn-sakura zen-write-btn" id="zen-prompt-write-btn">
+                <i class="bi bi-pencil-heart"></i> Viết theo gợi ý này
+              </button>
+              <button type="button" class="btn-glass zen-shuffle-btn" id="zen-prompt-shuffle-btn" title="Đổi gợi ý ngẫu nhiên">
+                <i class="bi bi-dice-5 zen-dice-icon" id="zen-dice-icon"></i>
+                <span>Gợi ý khác</span>
+              </button>
+            </div>
           </div>
 
           <!-- Feed Cards Container -->
@@ -619,7 +646,7 @@
         <div class="footer-brand">
           <img src="./icons/sakura.svg" alt="Kokoro Logo" class="footer-logo" />
           <span class="footer-title">Kokoro <span style="font-weight: 500; font-size: 14px; color: var(--sakura-500);">心</span></span>
-          <span class="footer-version-badge" id="app-version-badge">v1.5.6</span>
+          <span class="footer-version-badge" id="app-version-badge">v1.6.2</span>
         </div>
         <p class="footer-tagline">
           Lắng đọng tâm trí & lưu giữ những khoảnh khắc nhẹ nhàng trong không gian an yên.
@@ -760,8 +787,15 @@
             <input type="text" id="editor-title-input" class="editor-input" placeholder="Tiêu đề nhật ký (ví dụ: Buổi sáng ngắm hoa anh đào...)" />
           </div>
 
-          <!-- Content Textarea -->
+          <!-- Content Textarea & Zen Prompt Hint (v1.6.2) -->
           <div>
+            <div id="editor-zen-prompt-hint" class="editor-prompt-hint-pill" style="display: none;">
+              <span class="prompt-hint-icon" id="editor-prompt-hint-icon">🌸</span>
+              <span class="prompt-hint-text" id="editor-prompt-hint-text"></span>
+              <button type="button" class="prompt-hint-action-btn" id="editor-prompt-hint-insert-btn" title="Chèn gợi ý vào bài viết">
+                + Chèn gợi ý
+              </button>
+            </div>
             <textarea id="editor-content-input" class="editor-input editor-textarea" placeholder="Chia sẻ cảm xúc, suy nghĩ hoặc một điều nhỏ bé khiến bạn mỉm cười hôm nay..."></textarea>
           </div>
 
@@ -1153,17 +1187,18 @@
   </div>
 
   <!-- Scripts Execution (Relative paths for reverse proxy subpath) -->
-  <script src="./js/mock-data.js?v=1.6.1"></script>
-  <script src="./js/api.js?v=1.6.1"></script>
-  <script src="./js/auth.js?v=1.6.1"></script>
-  <script src="./js/toast.js?v=1.6.1"></script>
-  <script src="./js/datetime-picker.js?v=1.6.1"></script>
-  <script src="./js/tag-manager.js?v=1.6.1"></script>
-  <script src="./js/lightbox.js?v=1.6.1"></script>
-  <script src="./js/editor.js?v=1.6.1"></script>
-  <script src="./js/zen-audio.js?v=1.6.1"></script>
-  <script src="./js/passcode.js?v=1.6.1"></script>
-  <script src="./js/pwa.js?v=1.6.1"></script>
-  <script src="./js/app.js?v=1.6.1"></script>
+  <script src="./js/mock-data.js?v=1.6.2"></script>
+  <script src="./js/api.js?v=1.6.2"></script>
+  <script src="./js/auth.js?v=1.6.2"></script>
+  <script src="./js/toast.js?v=1.6.2"></script>
+  <script src="./js/datetime-picker.js?v=1.6.2"></script>
+  <script src="./js/tag-manager.js?v=1.6.2"></script>
+  <script src="./js/lightbox.js?v=1.6.2"></script>
+  <script src="./js/zen-prompts.js?v=1.6.2"></script>
+  <script src="./js/editor.js?v=1.6.2"></script>
+  <script src="./js/zen-audio.js?v=1.6.2"></script>
+  <script src="./js/passcode.js?v=1.6.2"></script>
+  <script src="./js/pwa.js?v=1.6.2"></script>
+  <script src="./js/app.js?v=1.6.2"></script>
 </body>
 </html>

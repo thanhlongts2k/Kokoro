@@ -4,6 +4,28 @@ Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal 
 
 ---
 
+## [1.6.2] - 2026-10-13
+### Added & Mindful (Daily Zen Prompt — Gợi Ý Suy Ngẫm Chánh Niệm Mỗi Ngày)
+- **Kho 36 Câu Hỏi Gợi Ý Chánh Niệm Kokoro (`static/js/zen-prompts.js`):**
+  * Kho tàng 36 câu hỏi suy ngẫm chữa lành phân bổ cân bằng trên 4 trụ cột cảm xúc: Biết ơn (Gratitude 🍵), Buông bỏ & Xoa dịu (Letting Go 🌙), Hiện diện & Tận hưởng (Presence 🌸), Phát triển & Nội lực (Growth ⚡).
+  * Thuật toán chọn câu hỏi tất định theo ngày (Deterministic Local Date Seed): Chống triệt để bẫy lệch múi giờ UTC (`getLocalDateString()` tính theo ngày lịch cục bộ máy client), câu hỏi đổi mới đồng bộ chính xác lúc 00:00 đêm.
+  * Hỗ trợ nút xúc xắc ngẫu nhiên 🎲 (`getRandomPrompt()`) với hiệu ứng xoay mượt mà `@keyframes spinDice` và lưu trữ trạng thái câu hỏi hiện tại trong `localStorage`.
+  * Cơ chế ghi nhớ trạng thái đóng/thu gọn thẻ hôm nay (`localStorage: kokoro_zen_dismissed_date`), tự động hiển thị lại khi sang ngày mới.
+- **Thẻ Gợi Ý Chánh Niệm Ngoài Timeline (`static/index.html`, `static/css/components.css`):**
+  * Thẻ kính mờ `#daily-zen-card` đặt trang trọng ngay đầu dòng thời gian với icon đóa hoa anh đào, nút đổi câu hỏi 🎲 và nút đóng/mở thu gọn.
+  * Nút "Viết theo gợi ý này ✨" chuyển mượt mà vào trình soạn thảo.
+- **Tích Hợp An Toàn Tuyệt Đối Bản Nháp Vào Trình Soạn Thảo Editor (`static/js/editor.js`):**
+  * Bổ sung thanh trạng thái hint pill `#editor-zen-prompt-hint` trong modal/bottom sheet editor để người dùng luôn thấy câu hỏi gợi ý khi đang viết.
+  * **Draft Safety Protocol:** Bảo vệ bản nháp 100%. Nếu người dùng đã có nội dung trong ô soạn thảo, hệ thống không ghi đè mà chèn trích dẫn chuẩn Markdown `> 🌸 "${promptText}"\n\n` lên đầu bài viết, đồng thời đặt con trỏ chuột (`setSelectionRange`) ngay sau câu trích dẫn để người dùng viết tiếp tự nhiên.
+  * Tự động chọn sẵn tâm trạng đề xuất (`suggestedMood`) phù hợp với nội dung câu hỏi.
+- **Nâng Cấp Service Worker & Cache PWA (`static/sw.js`, `app/config.py`, `static/index.html`):**
+  * Nâng cấp phiên bản bộ nhớ đệm lên `kokoro-v1.6.2`.
+  * Thêm `zen-prompts.js?v=1.6.2` vào danh sách tài nguyên ngoại tuyến (Offline-First 100%).
+  * Đặt thẻ script `zen-prompts.js` trước `editor.js` và `app.js` trong `index.html` đảm bảo thứ tự nạp DOM an toàn.
+  * Cập nhật `Config.APP_VERSION = "v1.6.2"`.
+- **Bộ Kiểm Thử Tự Động Toàn Diện (`tests/test_v162_zen_prompts.py`):**
+  * Kiểm tra tính nhất quán của seed ngày cục bộ, phân bổ 4 trụ cột của 36 câu hỏi, bảo toàn bản nháp trong Editor, và hợp đồng giao diện DOM/CSS.
+
 ## [1.6.1] - 2026-10-13
 ### Added & Enhanced (Data Integrity, Weather Selector UI & Dev Hot-Reload)
 - **Vá Lỗ Hổng Toàn Vẹn Dữ Liệu Ngoại Tuyến IndexedDB (`static/js/api.js`):**

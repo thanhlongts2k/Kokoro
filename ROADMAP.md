@@ -253,6 +253,22 @@
 - [x] **Bộ Kiểm Thử Tự Động Toàn Diện Cho Tính Toàn Vẹn Dữ Liệu (`tests/test_v161_data_integrity.py`):**
   - [x] Đạt 100% PASS cho toàn bộ các ca kiểm thử tính toàn vẹn dữ liệu và tương thích ngược.
 
-
-
-
+### 🔹 Giai đoạn 10: Bản Phát Hành v1.6.2 — Gợi Ý Suy Ngẫm Chánh Niệm Mỗi Ngày (Daily Zen Prompt)
+- [x] **Kho 36 Câu Hỏi Gợi Ý Chánh Niệm (`static/js/zen-prompts.js`):**
+  - [x] Kho 36 câu hỏi suy ngẫm chữa lành trải đều trên 4 trụ cột (Grateful 🍵, Reflective 🌙, Serene 🌸, Energetic ⚡).
+  - [x] Thuật toán chọn câu hỏi theo seed ngày cục bộ client (`getLocalDateString()`), chống lệch múi giờ UTC, đổi mới câu hỏi lúc 00:00.
+  - [x] Xúc xắc ngẫu nhiên 🎲 (`getRandomPrompt()`) kèm hiệu ứng xoay `@keyframes spinDice` và lưu trạng thái vào `localStorage`.
+  - [x] Tùy chọn đóng/thu gọn thẻ hôm nay với bộ nhớ `kokoro_zen_dismissed_date`.
+- [x] **Thẻ Hiển Thị Gợi Ý Ngoài Timeline (`static/index.html`, `static/css/components.css`, `static/js/app.js`):**
+  - [x] Thẻ kính mờ `#daily-zen-card` đặt đầu Timeline Feed với icon anh đào, câu hỏi, nút xúc xắc và nút đóng/thu gọn.
+  - [x] Nút "Viết theo gợi ý này ✨" mở Editor kèm câu hỏi và tâm trạng đề xuất.
+- [x] **Tích Hợp An Toàn Bản Nháp Vào Trình Soạn Thảo (`static/js/editor.js`):**
+  - [x] Hiển thị hint pill `#editor-zen-prompt-hint` trong modal/sheet soạn thảo.
+  - [x] **Draft Safety:** Nếu đã có nội dung trong ô soạn thảo, chèn trích dẫn `> 🌸 "${promptText}"\n\n` lên đầu và đặt con trỏ chuột (`setSelectionRange`) ngay sau trích dẫn thay vì ghi đè.
+  - [x] Tự động chọn sẵn tâm trạng đề xuất (`suggestedMood`).
+- [x] **Nâng Cấp Service Worker & Cache PWA (`static/sw.js`, `app/config.py`, `static/index.html`):**
+  - [x] Cập nhật `Config.APP_VERSION = "v1.6.2"`.
+  - [x] Nâng cấp bộ nhớ đệm Service Worker lên `kokoro-v1.6.2` và thêm `zen-prompts.js?v=1.6.2` (Offline-First 100%).
+  - [x] Đảm bảo thẻ script `zen-prompts.js` được nạp trước `editor.js` và `app.js` trong `index.html`.
+- [x] **Bộ Kiểm Thử Tự Động Toàn Diện (`tests/test_v162_zen_prompts.py`):**
+  - [x] 100% PASS bộ kiểm thử tính nhất quán của seed ngày cục bộ, 36 câu hỏi, draft safety và hợp đồng UI.

@@ -189,3 +189,21 @@ Cơ sở dữ liệu cục bộ: **`kokoro_db`** (Port `5432`).
    - Cache-First đối với assets tĩnh (HTML, CSS, JS, Fonts, Icons).
    - Network-First đối với API calls, fallback về cache nếu mất mạng.
    - Lưu trữ bản nháp nhật ký offline vào `localStorage` / `IndexedDB` để chống mất dữ liệu khi gián đoạn mạng.
+
+---
+
+## 7. GỢI Ý SUY NGẪM CHÁNH NIỆM MỖI NGÀY (DAILY ZEN PROMPT ENGINE - v1.6.2)
+
+1. **Kho tàng 36 câu hỏi gợi ý chánh niệm (`static/js/zen-prompts.js`):**
+   - 100% Offline-First, không phụ thuộc mạng hay máy chủ backend.
+   - Phân bổ cân bằng trên 4 trụ cột cảm xúc: Biết ơn & Giản dị (🍵 Gratitude), Buông bỏ & Tự trắc ẩn (🌙 Letting Go), Hiện diện & Chiêm nghiệm (🌸 Presence), Ước vọng & Năng lượng (⚡ Growth).
+2. **Thuật toán tạo Seed ngày cục bộ tất định (Deterministic Local Date Seed):**
+   - Sử dụng ngày cục bộ máy client (`getLocalDateString()`) tránh triệt để lỗi chuyển ngày sớm do lệch múi giờ UTC.
+   - Hàm băm 32-bit `hashDate()` ánh xạ ngày sang chỉ số câu hỏi duy nhất trong ngày, đổi mới lúc 00:00 đêm.
+   - Nút xúc xắc 🎲 (`getRandomPrompt()`) hỗ trợ đổi câu hỏi ngẫu nhiên và lưu trạng thái vào `localStorage`.
+3. **Quy chuẩn Bảo vệ Bản nháp (Draft Safety Protocol):**
+   - Khi chèn câu hỏi vào Editor (`insertZenPrompt`), hệ thống bảo toàn 100% nội dung bản nháp đã có bằng cách chèn trích dẫn Markdown `> 🌸 "${promptText}"\n\n` lên đầu bài viết thay vì ghi đè.
+   - Tự động đặt con trỏ chuột (`setSelectionRange`) ngay sau câu trích dẫn để người dùng viết tiếp tự nhiên.
+   - Tự động map và kích hoạt danh mục cảm xúc đề xuất (`suggestedMood`).
+4. **Bộ nhớ trạng thái & Thu gọn thẻ:**
+   - Hỗ trợ đóng/thu gọn thẻ hôm nay với khóa lưu trữ `kokoro_zen_dismissed_${today}`, tự động hiển thị lại khi sang ngày mới.

@@ -27,7 +27,7 @@ def test_v156_hotfix_suite():
 
     # 1. Check Config APP_VERSION
     print(f"[TEST 1] Config.APP_VERSION: {Config.APP_VERSION}")
-    assert Config.APP_VERSION in ("v1.5.6", "v1.6.0", "v1.6.1"), f"Expected v1.5.6, v1.6.0 or v1.6.1, got {Config.APP_VERSION}"
+    assert Config.APP_VERSION in ("v1.5.6", "v1.6.0", "v1.6.1", "v1.6.2"), f"Expected v1.5.6, v1.6.0, v1.6.1 or v1.6.2, got {Config.APP_VERSION}"
     print(" -> PASS: Config.APP_VERSION is valid")
 
     # 2. Check Auth Config endpoint
@@ -35,7 +35,7 @@ def test_v156_hotfix_suite():
     resp = client.get("/api/auth/config")
     assert resp.status_code == 200, f"Status: {resp.status_code}"
     data = resp.json()
-    assert data["version"] in ("v1.5.6", "v1.6.0", "v1.6.1"), f"Expected v1.5.6, v1.6.0 or v1.6.1 in auth config, got {data.get('version')}"
+    assert data["version"] in ("v1.5.6", "v1.6.0", "v1.6.1", "v1.6.2"), f"Expected v1.5.6, v1.6.0, v1.6.1 or v1.6.2 in auth config, got {data.get('version')}"
     print(f" -> PASS: /api/auth/config returns version {data['version']}")
 
     # 3. Check Mock Login Cookie Secure Flag
@@ -87,13 +87,13 @@ def test_v156_hotfix_suite():
     # 7. Verify index.html & sw.js version tags
     with open(os.path.join(base_dir, 'static', 'index.html'), 'r', encoding='utf-8') as f:
         index_html = f.read()
-        assert ("v1.5.6" in index_html or "v1.6.0" in index_html or "v1.6.1" in index_html), "version missing in index.html"
+        assert ("v1.5.6" in index_html or "v1.6.0" in index_html or "v1.6.1" in index_html or "v1.6.2" in index_html), "version missing in index.html"
         assert "v1.5.5" not in index_html, "Stale v1.5.5 found in index.html"
         print(" -> PASS: static/index.html is synchronized")
 
     with open(os.path.join(base_dir, 'static', 'sw.js'), 'r', encoding='utf-8') as f:
         sw_js = f.read()
-        assert ("kokoro-v1.5.6" in sw_js or "kokoro-v1.6.0" in sw_js or "kokoro-v1.6.1" in sw_js), "cache version missing in sw.js"
+        assert ("kokoro-v1.5.6" in sw_js or "kokoro-v1.6.0" in sw_js or "kokoro-v1.6.1" in sw_js or "kokoro-v1.6.2" in sw_js), "cache version missing in sw.js"
         assert "v1.5.5" not in sw_js, "Stale v1.5.5 found in sw.js"
         print(" -> PASS: static/sw.js is synchronized")
 

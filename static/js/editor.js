@@ -35,6 +35,13 @@ const Editor = {
   weatherInput: null,
   selectedWeather: 'sunny',
 
+  // Zen Prompt Hint elements & state (v1.6.2)
+  zenPromptHintContainer: null,
+  zenPromptHintText: null,
+  zenPromptHintIcon: null,
+  zenPromptHintInsertBtn: null,
+  currentPrompt: null,
+
   editingEntryId: null,
   selectedCategoryId: null,
   categories: [],
@@ -103,6 +110,19 @@ const Editor = {
           this.setWeather(chip.dataset.weather);
           this.scheduleDraftSave();
         });
+      });
+    }
+
+    // Zen Prompt Hint integration (v1.6.2)
+    this.zenPromptHintContainer = document.getElementById('editor-zen-prompt-hint');
+    this.zenPromptHintText = document.getElementById('editor-prompt-hint-text');
+    this.zenPromptHintIcon = document.getElementById('editor-prompt-hint-icon');
+    this.zenPromptHintInsertBtn = document.getElementById('editor-prompt-hint-insert-btn');
+    if (this.zenPromptHintInsertBtn) {
+      this.zenPromptHintInsertBtn.addEventListener('click', () => {
+        if (this.currentPrompt) {
+          this.insertZenPrompt(this.currentPrompt.text, this.currentPrompt.suggestedMood);
+        }
       });
     }
 
@@ -233,6 +253,48 @@ const Editor = {
     }
   },
 
+  showPromptHint(prompt) {
+    this.currentPrompt = prompt;
+    if (this.zenPromptHintContainer && prompt) {
+      if (this.zenPromptHintText) this.zenPromptHintText.textContent = `"${prompt.text}"`;
+      if (this.zenPromptHintIcon) this.zenPromptHintIcon.textContent = prompt.icon || '🌸';
+      this.zenPromptHintContainer.style.display = 'flex';
+    }
+  },
+
+  insertZenPrompt(promptText, suggestedMood = null) {
+    if (!this.contentInput || !promptText) return;
+    const currentVal = this.contentInput.value || '';
+    const quote = `> 🌸 "${promptText}"\n\n`;
+
+    // Safe Draft Preservation: Never wipe existing draft
+    if (!currentVal.includes(promptText)) {
+      if (!currentVal.trim()) {
+        this.contentInput.value = quote;
+      } else {
+        // Prepend quote before existing thoughts to preserve 100% of user data
+        this.contentInput.value = quote + currentVal;
+      }
+    }
+
+    // Pre-select suggested mood if provided
+    if (suggestedMood) {
+      this.renderCategoryChips(null, suggestedMood);
+    }
+
+    // Smooth cursor placement immediately following quote
+    this.contentInput.focus();
+    this.contentInput.setSelectionRange(quote.length, quote.length);
+
+    // Hide hint pill once inserted
+    if (this.zenPromptHintContainer) {
+      this.zenPromptHintContainer.style.display = 'none';
+    }
+
+    // Trigger auto-save draft
+    this.scheduleDraftSave();
+  },
+
   scheduleDraftSave() {
     if (this.editingEntryId) return; // Do not auto-save draft when editing an existing entry
     clearTimeout(this.draftTimeout);
@@ -344,7 +406,7 @@ const Editor = {
         c.name.toLowerCase() === lowerMood ||
         (c.name === 'Bình yên' && lowerMood === 'serene') ||
         (c.name === 'Ấm áp' && lowerMood === 'cozy') ||
-        (c.name === 'Chiêm nghiệm' && lowerMood === 'reflective') ||
+        (c.name === 'Chiêm nghiệm' && (lowerMood === 'reflective' || lowerMood === 'melancholy')) ||
         (c.name === 'Biết ơn' && lowerMood === 'grateful') ||
         (c.name === 'Năng lượng' && lowerMood === 'energetic')
       );
@@ -394,7 +456,7 @@ const Editor = {
     });
   },
 
-  async open(entry = null) {
+  async open(entry = null, options = {}) {
     if (!this.overlayEl) return;
     this.resetForm();
 
@@ -440,6 +502,14 @@ const Editor = {
       this.setWeather('sunny');
       await this.loadCategories();
       this.checkAndRestoreDraft();
+
+      if (options && options.prompt) {
+        if (options.autoInsert) {
+          this.insertZenPrompt(options.prompt.text, options.prompt.suggestedMood);
+        } else {
+          this.showPromptHint(options.prompt);
+        }
+      }
     }
 
     // Load suggested tags via decoupled TagManager
@@ -452,7 +522,13 @@ const Editor = {
     this.overlayEl.classList.add('active');
     if (window.lockBodyScroll) window.lockBodyScroll(true);
     setTimeout(() => {
-      if (this.contentInput) this.contentInput.focus();
+      if (this.contentInput) {
+        this.contentInput.focus();
+        if (options && options.prompt && options.autoInsert) {
+          const quoteLen = (`> 🌸 "${options.prompt.text}"\n\n`).length;
+          this.contentInput.setSelectionRange(quoteLen, quoteLen);
+        }
+      }
     }, 150);
   },
 
@@ -484,6 +560,9 @@ const Editor = {
 
     this.updateDatetimeState(new Date());
     this.setWeather('sunny');
+
+    if (this.zenPromptHintContainer) this.zenPromptHintContainer.style.display = 'none';
+    this.currentPrompt = null;
 
     if (this.draftBannerEl) this.draftBannerEl.style.display = 'none';
     this.setLoading(false);

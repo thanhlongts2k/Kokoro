@@ -23,6 +23,7 @@ const KokoroApp = {
   selectedCalDate: new Date().toISOString().split('T')[0],
   activeMemoriesMood: 'all',
   activeMemoriesTag: null,
+  activeZenPrompt: null,
   stats: null,
 
   async init() {
@@ -139,6 +140,9 @@ const KokoroApp = {
   },
 
   setupEventListeners() {
+    // Daily Zen Prompt Handlers (v1.6.2)
+    this.initZenPromptHandlers();
+
     // FAB Open Editor
     const fabBtn = document.getElementById('fab-create-btn');
     if (fabBtn) {
@@ -1062,6 +1066,8 @@ const KokoroApp = {
   },
 
   renderTimeline() {
+    this.renderDailyZenCard();
+
     const feedEl = document.getElementById('timeline-feed-container');
     if (!feedEl) return;
 
@@ -1091,6 +1097,91 @@ const KokoroApp = {
 
     feedEl.innerHTML = filtered.map((entry) => this.buildEntryCardHtml(entry)).join('');
     this.attachCardActions(feedEl);
+  },
+
+  renderDailyZenCard() {
+    const cardEl = document.getElementById('daily-zen-card');
+    if (!cardEl || !window.KokoroZenPrompt) return;
+
+    if (window.KokoroZenPrompt.isDismissed()) {
+      cardEl.style.display = 'none';
+      return;
+    }
+
+    const prompt = window.KokoroZenPrompt.getDailyPrompt();
+    if (!prompt) {
+      cardEl.style.display = 'none';
+      return;
+    }
+
+    this.activeZenPrompt = prompt;
+
+    const iconEl = document.getElementById('zen-prompt-icon');
+    const pillarEl = document.getElementById('zen-prompt-pillar');
+    const textEl = document.getElementById('zen-prompt-text');
+
+    if (iconEl) iconEl.textContent = prompt.icon || '🌸';
+    if (pillarEl) pillarEl.textContent = prompt.pillarName || 'Gợi Ý Chánh Niệm';
+    if (textEl) textEl.textContent = `"${prompt.text}"`;
+
+    cardEl.classList.remove('collapsed');
+    cardEl.style.display = 'flex';
+  },
+
+  initZenPromptHandlers() {
+    const cardEl = document.getElementById('daily-zen-card');
+    if (!cardEl) return;
+
+    // 1. Write button
+    const writeBtn = document.getElementById('zen-prompt-write-btn');
+    if (writeBtn) {
+      writeBtn.addEventListener('click', () => {
+        if (this.activeZenPrompt && window.Editor) {
+          window.Editor.open(null, {
+            prompt: this.activeZenPrompt,
+            autoInsert: true
+          });
+        }
+      });
+    }
+
+    // 2. Shuffle button
+    const shuffleBtn = document.getElementById('zen-prompt-shuffle-btn');
+    const diceIcon = document.getElementById('zen-dice-icon');
+    if (shuffleBtn && window.KokoroZenPrompt) {
+      shuffleBtn.addEventListener('click', () => {
+        if (diceIcon) {
+          diceIcon.classList.remove('anim-spinning');
+          void diceIcon.offsetWidth; // Force CSS reflow to re-trigger spin
+          diceIcon.classList.add('anim-spinning');
+        }
+
+        const newPrompt = window.KokoroZenPrompt.getRandomPrompt(this.activeZenPrompt ? this.activeZenPrompt.id : null);
+        this.activeZenPrompt = newPrompt;
+
+        const iconEl = document.getElementById('zen-prompt-icon');
+        const pillarEl = document.getElementById('zen-prompt-pillar');
+        const textEl = document.getElementById('zen-prompt-text');
+
+        if (iconEl) iconEl.textContent = newPrompt.icon || '🌸';
+        if (pillarEl) pillarEl.textContent = newPrompt.pillarName || 'Gợi Ý Chánh Niệm';
+        if (textEl) textEl.textContent = `"${newPrompt.text}"`;
+      });
+    }
+
+    // 3. Dismiss button
+    const dismissBtn = document.getElementById('zen-prompt-dismiss-btn');
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', () => {
+        if (window.KokoroZenPrompt) {
+          window.KokoroZenPrompt.setDismissed(null, true);
+        }
+        cardEl.classList.add('collapsed');
+        setTimeout(() => {
+          cardEl.style.display = 'none';
+        }, 360);
+      });
+    }
   },
 
   /**
