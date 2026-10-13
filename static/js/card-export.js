@@ -63,6 +63,14 @@
           if (e.target === this.modalEl) this.close();
         });
       }
+
+      // Close on ESC key press
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && this.modalEl && this.modalEl.classList.contains('active')) {
+          e.preventDefault();
+          this.close();
+        }
+      });
     },
 
     open(entry) {

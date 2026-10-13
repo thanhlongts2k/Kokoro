@@ -8,6 +8,7 @@ from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime
 from app.database import get_db, get_cursor
 from app.schemas.entry import EntryCreateDTO, EntryUpdateDTO, EntryFilterDTO
+from app.exceptions import InvalidInputError, EntryNotFoundError
 
 MOOD_LABELS = {
     "serene": "Serene 🌸",
@@ -150,9 +151,13 @@ class EntryRepository:
         cls,
         user_id: int,
         dto: EntryCreateDTO,
-        processed_photos: List[Dict[str, Any]]
+        processed_photos: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         """Create a new journal entry with tags and photos in a single atomic transaction."""
+        photos_list = processed_photos or []
+        if (not dto.content or not dto.content.strip()) and len(photos_list) == 0:
+            raise InvalidInputError("Vui lòng nhập nội dung hoặc đính kèm ít nhất một hình ảnh 🌸")
+
         entry_date = datetime.now().date()
         if dto.entry_date:
             try:
@@ -317,7 +322,7 @@ class EntryRepository:
                 remaining_count = len([pid for pid in existing_pids if pid not in dto.deleted_photo_ids]) + len(new_photos)
 
                 if not dto.content and remaining_count == 0:
-                    raise ValueError("Vui lòng nhập nội dung hoặc đính kèm ít nhất một hình ảnh 🌸")
+                    raise InvalidInputError("Vui lòng nhập nội dung hoặc đính kèm ít nhất một hình ảnh 🌸")
 
                 # 3. Parse dates
                 entry_date = datetime.now().date()

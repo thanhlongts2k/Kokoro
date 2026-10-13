@@ -859,7 +859,7 @@
     <!-- ====================================================================
          6.1. SOFT SAKURA GENERIC CONFIRMATION MODAL (ASYNC)
          ==================================================================== -->
-    <div class="modal-overlay" id="generic-confirm-modal">
+    <div class="modal-overlay" id="generic-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="generic-confirm-title">
       <div class="glass-panel confirm-dialog">
         <div class="confirm-icon-wrapper" id="generic-confirm-icon-wrap">
           <i class="bi bi-flower1" id="generic-confirm-icon"></i>
@@ -878,7 +878,7 @@
     <!-- ====================================================================
          6.2. SOFT SAKURA GENERIC PROMPT MODAL (ASYNC)
          ==================================================================== -->
-    <div class="modal-overlay" id="generic-prompt-modal">
+    <div class="modal-overlay" id="generic-prompt-modal" role="dialog" aria-modal="true" aria-labelledby="generic-prompt-title">
       <div class="glass-panel confirm-dialog" style="max-width: 380px;">
         <div class="confirm-icon-wrapper" id="generic-prompt-icon-wrap">
           <i class="bi bi-pencil-square" id="generic-prompt-icon"></i>
@@ -1235,13 +1235,13 @@
     <!-- ====================================================================
          12. SOFT SAKURA DAILY CARD EXPORT MODAL (v1.6.3)
          ==================================================================== -->
-    <div class="modal-overlay" id="card-export-modal" style="display: none; align-items: center; justify-content: center; z-index: 9999;">
+    <div class="modal-overlay" id="card-export-modal" role="dialog" aria-modal="true" aria-labelledby="card-export-title" style="display: none; align-items: center; justify-content: center; z-index: 9999;">
       <div class="glass-panel card-export-dialog" id="card-export-dialog">
         <!-- Header -->
         <div class="card-export-header">
           <div style="display: flex; align-items: center; gap: 8px;">
             <i class="bi bi-card-image text-sakura" style="font-size: 18px;"></i>
-            <h4 style="font-size: 16px; font-weight: 800; margin: 0; color: var(--text-primary);">Xuất Thẻ Ảnh Kỷ Niệm 🌸</h4>
+            <h4 id="card-export-title" style="font-size: 16px; font-weight: 800; margin: 0; color: var(--text-primary);">Xuất Thẻ Ảnh Kỷ Niệm 🌸</h4>
           </div>
           <button type="button" class="action-icon-btn" id="card-export-close-btn" title="Đóng">
             <i class="bi bi-x-lg"></i>

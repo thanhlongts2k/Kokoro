@@ -7,6 +7,7 @@ Complies with AGENTS.md Layer Isolation rules.
 from typing import List, Optional
 from app.database import get_cursor
 from app.schemas.category import CategoryDTO, CategoryCreateDTO, CategoryUpdateDTO
+from app.exceptions import CategoryDuplicateError, CategoryNotFoundError
 
 
 class CategoryRepository:
@@ -123,6 +124,9 @@ class CategoryRepository:
     @classmethod
     def create_category(cls, user_id: int, dto: CategoryCreateDTO) -> CategoryDTO:
         """Create a new category in PostgreSQL."""
+        if cls.check_duplicate_name(user_id, dto.name):
+            raise CategoryDuplicateError(dto.name)
+
         with get_cursor() as cur:
             cur.execute("""
                 INSERT INTO categories (user_id, name, icon, color, sort_order)

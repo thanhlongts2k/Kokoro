@@ -395,12 +395,21 @@ const KokoroAPI = (() => {
           syncedCount++;
         } catch (err) {
           console.warn(`[KokoroOffline] Lỗi khi đồng bộ bài viết ${item.id}:`, err);
-          // If server returned 4xx (Client Error / Bad Request), payload is malformed
-          // Permanently delete it from IndexedDB to break the infinite error loop
-          const isClientError = (err && (err.status >= 400 && err.status < 500)) ||
-                                (err.message && (err.message.includes('400') || err.message.includes('422') || err.message.includes('nhập nội dung')));
-          if (isClientError) {
-            console.warn(`[KokoroOffline] Xóa bản ghi lỗi ${item.id} khỏi IndexedDB để chấm dứt vòng lặp lỗi.`);
+          const status = err ? err.status : null;
+
+          // CRITICAL FIX (DEBT-01): If server returned 401/403 (Unauthorized / Session expired),
+          // DO NOT delete the offline entry! Halt syncing immediately to preserve user's data
+          // and wait for user to re-authenticate.
+          if (status === 401 || status === 403 || (err.message && (err.message.includes('401') || err.message.includes('đăng nhập')))) {
+            console.warn(`[KokoroOffline] Phiên đăng nhập hết hạn (HTTP ${status || 401}). Tạm dừng đồng bộ để bảo vệ bài viết trong IndexedDB.`);
+            break; // Halt syncing remaining items to prevent redundant failed requests
+          }
+
+          // Only permanently delete item if it is genuinely an unrecoverable client error (400 Bad Request or 422)
+          const isUnrecoverableClientError = (status === 400 || status === 422) ||
+                                            (err.message && (err.message.includes('400') || err.message.includes('422') || err.message.includes('nhập nội dung')));
+          if (isUnrecoverableClientError) {
+            console.warn(`[KokoroOffline] Xóa bản ghi lỗi dữ liệu không thể phục hồi ${item.id} khỏi IndexedDB để chấm dứt vòng lặp lỗi.`);
             try {
               await this.deleteOfflineEntry(item.id);
             } catch (delErr) {

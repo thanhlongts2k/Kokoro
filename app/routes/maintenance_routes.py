@@ -1,10 +1,11 @@
 """
 Kokoro (心) Maintenance & Diagnostics Routes
 Dedicated modular router for administrative, maintenance, and data cleanup operations.
-Complies with AGENTS.md Modular Layered Architecture (avoids bloating entry_routes.py).
+Complies with AGENTS.md: Modular Layered Architecture, Strict Typing, Zero Magic Numbers.
 """
 
 from typing import List
+from starlette import status
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
@@ -12,7 +13,6 @@ from starlette.routing import Route
 from app.auth import get_current_user
 from app.services.media_service import MediaService
 from app.schemas.maintenance import MaintenanceResponseDTO
-
 
 NO_CACHE_HEADERS = {
     "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
@@ -29,7 +29,7 @@ def require_auth(request: Request):
             "status": "error",
             "message": "Vui lòng đăng nhập để thực hiện tác vụ bảo trì 🌸",
             "authenticated": False
-        }, status_code=401, headers=NO_CACHE_HEADERS)
+        }, status_code=status.HTTP_401_UNAUTHORIZED, headers=NO_CACHE_HEADERS)
     return user, None
 
 
@@ -73,7 +73,7 @@ async def cleanup_orphaned_media(request: Request) -> JSONResponse:
         return JSONResponse({
             "status": "error",
             "message": f"Lỗi dọn dẹp tệp ảnh: {str(e)}"
-        }, status_code=500, headers=NO_CACHE_HEADERS)
+        }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
 
 
 maintenance_routes: List[Route] = [

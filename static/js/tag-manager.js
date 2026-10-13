@@ -43,12 +43,20 @@ window.KokoroDialog = {
       }
       if (cancelBtn) cancelBtn.textContent = cancelText;
 
+      const onKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          onCancel();
+        }
+      };
+
       const cleanup = () => {
         modal.classList.remove('active');
         if (typeof window.lockBodyScroll === 'function') window.lockBodyScroll(false);
         okBtn.removeEventListener('click', onOk);
         cancelBtn.removeEventListener('click', onCancel);
         modal.removeEventListener('click', onBackdrop);
+        window.removeEventListener('keydown', onKeyDown);
       };
 
       const onOk = () => {
@@ -71,9 +79,11 @@ window.KokoroDialog = {
       okBtn.addEventListener('click', onOk);
       cancelBtn.addEventListener('click', onCancel);
       modal.addEventListener('click', onBackdrop);
+      window.addEventListener('keydown', onKeyDown);
 
       if (typeof window.lockBodyScroll === 'function') window.lockBodyScroll(true);
       modal.classList.add('active');
+      cancelBtn?.focus();
     });
   },
 
@@ -125,12 +135,20 @@ window.KokoroDialog = {
       if (okBtn) okBtn.innerHTML = `<i class="bi bi-check2"></i> ${confirmText}`;
       if (cancelBtn) cancelBtn.textContent = cancelText;
 
+      const onKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          onCancel();
+        }
+      };
+
       const cleanup = () => {
         modal.classList.remove('active');
         if (typeof window.lockBodyScroll === 'function') window.lockBodyScroll(false);
         okBtn.removeEventListener('click', onOk);
         cancelBtn.removeEventListener('click', onCancel);
         modal.removeEventListener('click', onBackdrop);
+        window.removeEventListener('keydown', onKeyDown);
         if (inputEl) inputEl.removeEventListener('keydown', onKey);
       };
 
@@ -157,15 +175,13 @@ window.KokoroDialog = {
         if (e.key === 'Enter') {
           e.preventDefault();
           onOk();
-        } else if (e.key === 'Escape') {
-          e.preventDefault();
-          onCancel();
         }
       };
 
       okBtn.addEventListener('click', onOk);
       cancelBtn.addEventListener('click', onCancel);
       modal.addEventListener('click', onBackdrop);
+      window.addEventListener('keydown', onKeyDown);
       if (inputEl) inputEl.addEventListener('keydown', onKey);
 
       if (typeof window.lockBodyScroll === 'function') window.lockBodyScroll(true);

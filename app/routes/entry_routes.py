@@ -1,12 +1,13 @@
 """
 Kokoro (心) Entry Controller Routes
 Strict presentation controller: handles HTTP, parses DTOs, delegates to EntryRepository & MediaService.
-Complies with AGENTS.md: Modular Layered Architecture, Strict Typing, < 300 lines.
+Complies with AGENTS.md: Modular Layered Architecture, Strict Typing, Zero Magic Numbers, < 300 lines.
 """
 
 import json
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+from starlette import status
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
@@ -16,6 +17,7 @@ from app.auth import get_current_user
 from app.services.media_service import MediaService
 from app.repositories.entry_repository import EntryRepository
 from app.schemas.entry import EntryCreateDTO, EntryUpdateDTO, EntryFilterDTO
+from app.exceptions import KokoroDomainError, EntryNotFoundError, InvalidInputError
 
 NO_CACHE_HEADERS = {
     "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
@@ -31,7 +33,7 @@ def require_auth(request: Request):
         return None, JSONResponse({
             "status": "error", "message": "Vui lòng đăng nhập để xem và quản lý nhật ký 🌸",
             "authenticated": False
-        }, status_code=401, headers=NO_CACHE_HEADERS)
+        }, status_code=status.HTTP_401_UNAUTHORIZED, headers=NO_CACHE_HEADERS)
     return user, None
 
 
@@ -81,7 +83,7 @@ async def get_entries(request: Request) -> JSONResponse:
     try:
         return JSONResponse({"status": "success", "entries": EntryRepository.get_entries(user["id"], filters)}, headers=NO_CACHE_HEADERS)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e), "entries": []}, status_code=500, headers=NO_CACHE_HEADERS)
+        return JSONResponse({"status": "error", "message": str(e), "entries": []}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
 
 
 async def get_entry_by_id(request: Request) -> JSONResponse:
@@ -92,12 +94,12 @@ async def get_entry_by_id(request: Request) -> JSONResponse:
     try:
         entry = EntryRepository.get_by_id(int(request.path_params["id"]), user["id"])
         if not entry:
-            return JSONResponse({"status": "error", "message": "Không tìm thấy bài viết"}, status_code=404, headers=NO_CACHE_HEADERS)
+            return JSONResponse({"status": "error", "message": "Không tìm thấy bài viết"}, status_code=status.HTTP_404_NOT_FOUND, headers=NO_CACHE_HEADERS)
         return JSONResponse({"status": "success", "entry": entry}, headers=NO_CACHE_HEADERS)
     except (ValueError, TypeError, KeyError):
-        return JSONResponse({"status": "error", "message": "ID không hợp lệ"}, status_code=400, headers=NO_CACHE_HEADERS)
+        return JSONResponse({"status": "error", "message": "ID không hợp lệ"}, status_code=status.HTTP_400_BAD_REQUEST, headers=NO_CACHE_HEADERS)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=500, headers=NO_CACHE_HEADERS)
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
 
 
 async def create_entry(request: Request) -> JSONResponse:
@@ -108,12 +110,12 @@ async def create_entry(request: Request) -> JSONResponse:
     try:
         form = await request.form()
     except Exception as e:
-        return JSONResponse({"status": "error", "message": f"Form parse error: {e}"}, status_code=400)
+        return JSONResponse({"status": "error", "message": f"Form parse error: {e}"}, status_code=status.HTTP_400_BAD_REQUEST)
 
     title, content = form.get("title", "").strip() or "Khoảnh khắc tĩnh lặng", form.get("content", "").strip()
     photo_files = form.getlist("photos")
     if not content and not any(hasattr(p, "filename") and p.filename for p in photo_files):
-        return JSONResponse({"status": "error", "message": "Vui lòng nhập nội dung hoặc đính kèm ít nhất một hình ảnh 🌸"}, status_code=400)
+        return JSONResponse({"status": "error", "message": "Vui lòng nhập nội dung hoặc đính kèm ít nhất một hình ảnh 🌸"}, status_code=status.HTTP_400_BAD_REQUEST)
 
     tags = [t.strip() for t in form.get("tags", "").replace(",", " ").split() if t.strip()]
     processed_photos = []
@@ -130,10 +132,13 @@ async def create_entry(request: Request) -> JSONResponse:
         return JSONResponse({
             "status": "success", "message": "Đã lưu nhật ký thành công 🌸",
             "entry_id": created["id"], "id": created["id"], "entry": created
-        }, status_code=201, headers=NO_CACHE_HEADERS)
+        }, status_code=status.HTTP_201_CREATED, headers=NO_CACHE_HEADERS)
+    except KokoroDomainError as e:
+        _clean_photos(processed_photos)
+        return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code)
     except Exception as e:
         _clean_photos(processed_photos)
-        return JSONResponse({"status": "error", "message": f"Lỗi tạo bài viết: {e}"}, status_code=500)
+        return JSONResponse({"status": "error", "message": f"Lỗi tạo bài viết: {e}"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 async def update_entry(request: Request) -> JSONResponse:
@@ -145,7 +150,7 @@ async def update_entry(request: Request) -> JSONResponse:
         entry_id = int(request.path_params["id"])
         form = await request.form()
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=400)
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_400_BAD_REQUEST)
 
     tags = [t.strip() for t in form.get("tags", "").replace(",", " ").split() if t.strip()]
     del_ids = [int(p.strip()) for p in form.get("deleted_photos", "").split(",") if p.strip().isdigit()]
@@ -165,18 +170,21 @@ async def update_entry(request: Request) -> JSONResponse:
         )
         updated, deleted_paths = EntryRepository.update_entry(entry_id, user["id"], dto, processed_photos)
         if not updated:
-            return JSONResponse({"status": "error", "message": "Không tìm thấy bài viết hoặc bạn không có quyền sửa."}, status_code=404)
+            return JSONResponse({"status": "error", "message": "Không tìm thấy bài viết hoặc bạn không có quyền sửa."}, status_code=status.HTTP_404_NOT_FOUND)
         if deleted_paths:
             MediaService.delete_photo_files(deleted_paths)
         return JSONResponse({
             "status": "success", "message": "Đã cập nhật bài viết thành công 🌸",
             "entry_id": updated["id"], "id": updated["id"], "entry": updated
         }, headers=NO_CACHE_HEADERS)
+    except KokoroDomainError as e:
+        _clean_photos(processed_photos)
+        return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code)
     except ValueError as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=400)
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         _clean_photos(processed_photos)
-        return JSONResponse({"status": "error", "message": f"Lỗi cập nhật bài viết: {e}"}, status_code=500)
+        return JSONResponse({"status": "error", "message": f"Lỗi cập nhật bài viết: {e}"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 async def delete_entry(request: Request) -> JSONResponse:
@@ -188,14 +196,14 @@ async def delete_entry(request: Request) -> JSONResponse:
         entry_id = int(request.path_params["id"])
         photo_paths = EntryRepository.get_photo_paths_for_entry(entry_id, user["id"])
         if not EntryRepository.delete_entry(entry_id, user["id"]):
-            return JSONResponse({"status": "error", "message": "Không tìm thấy bài viết hoặc bạn không có quyền xóa."}, status_code=404)
+            return JSONResponse({"status": "error", "message": "Không tìm thấy bài viết hoặc bạn không có quyền xóa."}, status_code=status.HTTP_404_NOT_FOUND)
         if photo_paths:
             MediaService.delete_photo_files(photo_paths)
         return JSONResponse({"status": "success", "message": "Đã xóa bài viết thành công. 🌸", "id": entry_id})
     except (ValueError, TypeError, KeyError):
-        return JSONResponse({"status": "error", "message": "ID không hợp lệ"}, status_code=400)
+        return JSONResponse({"status": "error", "message": "ID không hợp lệ"}, status_code=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 async def toggle_pin_entry(request: Request) -> JSONResponse:
@@ -207,15 +215,15 @@ async def toggle_pin_entry(request: Request) -> JSONResponse:
         entry_id = int(request.path_params["id"])
         is_pinned = EntryRepository.toggle_pin(entry_id, user["id"])
         if is_pinned is None:
-            return JSONResponse({"status": "error", "message": "Không tìm thấy bài viết hoặc bạn không có quyền ghim."}, status_code=404)
+            return JSONResponse({"status": "error", "message": "Không tìm thấy bài viết hoặc bạn không có quyền ghim."}, status_code=status.HTTP_404_NOT_FOUND)
         return JSONResponse({
             "status": "success", "id": entry_id, "is_pinned": is_pinned,
             "message": "Đã ghim bài viết ✨" if is_pinned else "Đã bỏ ghim bài viết"
         })
     except (ValueError, TypeError, KeyError):
-        return JSONResponse({"status": "error", "message": "ID không hợp lệ"}, status_code=400)
+        return JSONResponse({"status": "error", "message": "ID không hợp lệ"}, status_code=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 async def export_entries(request: Request) -> Response:
@@ -239,7 +247,7 @@ async def export_entries(request: Request) -> Response:
             headers={"Content-Disposition": f'attachment; filename="{filename}"', "Content-Type": "application/json; charset=utf-8"}
         )
     except Exception as e:
-        return JSONResponse({"status": "error", "message": f"Lỗi xuất dữ liệu: {e}"}, status_code=500)
+        return JSONResponse({"status": "error", "message": f"Lỗi xuất dữ liệu: {e}"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 async def import_entries(request: Request) -> JSONResponse:
@@ -253,7 +261,7 @@ async def import_entries(request: Request) -> JSONResponse:
             form = await request.form()
             f = form.get("backup_file") or form.get("file")
             if not f:
-                return JSONResponse({"status": "error", "message": "Vui lòng chọn tệp sao lưu JSON 🌸"}, status_code=400)
+                return JSONResponse({"status": "error", "message": "Vui lòng chọn tệp sao lưu JSON 🌸"}, status_code=status.HTTP_400_BAD_REQUEST)
             payload = json.loads((await f.read()).decode("utf-8"))
         elif "application/json" in ct:
             payload = await request.json()
@@ -261,19 +269,19 @@ async def import_entries(request: Request) -> JSONResponse:
             payload = json.loads((await request.body()).decode("utf-8"))
 
         if not payload:
-            return JSONResponse({"status": "error", "message": "Dữ liệu sao lưu trống hoặc không hợp lệ"}, status_code=400)
+            return JSONResponse({"status": "error", "message": "Dữ liệu sao lưu trống hoặc không hợp lệ"}, status_code=status.HTTP_400_BAD_REQUEST)
         entries = payload.get("entries") if isinstance(payload, dict) else (payload if isinstance(payload, list) else None)
         if entries is None:
-            return JSONResponse({"status": "error", "message": "Định dạng tệp sao lưu không đúng chuẩn Kokoro JSON"}, status_code=400)
+            return JSONResponse({"status": "error", "message": "Định dạng tệp sao lưu không đúng chuẩn Kokoro JSON"}, status_code=status.HTTP_400_BAD_REQUEST)
         if not entries:
             return JSONResponse({"status": "success", "message": "Không có bài viết nào cần nhập", "imported_count": 0})
 
         count = EntryRepository.import_data(user["id"], payload.get("categories", []) if isinstance(payload, dict) else [], entries)
         return JSONResponse({"status": "success", "message": f"Đã khôi phục thành công {count} bài viết! 🌸", "imported_count": count})
     except json.JSONDecodeError:
-        return JSONResponse({"status": "error", "message": "Tệp sao lưu không phải định dạng JSON hợp lệ"}, status_code=400)
+        return JSONResponse({"status": "error", "message": "Tệp sao lưu không phải định dạng JSON hợp lệ"}, status_code=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": f"Lỗi khôi phục dữ liệu: {e}"}, status_code=500)
+        return JSONResponse({"status": "error", "message": f"Lỗi khôi phục dữ liệu: {e}"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # =========================================================================
