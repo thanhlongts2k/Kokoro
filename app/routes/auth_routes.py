@@ -11,7 +11,9 @@ Complies with AGENTS.md: Modular Layered Architecture, Strict Typing, Zero Magic
 """
 
 import os
+import json
 import logging
+import psycopg2
 from starlette import status
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -63,7 +65,7 @@ async def mock_login(request: Request) -> JSONResponse:
 
     try:
         body = await request.json()
-    except Exception:
+    except (json.JSONDecodeError, ValueError, TypeError):
         body = {}
 
     user_id = body.get("user_id")
@@ -101,7 +103,8 @@ async def google_login(request: Request) -> JSONResponse:
     """Verify Google Identity Services credential and establish session."""
     try:
         body = await request.json()
-    except Exception as e:
+    except (json.JSONDecodeError, ValueError, TypeError) as e:
+        logger.warning("[Auth.google_login] Lỗi phân tích JSON: %s", e)
         return JSONResponse({"status": "error", "message": f"Invalid JSON: {e}"}, status_code=status.HTTP_400_BAD_REQUEST)
 
     credential = body.get("credential")
@@ -110,7 +113,11 @@ async def google_login(request: Request) -> JSONResponse:
 
     try:
         id_info = verify_google_id_token(credential)
+    except ValueError as e:
+        logger.warning("[Auth.google_login] Xác thực Google ID Token thất bại: %s", e)
+        return JSONResponse({"status": "error", "message": f"Xác thực Google ID Token thất bại: {e}"}, status_code=status.HTTP_401_UNAUTHORIZED)
     except Exception as e:
+        logger.exception("[Auth.google_login] Lỗi không xác định khi xác thực Google ID: %s", e)
         return JSONResponse({"status": "error", "message": f"Xác thực Google ID Token thất bại: {e}"}, status_code=status.HTTP_401_UNAUTHORIZED)
 
     google_id = id_info.get("sub")
@@ -124,8 +131,11 @@ async def google_login(request: Request) -> JSONResponse:
     try:
         user = upsert_user(google_id, email, name, avatar_url)
         token = create_session_token(user["id"], user["email"], user["name"])
+    except psycopg2.Error as e:
+        logger.error(f"[Auth] Lỗi lưu người dùng Google vào PostgreSQL (psycopg2): {e}", exc_info=True)
+        return JSONResponse({"status": "error", "message": f"Không thể lưu thông tin tài khoản: {e}"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
-        logger.error(f"[Auth] Lỗi lưu người dùng Google vào PostgreSQL: {e}", exc_info=True)
+        logger.exception(f"[Auth] Lỗi lưu người dùng Google vào PostgreSQL: {e}")
         return JSONResponse({"status": "error", "message": f"Không thể lưu thông tin tài khoản: {e}"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     response = JSONResponse({

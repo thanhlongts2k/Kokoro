@@ -74,6 +74,7 @@ async def cleanup_orphaned_media(request: Request) -> JSONResponse:
         )
         return JSONResponse(response_dto.to_dict(), headers=NO_CACHE_HEADERS)
     except Exception as e:
+        logger.exception("[maintenance_routes.cleanup_orphaned_media] Lỗi dọn dẹp tệp ảnh: %s", e)
         return JSONResponse({
             "status": "error",
             "message": f"Lỗi dọn dẹp tệp ảnh: {str(e)}"

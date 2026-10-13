@@ -5,8 +5,10 @@ Complies with AGENTS.md: Modular Layered Architecture, Strict Typing, Zero Magic
 """
 
 import json
+import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+import psycopg2
 from starlette import status
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
@@ -18,6 +20,8 @@ from app.services.media_service import MediaService
 from app.repositories.entry_repository import EntryRepository
 from app.schemas.entry import EntryCreateDTO, EntryUpdateDTO, EntryFilterDTO
 from app.exceptions import KokoroDomainError, EntryNotFoundError, InvalidInputError
+
+logger = logging.getLogger("kokoro.routes.entry")
 
 NO_CACHE_HEADERS = {
     "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
@@ -82,8 +86,14 @@ async def get_entries(request: Request) -> JSONResponse:
     )
     try:
         return JSONResponse({"status": "success", "entries": EntryRepository.get_entries(user["id"], filters)}, headers=NO_CACHE_HEADERS)
+    except KokoroDomainError as e:
+        return JSONResponse({"status": "error", "message": e.message, "entries": []}, status_code=e.status_code, headers=NO_CACHE_HEADERS)
+    except psycopg2.Error as e:
+        logger.error("[entry_routes.get_entries] Lỗi cơ sở dữ liệu: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi tải danh sách nhật ký", "entries": []}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e), "entries": []}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
+        logger.exception("[entry_routes.get_entries] Lỗi hệ thống khi tải nhật ký: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi hệ thống khi tải danh sách nhật ký", "entries": []}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
 
 
 async def get_entry_by_id(request: Request) -> JSONResponse:
@@ -92,14 +102,22 @@ async def get_entry_by_id(request: Request) -> JSONResponse:
     if err:
         return err
     try:
-        entry = EntryRepository.get_by_id(int(request.path_params["id"]), user["id"])
+        entry_id = int(request.path_params["id"])
+    except (ValueError, TypeError, KeyError):
+        return JSONResponse({"status": "error", "message": "ID không hợp lệ"}, status_code=status.HTTP_400_BAD_REQUEST, headers=NO_CACHE_HEADERS)
+    try:
+        entry = EntryRepository.get_by_id(entry_id, user["id"])
         if not entry:
             return JSONResponse({"status": "error", "message": "Không tìm thấy bài viết"}, status_code=status.HTTP_404_NOT_FOUND, headers=NO_CACHE_HEADERS)
         return JSONResponse({"status": "success", "entry": entry}, headers=NO_CACHE_HEADERS)
-    except (ValueError, TypeError, KeyError):
-        return JSONResponse({"status": "error", "message": "ID không hợp lệ"}, status_code=status.HTTP_400_BAD_REQUEST, headers=NO_CACHE_HEADERS)
+    except KokoroDomainError as e:
+        return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code, headers=NO_CACHE_HEADERS)
+    except psycopg2.Error as e:
+        logger.error("[entry_routes.get_entry_by_id] Lỗi cơ sở dữ liệu: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi tải bài viết"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
+        logger.exception("[entry_routes.get_entry_by_id] Lỗi hệ thống: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi hệ thống khi tải bài viết"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
 
 
 async def create_entry(request: Request) -> JSONResponse:
@@ -110,7 +128,8 @@ async def create_entry(request: Request) -> JSONResponse:
     try:
         form = await request.form()
     except Exception as e:
-        return JSONResponse({"status": "error", "message": f"Form parse error: {e}"}, status_code=status.HTTP_400_BAD_REQUEST)
+        logger.warning("[entry_routes.create_entry] Lỗi phân tích multipart form: %s", e)
+        return JSONResponse({"status": "error", "message": f"Dữ liệu form không hợp lệ: {e}"}, status_code=status.HTTP_400_BAD_REQUEST)
 
     title, content = form.get("title", "").strip() or "Khoảnh khắc tĩnh lặng", form.get("content", "").strip()
     photo_files = form.getlist("photos")
@@ -136,8 +155,13 @@ async def create_entry(request: Request) -> JSONResponse:
     except KokoroDomainError as e:
         _clean_photos(processed_photos)
         return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code)
+    except psycopg2.Error as e:
+        _clean_photos(processed_photos)
+        logger.error("[entry_routes.create_entry] Lỗi cơ sở dữ liệu: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi tạo bài viết"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
         _clean_photos(processed_photos)
+        logger.exception("[entry_routes.create_entry] Lỗi hệ thống: %s", e)
         return JSONResponse({"status": "error", "message": f"Lỗi tạo bài viết: {e}"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -149,7 +173,10 @@ async def update_entry(request: Request) -> JSONResponse:
     try:
         entry_id = int(request.path_params["id"])
         form = await request.form()
+    except (ValueError, TypeError):
+        return JSONResponse({"status": "error", "message": "ID không hợp lệ"}, status_code=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
+        logger.warning("[entry_routes.update_entry] Lỗi form parse: %s", e)
         return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_400_BAD_REQUEST)
 
     tags = [t.strip() for t in form.get("tags", "").replace(",", " ").split() if t.strip()]
@@ -180,10 +207,15 @@ async def update_entry(request: Request) -> JSONResponse:
     except KokoroDomainError as e:
         _clean_photos(processed_photos)
         return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code)
-    except ValueError as e:
+    except (ValueError, TypeError) as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_400_BAD_REQUEST)
+    except psycopg2.Error as e:
+        _clean_photos(processed_photos)
+        logger.error("[entry_routes.update_entry] Lỗi DB: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi cập nhật bài viết"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
         _clean_photos(processed_photos)
+        logger.exception("[entry_routes.update_entry] Lỗi hệ thống: %s", e)
         return JSONResponse({"status": "error", "message": f"Lỗi cập nhật bài viết: {e}"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -194,15 +226,23 @@ async def delete_entry(request: Request) -> JSONResponse:
         return err
     try:
         entry_id = int(request.path_params["id"])
+    except (ValueError, TypeError, KeyError):
+        return JSONResponse({"status": "error", "message": "ID không hợp lệ"}, status_code=status.HTTP_400_BAD_REQUEST)
+
+    try:
         photo_paths = EntryRepository.get_photo_paths_for_entry(entry_id, user["id"])
         if not EntryRepository.delete_entry(entry_id, user["id"]):
             return JSONResponse({"status": "error", "message": "Không tìm thấy bài viết hoặc bạn không có quyền xóa."}, status_code=status.HTTP_404_NOT_FOUND)
         if photo_paths:
             MediaService.delete_photo_files(photo_paths)
         return JSONResponse({"status": "success", "message": "Đã xóa bài viết thành công. 🌸", "id": entry_id})
-    except (ValueError, TypeError, KeyError):
-        return JSONResponse({"status": "error", "message": "ID không hợp lệ"}, status_code=status.HTTP_400_BAD_REQUEST)
+    except KokoroDomainError as e:
+        return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code)
+    except psycopg2.Error as e:
+        logger.error("[entry_routes.delete_entry] Lỗi DB: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi xóa bài viết"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
+        logger.exception("[entry_routes.delete_entry] Lỗi hệ thống: %s", e)
         return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -213,6 +253,10 @@ async def toggle_pin_entry(request: Request) -> JSONResponse:
         return err
     try:
         entry_id = int(request.path_params["id"])
+    except (ValueError, TypeError, KeyError):
+        return JSONResponse({"status": "error", "message": "ID không hợp lệ"}, status_code=status.HTTP_400_BAD_REQUEST)
+
+    try:
         is_pinned = EntryRepository.toggle_pin(entry_id, user["id"])
         if is_pinned is None:
             return JSONResponse({"status": "error", "message": "Không tìm thấy bài viết hoặc bạn không có quyền ghim."}, status_code=status.HTTP_404_NOT_FOUND)
@@ -220,9 +264,13 @@ async def toggle_pin_entry(request: Request) -> JSONResponse:
             "status": "success", "id": entry_id, "is_pinned": is_pinned,
             "message": "Đã ghim bài viết ✨" if is_pinned else "Đã bỏ ghim bài viết"
         })
-    except (ValueError, TypeError, KeyError):
-        return JSONResponse({"status": "error", "message": "ID không hợp lệ"}, status_code=status.HTTP_400_BAD_REQUEST)
+    except KokoroDomainError as e:
+        return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code)
+    except psycopg2.Error as e:
+        logger.error("[entry_routes.toggle_pin_entry] Lỗi DB: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi ghim bài viết"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
+        logger.exception("[entry_routes.toggle_pin_entry] Lỗi hệ thống: %s", e)
         return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -246,7 +294,13 @@ async def export_entries(request: Request) -> Response:
             media_type="application/json",
             headers={"Content-Disposition": f'attachment; filename="{filename}"', "Content-Type": "application/json; charset=utf-8"}
         )
+    except KokoroDomainError as e:
+        return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code)
+    except psycopg2.Error as e:
+        logger.error("[entry_routes.export_entries] Lỗi DB: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi xuất dữ liệu"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
+        logger.exception("[entry_routes.export_entries] Lỗi hệ thống: %s", e)
         return JSONResponse({"status": "error", "message": f"Lỗi xuất dữ liệu: {e}"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -278,9 +332,15 @@ async def import_entries(request: Request) -> JSONResponse:
 
         count = EntryRepository.import_data(user["id"], payload.get("categories", []) if isinstance(payload, dict) else [], entries)
         return JSONResponse({"status": "success", "message": f"Đã khôi phục thành công {count} bài viết! 🌸", "imported_count": count})
-    except json.JSONDecodeError:
-        return JSONResponse({"status": "error", "message": "Tệp sao lưu không phải định dạng JSON hợp lệ"}, status_code=status.HTTP_400_BAD_REQUEST)
+    except json.JSONDecodeError as e:
+        return JSONResponse({"status": "error", "message": f"Tệp sao lưu không phải định dạng JSON hợp lệ: {e}"}, status_code=status.HTTP_400_BAD_REQUEST)
+    except KokoroDomainError as e:
+        return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code)
+    except psycopg2.Error as e:
+        logger.error("[entry_routes.import_entries] Lỗi DB: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi nhập dữ liệu"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
+        logger.exception("[entry_routes.import_entries] Lỗi hệ thống: %s", e)
         return JSONResponse({"status": "error", "message": f"Lỗi khôi phục dữ liệu: {e}"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

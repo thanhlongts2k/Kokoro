@@ -6,16 +6,22 @@ from starlette.routing import Route, Mount
 from starlette.staticfiles import StaticFiles
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
+import logging
+import psycopg2
 import uvicorn
 
 from app.config import Config
 from app.database import init_db, check_db_connection
 
+logger = logging.getLogger("kokoro.server")
+
 # Ensure database tables exist on startup
 try:
     init_db()
+except psycopg2.Error as e:
+    logger.error("[Kokoro Server] Database auto-init error (psycopg2): %s", e)
 except Exception as e:
-    print(f"[Kokoro Server] Warning: Database auto-init error: {e}")
+    logger.exception("[Kokoro Server] Unexpected error during database auto-init: %s", e)
 
 # Base static and upload directories
 BASE_DIR = Path(__file__).resolve().parent

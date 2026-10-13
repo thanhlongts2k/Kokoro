@@ -32,8 +32,9 @@ def get_db():
     try:
         yield conn
         conn.commit()
-    except Exception:
+    except (psycopg2.Error, Exception) as err:
         conn.rollback()
+        logger.error("[Database] Giao dịch bị rollback do lỗi: %s", err, exc_info=True)
         raise
     finally:
         pool.putconn(conn)
@@ -57,8 +58,11 @@ def check_db_connection() -> tuple[bool, str]:
         with get_cursor() as cur:
             cur.execute("SELECT 1;")
         return True, "connected"
+    except psycopg2.Error as e:
+        logger.error("Database connection check failed (psycopg2): %s", e)
+        return False, str(e)
     except Exception as e:
-        logger.error("Database connection check failed: %s", e)
+        logger.exception("Database connection check failed (unexpected): %s", e)
         return False, str(e)
 
 DEFAULT_CATEGORIES = [

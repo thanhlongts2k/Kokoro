@@ -4,7 +4,9 @@ Dedicated modular router for summary analytics operations.
 Complies with AGENTS.md: Modular Layered Architecture, Strict Typing, Zero Magic Numbers.
 """
 
+import logging
 from typing import List
+import psycopg2
 from starlette import status
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -13,6 +15,8 @@ from starlette.routing import Route
 from app.auth import get_current_user
 from app.repositories.stats_repository import StatsRepository
 from app.exceptions import KokoroDomainError
+
+logger = logging.getLogger("kokoro.routes.stats")
 
 NO_CACHE_HEADERS = {
     "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
@@ -44,8 +48,12 @@ async def get_stats(request: Request) -> JSONResponse:
         return JSONResponse(stats_dto.to_dict(), headers=NO_CACHE_HEADERS)
     except KokoroDomainError as e:
         return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code, headers=NO_CACHE_HEADERS)
+    except psycopg2.Error as err:
+        logger.error("[stats_routes.get_stats] Lỗi cơ sở dữ liệu: %s", err)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi tải thống kê"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
+        logger.exception("[stats_routes.get_stats] Lỗi không xác định khi tải thống kê: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi hệ thống khi tải thống kê"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
 
 
 stats_routes: List[Route] = [

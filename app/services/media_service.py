@@ -1,9 +1,12 @@
 import os
 import time
 import uuid
+import logging
 from pathlib import Path
 from typing import Tuple, List, Optional, Dict, Any
 from PIL import Image, ImageOps
+
+logger = logging.getLogger("kokoro.media")
 
 try:
     from pillow_heif import register_heif_opener
@@ -47,8 +50,8 @@ class MediaService:
             transposed = ImageOps.exif_transpose(img)
             if transposed is not None:
                 img = transposed
-        except Exception as e:
-            print(f"[MediaService] EXIF orientation warning: {e}")
+        except (AttributeError, KeyError, IndexError, ValueError, SyntaxError, OSError) as e:
+            logger.warning("[MediaService] EXIF orientation warning: %s", e)
 
         # Convert palette/CMYK to RGB/RGBA for safe WebP encoding
         if img.mode in ("P", "CMYK"):
@@ -98,8 +101,8 @@ class MediaService:
             if full_path.exists() and full_path.is_file():
                 try:
                     full_path.unlink()
-                except Exception as e:
-                    print(f"[MediaService] Warning: Could not delete {full_path}: {e}")
+                except OSError as e:
+                    logger.warning("[MediaService] Warning: Could not delete %s: %s", full_path, e)
 
     @classmethod
     def scan_and_cleanup_orphans(cls, grace_period_hours: float = 2.0) -> CleanupStatsDTO:
@@ -165,8 +168,8 @@ class MediaService:
                     deleted_count += 1
                     freed_bytes += file_size
                     deleted_filenames.append(fname)
-                except Exception as del_err:
-                    print(f"[MediaService] Error removing orphaned file {file_path}: {del_err}")
+                except OSError as del_err:
+                    logger.error("[MediaService] Error removing orphaned file %s: %s", file_path, del_err)
 
         freed_mb = round(freed_bytes / (1024 * 1024), 2)
 

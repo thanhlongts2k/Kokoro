@@ -4,11 +4,16 @@ Persistence abstraction isolating database operations for journal entries, tags,
 Complies with AGENTS.md Layer Isolation and Strict Typing rules.
 """
 
+import logging
 from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from app.database import get_db, get_cursor
 from app.schemas.entry import EntryCreateDTO, EntryUpdateDTO, EntryFilterDTO
 from app.exceptions import InvalidInputError, EntryNotFoundError
+
+logger = logging.getLogger("kokoro.repository.entry")
 
 MOOD_LABELS = {
     "serene": "Serene 🌸",
@@ -169,11 +174,12 @@ class EntryRepository:
         if dto.created_at:
             try:
                 custom_created_at = datetime.fromisoformat(dto.created_at)
-            except Exception:
+            except (ValueError, TypeError) as parse_err:
+                logger.warning("[EntryRepository.create] Bỏ qua created_at không hợp lệ %r: %s", dto.created_at, parse_err)
                 custom_created_at = None
 
-        with get_db() as conn:
-            with conn.cursor() as cur:
+        try:
+            with get_db() as conn, conn.cursor() as cur:
                 if custom_created_at:
                     cur.execute("""
                         INSERT INTO entries (user_id, category_id, title, content, mood, weather, entry_date, created_at, updated_at)
@@ -269,6 +275,9 @@ class EntryRepository:
                             category_meta = {"name": cat_row[0], "icon": cat_row[1], "color": cat_row[2]}
                         else:
                             category_meta = dict(cat_row)
+        except (psycopg2.Error, Exception) as err:
+            logger.error("[EntryRepository.create] Lỗi giao dịch khi tạo bài viết (user_id=%s): %s", user_id, err, exc_info=True)
+            raise
 
         created_item = {
             "id": entry_id,
@@ -308,8 +317,8 @@ class EntryRepository:
         new_photos: List[Dict[str, Any]]
     ) -> Tuple[Optional[Dict[str, Any]], List[str]]:
         """Update entry metadata, reconcile photos, and synchronize tags."""
-        with get_db() as conn:
-            with conn.cursor() as cur:
+        try:
+            with get_db() as conn, conn.cursor() as cur:
                 # 1. Verify ownership
                 cur.execute("SELECT id FROM entries WHERE id = %s AND user_id = %s;", (entry_id, user_id))
                 if not cur.fetchone():
@@ -336,7 +345,8 @@ class EntryRepository:
                 if dto.created_at:
                     try:
                         custom_created_at = datetime.fromisoformat(dto.created_at)
-                    except Exception:
+                    except (ValueError, TypeError) as parse_err:
+                        logger.warning("[EntryRepository.update] Bỏ qua created_at không hợp lệ %r khi sửa bài #%s: %s", dto.created_at, entry_id, parse_err)
                         custom_created_at = None
 
                 # 4. Update entry record
@@ -430,6 +440,11 @@ class EntryRepository:
                     WHERE user_id = %s 
                       AND id NOT IN (SELECT tag_id FROM entry_tags WHERE tag_id IS NOT NULL);
                 """, (user_id,))
+        except EntryNotFoundError:
+            raise
+        except (psycopg2.Error, Exception) as err:
+            logger.error("[EntryRepository.update] Lỗi giao dịch khi cập nhật bài viết #%s (user_id=%s): %s", entry_id, user_id, err, exc_info=True)
+            raise
 
         # Return refreshed entry and paths for cleanup
         return cls.get_by_id(entry_id, user_id), deleted_paths
@@ -564,131 +579,137 @@ class EntryRepository:
     ) -> int:
         """Reconcile categories and restore backup entries."""
         imported_count = 0
-        with get_cursor() as cur:
-            cur.execute("SELECT id, name FROM categories WHERE user_id = %s;", (user_id,))
-            existing_cats = {r["name"]: r["id"] for r in cur.fetchall()}
+        try:
+            with get_db() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("SELECT id, name FROM categories WHERE user_id = %s;", (user_id,))
+                existing_cats = {r["name"]: r["id"] for r in cur.fetchall()}
 
-            cat_id_mapping = {}
-            cat_name_mapping = {}
+                cat_id_mapping = {}
+                cat_name_mapping = {}
 
-            if raw_cats:
-                for cat in raw_cats:
-                    cat_name = (cat.get("name") or "").strip()
-                    if not cat_name:
-                        continue
-                    old_id = cat.get("id")
-                    icon = cat.get("icon") or "📁"
-                    color = cat.get("color") or "#ec4899"
-                    sort_order = cat.get("sort_order") if cat.get("sort_order") is not None else 0
+                if raw_cats:
+                    for cat in raw_cats:
+                        cat_name = (cat.get("name") or "").strip()
+                        if not cat_name:
+                            continue
+                        old_id = cat.get("id")
+                        icon = cat.get("icon") or "📁"
+                        color = cat.get("color") or "#ec4899"
+                        sort_order = cat.get("sort_order") if cat.get("sort_order") is not None else 0
 
-                    if cat_name in existing_cats:
-                        new_cat_id = existing_cats[cat_name]
-                    else:
-                        cur.execute("SELECT id FROM categories WHERE user_id = %s AND name = %s;", (user_id, cat_name))
-                        found_cat = cur.fetchone()
-                        if found_cat:
-                            new_cat_id = found_cat["id"]
+                        if cat_name in existing_cats:
+                            new_cat_id = existing_cats[cat_name]
                         else:
-                            cur.execute("""
-                                INSERT INTO categories (user_id, name, icon, color, sort_order)
-                                VALUES (%s, %s, %s, %s, %s)
-                                ON CONFLICT (user_id, name) DO UPDATE SET icon = EXCLUDED.icon, color = EXCLUDED.color
-                                RETURNING id;
-                            """, (user_id, cat_name, icon, color, sort_order))
-                            new_cat_id = cur.fetchone()["id"]
-                        existing_cats[cat_name] = new_cat_id
+                            cur.execute("SELECT id FROM categories WHERE user_id = %s AND name = %s;", (user_id, cat_name))
+                            found_cat = cur.fetchone()
+                            if found_cat:
+                                new_cat_id = found_cat["id"]
+                            else:
+                                cur.execute("""
+                                    INSERT INTO categories (user_id, name, icon, color, sort_order)
+                                    VALUES (%s, %s, %s, %s, %s)
+                                    ON CONFLICT (user_id, name) DO UPDATE SET icon = EXCLUDED.icon, color = EXCLUDED.color
+                                    RETURNING id;
+                                """, (user_id, cat_name, icon, color, sort_order))
+                                new_cat_id = cur.fetchone()["id"]
+                            existing_cats[cat_name] = new_cat_id
 
-                    if old_id is not None:
-                        cat_id_mapping[old_id] = new_cat_id
-                    cat_name_mapping[cat_name] = new_cat_id
+                        if old_id is not None:
+                            cat_id_mapping[old_id] = new_cat_id
+                        cat_name_mapping[cat_name] = new_cat_id
 
-            for item in entries_to_import:
-                title = item.get("title") or "Nhật ký không tên"
-                content = item.get("content") or ""
-                mood = item.get("mood") or "serene"
-                weather = item.get("weather") or "sunny"
-                entry_date = item.get("entry_date") or datetime.now().date().isoformat()
-                is_pinned = bool(item.get("is_pinned", False))
+                for item in entries_to_import:
+                    title = item.get("title") or "Nhật ký không tên"
+                    content = item.get("content") or ""
+                    mood = item.get("mood") or "serene"
+                    weather = item.get("weather") or "sunny"
+                    entry_date = item.get("entry_date") or datetime.now().date().isoformat()
+                    is_pinned = bool(item.get("is_pinned", False))
 
-                custom_created_at = None
-                if item.get("created_at"):
-                    try:
-                        custom_created_at = datetime.fromisoformat(item["created_at"])
-                    except Exception:
-                        custom_created_at = None
+                    custom_created_at = None
+                    if item.get("created_at"):
+                        try:
+                            custom_created_at = datetime.fromisoformat(item["created_at"])
+                        except (ValueError, TypeError) as date_err:
+                            logger.warning("[EntryRepository.import] Bỏ qua created_at không hợp lệ ở bản ghi %r: %s", title, date_err)
+                            custom_created_at = None
 
-                custom_updated_at = None
-                if item.get("updated_at"):
-                    try:
-                        custom_updated_at = datetime.fromisoformat(item["updated_at"])
-                    except Exception:
-                        custom_updated_at = None
+                    custom_updated_at = None
+                    if item.get("updated_at"):
+                        try:
+                            custom_updated_at = datetime.fromisoformat(item["updated_at"])
+                        except (ValueError, TypeError) as date_err:
+                            logger.warning("[EntryRepository.import] Bỏ qua updated_at không hợp lệ ở bản ghi %r: %s", title, date_err)
+                            custom_updated_at = None
 
-                old_cat_id = item.get("category_id")
-                cat_name = (item.get("category_name") or "").strip()
-                resolved_cat_id = None
+                    old_cat_id = item.get("category_id")
+                    cat_name = (item.get("category_name") or "").strip()
+                    resolved_cat_id = None
 
-                if old_cat_id is not None and old_cat_id in cat_id_mapping:
-                    resolved_cat_id = cat_id_mapping[old_cat_id]
-                elif cat_name and cat_name in cat_name_mapping:
-                    resolved_cat_id = cat_name_mapping[cat_name]
-                elif cat_name and cat_name in existing_cats:
-                    resolved_cat_id = existing_cats[cat_name]
-                elif old_cat_id is not None and old_cat_id in existing_cats.values():
-                    resolved_cat_id = old_cat_id
+                    if old_cat_id is not None and old_cat_id in cat_id_mapping:
+                        resolved_cat_id = cat_id_mapping[old_cat_id]
+                    elif cat_name and cat_name in cat_name_mapping:
+                        resolved_cat_id = cat_name_mapping[cat_name]
+                    elif cat_name and cat_name in existing_cats:
+                        resolved_cat_id = existing_cats[cat_name]
+                    elif old_cat_id is not None and old_cat_id in existing_cats.values():
+                        resolved_cat_id = old_cat_id
 
-                if custom_created_at:
-                    cur.execute("""
-                        INSERT INTO entries (user_id, category_id, title, content, mood, weather, entry_date, is_pinned, created_at, updated_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        RETURNING id;
-                    """, (user_id, resolved_cat_id, title, content, mood, weather, entry_date, is_pinned, custom_created_at, custom_updated_at or custom_created_at))
-                else:
-                    cur.execute("""
-                        INSERT INTO entries (user_id, category_id, title, content, mood, weather, entry_date, is_pinned, created_at, updated_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
-                        RETURNING id;
-                    """, (user_id, resolved_cat_id, title, content, mood, weather, entry_date, is_pinned))
-
-                new_entry_id = cur.fetchone()["id"]
-                imported_count += 1
-
-                tags = item.get("tags") or []
-                for t in tags:
-                    tag_name = t.strip()
-                    if not tag_name.startswith("#"):
-                        tag_name = f"#{tag_name}"
-                    cur.execute("""
-                        INSERT INTO tags (user_id, name)
-                        VALUES (%s, %s)
-                        ON CONFLICT (user_id, name) DO UPDATE SET name = EXCLUDED.name
-                        RETURNING id;
-                    """, (user_id, tag_name))
-                    tag_id = cur.fetchone()["id"]
-                    cur.execute("""
-                        INSERT INTO entry_tags (entry_id, tag_id)
-                        VALUES (%s, %s)
-                        ON CONFLICT DO NOTHING;
-                    """, (new_entry_id, tag_id))
-
-                photos = item.get("photos") or []
-                for p in photos:
-                    file_path = p.get("file_path")
-                    thumb_path = p.get("thumb_path")
-                    if file_path:
+                    if custom_created_at:
                         cur.execute("""
-                            INSERT INTO entry_photos (entry_id, file_path, thumb_path, file_name, file_size, width, height, sort_order)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
-                        """, (
-                            new_entry_id,
-                            file_path,
-                            thumb_path or file_path,
-                            p.get("file_name", "photo.webp"),
-                            p.get("file_size", 0),
-                            p.get("width", 0),
-                            p.get("height", 0),
-                            p.get("sort_order", 0)
-                        ))
+                            INSERT INTO entries (user_id, category_id, title, content, mood, weather, entry_date, is_pinned, created_at, updated_at)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            RETURNING id;
+                        """, (user_id, resolved_cat_id, title, content, mood, weather, entry_date, is_pinned, custom_created_at, custom_updated_at or custom_created_at))
+                    else:
+                        cur.execute("""
+                            INSERT INTO entries (user_id, category_id, title, content, mood, weather, entry_date, is_pinned, created_at, updated_at)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                            RETURNING id;
+                        """, (user_id, resolved_cat_id, title, content, mood, weather, entry_date, is_pinned))
+
+                    new_entry_id = cur.fetchone()["id"]
+                    imported_count += 1
+
+                    tags = item.get("tags") or []
+                    for t in tags:
+                        tag_name = t.strip()
+                        if not tag_name.startswith("#"):
+                            tag_name = f"#{tag_name}"
+                        cur.execute("""
+                            INSERT INTO tags (user_id, name)
+                            VALUES (%s, %s)
+                            ON CONFLICT (user_id, name) DO UPDATE SET name = EXCLUDED.name
+                            RETURNING id;
+                        """, (user_id, tag_name))
+                        tag_id = cur.fetchone()["id"]
+                        cur.execute("""
+                            INSERT INTO entry_tags (entry_id, tag_id)
+                            VALUES (%s, %s)
+                            ON CONFLICT DO NOTHING;
+                        """, (new_entry_id, tag_id))
+
+                    photos = item.get("photos") or []
+                    for p in photos:
+                        file_path = p.get("file_path")
+                        thumb_path = p.get("thumb_path")
+                        if file_path:
+                            cur.execute("""
+                                INSERT INTO entry_photos (entry_id, file_path, thumb_path, file_name, file_size, width, height, sort_order)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+                            """, (
+                                new_entry_id,
+                                file_path,
+                                thumb_path or file_path,
+                                p.get("file_name", "photo.webp"),
+                                p.get("file_size", 0),
+                                p.get("width", 0),
+                                p.get("height", 0),
+                                p.get("sort_order", 0)
+                            ))
+        except (psycopg2.Error, Exception) as err:
+            logger.error("[EntryRepository.import] Lỗi giao dịch khi nhập dữ liệu (user_id=%s): %s", user_id, err, exc_info=True)
+            raise
 
         return imported_count
 

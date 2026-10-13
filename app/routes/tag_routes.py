@@ -4,7 +4,10 @@ Dedicated modular router for tags CRUD and orphan cleanup operations.
 Complies with AGENTS.md: Modular Layered Architecture, Strict Typing, Zero Magic Numbers.
 """
 
+import json
+import logging
 from typing import List
+import psycopg2
 from starlette import status
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -13,6 +16,8 @@ from starlette.routing import Route
 from app.auth import get_current_user
 from app.repositories.tag_repository import TagRepository
 from app.exceptions import KokoroDomainError, TagNotFoundError, InvalidInputError
+
+logger = logging.getLogger("kokoro.routes.tag")
 
 NO_CACHE_HEADERS = {
     "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
@@ -45,8 +50,14 @@ async def get_tags(request: Request) -> JSONResponse:
             "status": "success",
             "tags": [t.to_dict() for t in tags]
         }, headers=NO_CACHE_HEADERS)
+    except KokoroDomainError as e:
+        return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code, headers=NO_CACHE_HEADERS)
+    except psycopg2.Error as err:
+        logger.error("[tag_routes.get_tags] Lỗi cơ sở dữ liệu: %s", err)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi tải danh sách thẻ"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
+        logger.exception("[tag_routes.get_tags] Lỗi không xác định khi tải danh sách thẻ: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi hệ thống khi tải danh sách thẻ"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
 
 
 async def create_tag(request: Request) -> JSONResponse:
@@ -57,7 +68,7 @@ async def create_tag(request: Request) -> JSONResponse:
 
     try:
         data = await request.json()
-    except Exception:
+    except (json.JSONDecodeError, ValueError, TypeError):
         data = {}
 
     raw_name = (data.get("name") or "").strip()
@@ -76,10 +87,16 @@ async def create_tag(request: Request) -> JSONResponse:
             "message": f"Đã tạo thẻ {clean_name} thành công 🏷️",
             "tag": tag.to_dict()
         }, status_code=status.HTTP_201_CREATED, headers=NO_CACHE_HEADERS)
+    except InvalidInputError as e:
+        return JSONResponse({"status": "error", "message": e.message}, status_code=status.HTTP_400_BAD_REQUEST, headers=NO_CACHE_HEADERS)
     except KokoroDomainError as e:
         return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code, headers=NO_CACHE_HEADERS)
+    except psycopg2.Error as err:
+        logger.error("[tag_routes.create_tag] Lỗi cơ sở dữ liệu: %s", err)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi tạo thẻ"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
+        logger.exception("[tag_routes.create_tag] Lỗi không xác định khi tạo thẻ: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi hệ thống khi tạo thẻ"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
 
 
 async def update_tag(request: Request) -> JSONResponse:
@@ -96,7 +113,7 @@ async def update_tag(request: Request) -> JSONResponse:
 
     try:
         data = await request.json()
-    except Exception:
+    except (json.JSONDecodeError, ValueError, TypeError):
         data = {}
 
     raw_name = data.get("name", "").strip()
@@ -116,10 +133,18 @@ async def update_tag(request: Request) -> JSONResponse:
             "message": "Đã đổi tên thẻ chủ đề thành công.",
             "tag": {"id": final_id, "name": final_name}
         }, headers=NO_CACHE_HEADERS)
+    except TagNotFoundError as e:
+        return JSONResponse({"status": "error", "message": e.message}, status_code=status.HTTP_404_NOT_FOUND, headers=NO_CACHE_HEADERS)
+    except InvalidInputError as e:
+        return JSONResponse({"status": "error", "message": e.message}, status_code=status.HTTP_400_BAD_REQUEST, headers=NO_CACHE_HEADERS)
     except KokoroDomainError as e:
         return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code, headers=NO_CACHE_HEADERS)
+    except psycopg2.Error as err:
+        logger.error("[tag_routes.update_tag] Lỗi cơ sở dữ liệu: %s", err)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi cập nhật thẻ"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
+        logger.exception("[tag_routes.update_tag] Lỗi không xác định khi cập nhật thẻ: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi hệ thống khi cập nhật thẻ"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
 
 
 async def delete_tag(request: Request) -> JSONResponse:
@@ -143,10 +168,16 @@ async def delete_tag(request: Request) -> JSONResponse:
             "status": "success",
             "message": "Đã xóa thẻ chủ đề thành công."
         }, headers=NO_CACHE_HEADERS)
+    except TagNotFoundError as e:
+        return JSONResponse({"status": "error", "message": e.message}, status_code=status.HTTP_404_NOT_FOUND, headers=NO_CACHE_HEADERS)
     except KokoroDomainError as e:
         return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code, headers=NO_CACHE_HEADERS)
+    except psycopg2.Error as err:
+        logger.error("[tag_routes.delete_tag] Lỗi cơ sở dữ liệu: %s", err)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi xóa thẻ"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
+        logger.exception("[tag_routes.delete_tag] Lỗi không xác định khi xóa thẻ: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi hệ thống khi xóa thẻ"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
 
 
 async def cleanup_orphan_tags(request: Request) -> JSONResponse:
@@ -162,8 +193,14 @@ async def cleanup_orphan_tags(request: Request) -> JSONResponse:
             "message": f"Đã dọn dẹp {deleted_count} thẻ chủ đề mồ côi.",
             "deleted_count": deleted_count
         }, headers=NO_CACHE_HEADERS)
+    except KokoroDomainError as e:
+        return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code, headers=NO_CACHE_HEADERS)
+    except psycopg2.Error as err:
+        logger.error("[tag_routes.cleanup_orphan_tags] Lỗi cơ sở dữ liệu: %s", err)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi dọn dẹp thẻ mồ côi"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
+        logger.exception("[tag_routes.cleanup_orphan_tags] Lỗi không xác định khi dọn dẹp thẻ mồ côi: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi hệ thống khi dọn dẹp thẻ mồ côi"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
 
 
 tag_routes: List[Route] = [

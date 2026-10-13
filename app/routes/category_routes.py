@@ -4,7 +4,10 @@ Dedicated modular router for categories CRUD operations.
 Complies with AGENTS.md: Modular Layered Architecture, Strict Typing, Zero Magic Numbers.
 """
 
+import json
+import logging
 from typing import List
+import psycopg2
 from starlette import status
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -14,6 +17,8 @@ from app.auth import get_current_user
 from app.repositories.category_repository import CategoryRepository
 from app.schemas.category import CategoryCreateDTO, CategoryUpdateDTO
 from app.exceptions import KokoroDomainError, CategoryNotFoundError, CategoryDuplicateError, InvalidInputError
+
+logger = logging.getLogger("kokoro.routes.category")
 
 NO_CACHE_HEADERS = {
     "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
@@ -46,8 +51,14 @@ async def get_categories(request: Request) -> JSONResponse:
             "status": "success",
             "categories": [c.to_dict() for c in categories]
         }, headers=NO_CACHE_HEADERS)
+    except KokoroDomainError as e:
+        return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code, headers=NO_CACHE_HEADERS)
+    except psycopg2.Error as err:
+        logger.error("[category_routes.get_categories] Lỗi cơ sở dữ liệu: %s", err)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi tải danh mục"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
+        logger.exception("[category_routes.get_categories] Lỗi không xác định khi tải danh mục: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi hệ thống khi tải danh mục"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
 
 
 async def create_category(request: Request) -> JSONResponse:
@@ -58,7 +69,7 @@ async def create_category(request: Request) -> JSONResponse:
 
     try:
         data = await request.json()
-    except Exception:
+    except (json.JSONDecodeError, ValueError, TypeError):
         data = {}
 
     name = (data.get("name") or "").strip()
@@ -81,10 +92,18 @@ async def create_category(request: Request) -> JSONResponse:
             "message": "Đã tạo danh mục thành công 🌸",
             "category": category.to_dict()
         }, status_code=status.HTTP_201_CREATED, headers=NO_CACHE_HEADERS)
+    except CategoryDuplicateError as e:
+        return JSONResponse({"status": "error", "message": e.message}, status_code=status.HTTP_409_CONFLICT, headers=NO_CACHE_HEADERS)
+    except InvalidInputError as e:
+        return JSONResponse({"status": "error", "message": e.message}, status_code=status.HTTP_400_BAD_REQUEST, headers=NO_CACHE_HEADERS)
     except KokoroDomainError as e:
         return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code, headers=NO_CACHE_HEADERS)
+    except psycopg2.Error as err:
+        logger.error("[category_routes.create_category] Lỗi cơ sở dữ liệu: %s", err)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi tạo danh mục"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
+        logger.exception("[category_routes.create_category] Lỗi không xác định khi tạo danh mục: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi hệ thống khi tạo danh mục"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
 
 
 async def update_category(request: Request) -> JSONResponse:
@@ -102,7 +121,7 @@ async def update_category(request: Request) -> JSONResponse:
 
     try:
         data = await request.json()
-    except Exception:
+    except (json.JSONDecodeError, ValueError, TypeError):
         data = {}
 
     name = data.get("name")
@@ -143,10 +162,20 @@ async def update_category(request: Request) -> JSONResponse:
             "message": "Đã cập nhật danh mục thành công 🌸",
             "category": updated.to_dict()
         }, headers=NO_CACHE_HEADERS)
+    except CategoryNotFoundError as e:
+        return JSONResponse({"status": "error", "message": e.message}, status_code=status.HTTP_404_NOT_FOUND, headers=NO_CACHE_HEADERS)
+    except CategoryDuplicateError as e:
+        return JSONResponse({"status": "error", "message": e.message}, status_code=status.HTTP_409_CONFLICT, headers=NO_CACHE_HEADERS)
+    except InvalidInputError as e:
+        return JSONResponse({"status": "error", "message": e.message}, status_code=status.HTTP_400_BAD_REQUEST, headers=NO_CACHE_HEADERS)
     except KokoroDomainError as e:
         return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code, headers=NO_CACHE_HEADERS)
+    except psycopg2.Error as err:
+        logger.error("[category_routes.update_category] Lỗi cơ sở dữ liệu: %s", err)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi cập nhật danh mục"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
+        logger.exception("[category_routes.update_category] Lỗi không xác định khi cập nhật danh mục: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi hệ thống khi cập nhật danh mục"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
 
 
 async def delete_category(request: Request) -> JSONResponse:
@@ -171,10 +200,16 @@ async def delete_category(request: Request) -> JSONResponse:
             "status": "success",
             "message": f"Đã xóa danh mục '{deleted_name}' thành công 🌸"
         }, headers=NO_CACHE_HEADERS)
+    except CategoryNotFoundError as e:
+        return JSONResponse({"status": "error", "message": e.message}, status_code=status.HTTP_404_NOT_FOUND, headers=NO_CACHE_HEADERS)
     except KokoroDomainError as e:
         return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code, headers=NO_CACHE_HEADERS)
+    except psycopg2.Error as err:
+        logger.error("[category_routes.delete_category] Lỗi cơ sở dữ liệu: %s", err)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi xóa danh mục"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
+        logger.exception("[category_routes.delete_category] Lỗi không xác định khi xóa danh mục: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi hệ thống khi xóa danh mục"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
 
 
 category_routes: List[Route] = [
