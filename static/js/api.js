@@ -173,6 +173,11 @@ const KokoroAPI = (() => {
       return await request(`/entries/${id}`, { method: 'DELETE' });
     },
 
+    // DELETE /api/entries/{id}/photos/{photoId}
+    async deleteEntryPhoto(entryId, photoId) {
+      return await request(`/entries/${entryId}/photos/${photoId}`, { method: 'DELETE' });
+    },
+
     // PATCH /api/entries/{id}/pin
     async togglePin(id) {
       return await request(`/entries/${id}/pin`, { method: 'PATCH' });

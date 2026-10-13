@@ -748,6 +748,7 @@ const Editor = {
 
     if (this.deletedPhotoIds.length > 0) {
       formData.append('deleted_photo_ids', JSON.stringify(this.deletedPhotoIds));
+      formData.append('deleted_photos', this.deletedPhotoIds.join(','));
     }
 
     this.selectedFiles.forEach((file) => {

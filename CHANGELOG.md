@@ -2,6 +2,21 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal Diary & Photo Journal PWA** được ghi nhận chi tiết tại tệp này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) và tuân thủ [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.7.4] - 2026-10-13
+### Fixed & Data Integrity (Khắc Phục Động Cơ Xóa Ảnh & Đồng Bộ Tài Sản Đĩa - CSDL)
+- **Khắc Phục Động Cơ Xóa Ảnh Trong Trình Soạn Thảo (`static/js/editor.js`, `app/routes/entry_routes.py`, `app/repositories/entry_repository.py`):**
+  * Phát hiện và giải quyết triệt để sự sai lệch tham số giữa frontend và backend: `editor.js` gửi `deleted_photo_ids` dạng chuỗi JSON (`formData.append('deleted_photo_ids', JSON.stringify(this.deletedPhotoIds))`), trong khi `entry_routes.py` trước đây chỉ đọc `form.get("deleted_photos")` qua `.split(",")`, dẫn đến danh sách `del_ids` luôn rỗng và ảnh không bao giờ bị xóa khi cập nhật bài viết.
+  * Xây dựng hàm trợ năng `_parse_deleted_photo_ids(form)` phân tích linh hoạt cả JSON array string, comma-separated string và các giá trị lặp lại, đảm bảo độ tương thích 100%.
+  * Cập nhật `editor.js` gửi song song cả `deleted_photo_ids` và `deleted_photos`.
+  * Bổ sung endpoint chuyên dụng `DELETE /api/entries/{id}/photos/{photo_id}` cùng phương thức `EntryRepository.delete_single_photo()` cho phép xóa ảnh trực tiếp, nguyên tử kèm dọn dẹp tệp vật lý WebP trên đĩa.
+  * Bổ sung `KokoroAPI.deleteEntryPhoto(entryId, photoId)` trong `static/js/api.js`.
+- **Dọn Dẹp & Đồng Bộ Tài Sản Đĩa - CSDL (Database Asset Reconciliation):**
+  * Rà soát đối chiếu toàn diện giữa bảng `entry_photos` và hệ thống tệp lưu trữ vật lý trong `uploads/`. Xóa bỏ an toàn 7 bản ghi mồ côi (IDs 13, 14, 79, 87, 106, 124, 157) mà tệp vật lý đã bị dọn dẹp trước đó, bảo toàn 100% các bản ghi ảnh hợp lệ có tệp tồn tại thực tế trên đĩa.
+- **Kiểm Thử Hồi Quy Độc Lập:**
+  * Xây dựng `tests/test_photo_deletion.py` kiểm thử toàn diện luồng xóa ảnh qua `PUT /api/entries/{id}` và endpoint trực tiếp `DELETE /api/entries/{id}/photos/{photo_id}` ➔ PASS 2/2 (100%).
+  * Toàn bộ 89/89 unit tests trong hệ thống PASS 100%.
+  * Nâng cấp phiên bản toàn hệ thống lên `v1.7.4` (`app/config.py`, `sw.js`, `index.html`, test suites).
+
 ## [1.7.3] - 2026-10-13
 ### Fixed & PWA Polish (Khắc Phục Lỗi Đổi Nhạc Nền, Sự Kiện Mã PIN, Lưới Kho Kỷ Niệm & Fallback Ảnh 404)
 - **Khắc Phục Lỗi Đổi Nhạc Nền Zen Audio Trên Mobile/PWA & Desktop (`static/css/layout.css`, `static/js/zen-audio.js`):**

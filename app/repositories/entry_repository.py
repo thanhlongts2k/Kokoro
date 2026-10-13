@@ -469,6 +469,37 @@ class EntryRepository:
         return photo_paths
 
     @classmethod
+    def delete_single_photo(cls, entry_id: int, photo_id: int, user_id: int) -> List[str]:
+        """Delete an individual photo from an entry owned by user, returning its file paths."""
+        deleted_paths: List[str] = []
+        with get_db() as conn, conn.cursor() as cur:
+            # 1. Verify ownership of the entry
+            cur.execute("SELECT id FROM entries WHERE id = %s AND user_id = %s;", (entry_id, user_id))
+            if not cur.fetchone():
+                return []
+
+            # 2. Query target photo paths
+            cur.execute("""
+                SELECT file_path, thumb_path 
+                FROM entry_photos 
+                WHERE id = %s AND entry_id = %s;
+            """, (photo_id, entry_id))
+            row = cur.fetchone()
+            if not row:
+                return []
+
+            if isinstance(row, (tuple, list)):
+                if row[0]: deleted_paths.append(row[0])
+                if row[1]: deleted_paths.append(row[1])
+            else:
+                if row.get("file_path"): deleted_paths.append(row["file_path"])
+                if row.get("thumb_path"): deleted_paths.append(row["thumb_path"])
+
+            # 3. Delete from database
+            cur.execute("DELETE FROM entry_photos WHERE id = %s AND entry_id = %s;", (photo_id, entry_id))
+        return deleted_paths
+
+    @classmethod
     def delete_entry(cls, entry_id: int, user_id: int) -> bool:
         """Delete an entry and cleanup orphaned tags for user."""
         with get_db() as conn:

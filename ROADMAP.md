@@ -417,3 +417,17 @@
   - [x] Toàn bộ 87/87 unit tests trong `tests/` PASS 100%.
   - [x] Nâng cấp phiên bản toàn hệ thống lên `v1.7.3` (`app/config.py`, `sw.js`, `index.html`).
 
+### 🔹 Giai đoạn 19: Bản Phát Hành v1.7.4 — Khắc Phục Động Cơ Xóa Ảnh & Đồng Bộ Tài Sản Đĩa - CSDL (Photo Deletion Engine & Asset Reconciliation)
+- [x] **Khắc Phục Động Cơ Xóa Ảnh Trong Trình Soạn Thảo (`static/js/editor.js`, `app/routes/entry_routes.py`, `app/repositories/entry_repository.py`):**
+  - [x] Giải quyết triệt để sự sai lệch tham số giữa frontend (`deleted_photo_ids` JSON array) và backend (`form.get('deleted_photos')`).
+  - [x] Xây dựng hàm helper `_parse_deleted_photo_ids(form)` nhận diện cả JSON array string, comma-separated string và các giá trị mảng lặp lại.
+  - [x] Bổ sung REST endpoint `DELETE /api/entries/{id}/photos/{photo_id}` và phương thức `EntryRepository.delete_single_photo()` cho phép xóa ảnh đơn lẻ nguyên tử.
+  - [x] Bổ sung phương thức `KokoroAPI.deleteEntryPhoto(entryId, photoId)` trong `static/js/api.js`.
+- [x] **Dọn Dẹp & Đồng Bộ Tài Sản Đĩa - CSDL (Database Asset Reconciliation):**
+  - [x] Xóa 7 bản ghi ảnh mồ côi trong `entry_photos` mà tệp vật lý WebP đã bị dọn dẹp trước đó, bảo toàn 100% các bản ghi ảnh hợp lệ có tệp tồn tại thực tế trên đĩa.
+- [x] **Kiểm Thử Hồi Quy Độc Lập:**
+  - [x] Xây dựng `tests/test_photo_deletion.py` kiểm thử luồng xóa ảnh ➔ PASS 2/2 (100%).
+  - [x] Toàn bộ 89/89 unit tests trong hệ thống PASS 100%.
+  - [x] Nâng cấp phiên bản toàn hệ thống lên `v1.7.4` (`app/config.py`, `sw.js`, `index.html`, test suites).
+
+

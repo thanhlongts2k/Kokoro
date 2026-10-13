@@ -51,6 +51,39 @@ def _parse_category_id(val: Any) -> Optional[int]:
         return None
 
 
+def _parse_deleted_photo_ids(form) -> List[int]:
+    """Robustly extract deleted photo IDs from form whether JSON array, comma string, or list."""
+    del_ids: List[int] = []
+    raw_vals: List[Any] = []
+    for key in ("deleted_photo_ids", "deleted_photos"):
+        val = form.get(key)
+        if val:
+            raw_vals.append(val)
+        raw_list = form.getlist(key)
+        if raw_list and len(raw_list) > 1:
+            raw_vals.extend(raw_list)
+
+    for raw in raw_vals:
+        if isinstance(raw, str):
+            clean = raw.strip()
+            if clean.startswith("[") and clean.endswith("]"):
+                try:
+                    parsed = json.loads(clean)
+                    if isinstance(parsed, list):
+                        for item in parsed:
+                            if str(item).isdigit():
+                                del_ids.append(int(item))
+                except Exception:
+                    pass
+            for part in clean.replace("[", "").replace("]", "").split(","):
+                part_clean = part.strip()
+                if part_clean.isdigit():
+                    del_ids.append(int(part_clean))
+        elif isinstance(raw, int):
+            del_ids.append(raw)
+    return list(dict.fromkeys(del_ids))
+
+
 async def _process_photos(photo_files: list) -> List[Dict[str, Any]]:
     """Process and save uploaded photo files via MediaService."""
     processed = []
@@ -180,7 +213,7 @@ async def update_entry(request: Request) -> JSONResponse:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_400_BAD_REQUEST)
 
     tags = [t.strip() for t in form.get("tags", "").replace(",", " ").split() if t.strip()]
-    del_ids = [int(p.strip()) for p in form.get("deleted_photos", "").split(",") if p.strip().isdigit()]
+    del_ids = _parse_deleted_photo_ids(form)
     cat_id = _parse_category_id(form.get("category_id")) if "category_id" in form else None
 
     processed_photos = []
@@ -217,6 +250,33 @@ async def update_entry(request: Request) -> JSONResponse:
         _clean_photos(processed_photos)
         logger.exception("[entry_routes.update_entry] Lỗi hệ thống: %s", e)
         return JSONResponse({"status": "error", "message": f"Lỗi cập nhật bài viết: {e}"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def delete_entry_photo(request: Request) -> JSONResponse:
+    """Delete a specific photo from an entry strictly owned by user."""
+    user, err = require_auth(request)
+    if err:
+        return err
+    try:
+        entry_id = int(request.path_params["id"])
+        photo_id = int(request.path_params["photo_id"])
+    except (ValueError, TypeError, KeyError):
+        return JSONResponse({"status": "error", "message": "ID không hợp lệ"}, status_code=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        deleted_paths = EntryRepository.delete_single_photo(entry_id, photo_id, user["id"])
+        if not deleted_paths:
+            return JSONResponse({"status": "error", "message": "Không tìm thấy ảnh hoặc bạn không có quyền xóa."}, status_code=status.HTTP_404_NOT_FOUND)
+        MediaService.delete_photo_files(deleted_paths)
+        return JSONResponse({"status": "success", "message": "Đã xóa ảnh thành công 🌸", "photo_id": photo_id})
+    except KokoroDomainError as e:
+        return JSONResponse({"status": "error", "message": e.message}, status_code=e.status_code)
+    except psycopg2.Error as e:
+        logger.error("[entry_routes.delete_entry_photo] Lỗi DB: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi xóa ảnh"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        logger.exception("[entry_routes.delete_entry_photo] Lỗi hệ thống: %s", e)
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 async def delete_entry(request: Request) -> JSONResponse:
@@ -355,5 +415,6 @@ entry_routes = [
     Route("/api/entries/{id:int}", get_entry_by_id, methods=["GET"]),
     Route("/api/entries/{id:int}", update_entry, methods=["PUT"]),
     Route("/api/entries/{id:int}", delete_entry, methods=["DELETE"]),
+    Route("/api/entries/{id:int}/photos/{photo_id:int}", delete_entry_photo, methods=["DELETE"]),
     Route("/api/entries/{id:int}/pin", toggle_pin_entry, methods=["PATCH"]),
 ]
