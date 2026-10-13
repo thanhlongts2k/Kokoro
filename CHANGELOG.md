@@ -2,7 +2,30 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal Diary & Photo Journal PWA** được ghi nhận chi tiết tại tệp này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) và tuân thủ [Semantic Versioning (SemVer)](https://semver.org/).
 
----
+## [1.7.0] - 2026-10-13
+### Refactored & Architecture (Đại Phẫu Thuật God-File `app.js` & Tập Trung Hóa Hằng Số)
+- **Đại Phẫu Thuật God-File `static/js/app.js` (2.025 dòng ➔ 386 dòng):**
+  * Tách 4 phân hệ hiển thị độc lập theo chuẩn Single Responsibility Principle:
+    - `static/js/timeline-feed.js`: Chuyên trách render danh sách bài viết, card DOM, photo mosaic, progressive pagination, mood filter chips.
+    - `static/js/calendar-view.js`: Chuyên trách logic toán học lịch tháng, render mini & full calendar grid với chấm cảm xúc, xem bài viết theo ngày, `isSameDay`.
+    - `static/js/memories-view.js`: Chuyên trách album ảnh kỷ niệm, hashtag chips, bộ lọc cảm xúc, phóng to lightbox.
+    - `static/js/profile-stats.js`: Chuyên trách trang cá nhân, tính streak chuỗi ngày viết liên tiếp (`calculateStreak`), biểu đồ phân bổ cảm xúc, đồng bộ badge số lượng.
+  * Thu gọn `static/js/app.js` về 386 dòng (giảm hơn 80% dung lượng), chỉ giữ vai trò Bootstrap, View Routing (HTML5 History API & hash change), và Event Coordinator.
+- **Tập Trung Hóa Hằng Số & Triệt Tiêu Magic Numbers (`static/js/constants.js`):**
+  * Tạo `KokoroConstants` với các domain hằng số tập trung: `PAGINATION` (15/15), `TIMEOUTS` (DRAFT_AUTOSAVE: 1000ms, SEARCH_DEBOUNCE: 300ms, TOAST: 3000ms), `STORAGE_KEYS`, `MOODS`, `WEATHER`, `VIEWS`, `KEY_CODES`, `EXPORT_THEMES`.
+  * Tái cấu trúc `editor.js` và `app.js` sử dụng `KokoroConstants`.
+
+### Performance & Security (Tối Ưu CSDL & Secret Hygiene)
+- **Database Composite Indexing (`app/database.py`):**
+  * Bổ sung Composite Index: `CREATE INDEX IF NOT EXISTS idx_entries_pinned_date ON entries(user_id, is_pinned DESC, entry_date DESC, created_at DESC);`
+  * Tối ưu hóa triệt để tốc độ truy vấn timeline feed khi người dùng có hàng ngàn bài viết ghim và theo ngày.
+- **Bảo Mật Thông Tin Nhạy Cảm (Secret Hygiene trong `app/config.py`):**
+  * Đưa ra cảnh báo bảo mật khi thiếu `.env` và cơ chế chặn khởi động (fail-fast RuntimeError) trong môi trường production nếu thiếu `SECRET_KEY`.
+
+### Added & Testing (Khép Lại Khoảng Mù Kiểm Thử Frontend)
+- **Bộ Kiểm Thử Tự Động Hợp Đồng Frontend (`tests/test_v170_frontend_contracts.py`):**
+  * Kiểm tra toàn diện hợp đồng giao diện: tính toàn vẹn của 4 dedicated view modules, `KokoroConstants`, rào chắn < 400 dòng của `app.js`, thứ tự nạp thẻ script trong `index.html`, cache Service Worker, và composite index PostgreSQL.
+  * Mở rộng toàn bộ test runner đạt **81/81 tests PASS 100%**.
 
 ## [1.6.5] - 2026-10-13
 ### Added & Visual (Memory Studio — Xuất Thẻ Ảnh Kỷ Niệm 5 Phong Cách & Thủ Công Scrapbook)

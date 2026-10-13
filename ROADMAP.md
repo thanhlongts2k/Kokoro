@@ -352,5 +352,26 @@
 - [x] **Bộ Kiểm Thử Tự Động Toàn Diện (`tests/test_v165_release.py`):**
   - [x] Đạt **74/74 tests PASS 100%** trên toàn bộ hệ thống test runner.
 
+### 🔹 Giai đoạn 16: Bản Phát Hành v1.7.0 — Đại Phẫu Thuật God-File `app.js`, Frontend Modularization & Khép Lại Khoảng Mù Kiểm Thử
+- [x] **Tối Ưu CSDL & Secret Hygiene (Sprint 1):**
+  - [x] Database Composite Indexing (`app/database.py`): `CREATE INDEX IF NOT EXISTS idx_entries_pinned_date ON entries(user_id, is_pinned DESC, entry_date DESC, created_at DESC);`
+  - [x] Secret Hygiene (`app/config.py`): Loại bỏ fallback im lặng, cảnh báo môi trường và chặn khởi động ở production nếu thiếu `SECRET_KEY`.
+- [x] **Tập Trung Hóa Hằng Số & Triệt Tiêu Magic Numbers (Sprint 2):**
+  - [x] Tạo `static/js/constants.js`: Định nghĩa `KokoroConstants` (PAGINATION, TIMEOUTS, STORAGE_KEYS, MOODS, VIEWS, EXPORT_THEMES).
+  - [x] Nạp `constants.js` vào `index.html` và danh sách cache `sw.js`.
+  - [x] Tái cấu trúc `editor.js` và `app.js` loại bỏ số/chuỗi ma thuật thô.
+- [x] **Đại Phẫu Thuật God-File `app.js` (Sprint 3):**
+  - [x] Bóc tách 4 phân hệ hiển thị chuyên biệt:
+    - `static/js/timeline-feed.js`: Timeline feed cards, progressive pagination, card action delegates.
+    - `static/js/calendar-view.js`: Monthly calendar grid, mini calendar widget, `isSameDay`.
+    - `static/js/memories-view.js`: Memories album gallery, hashtag chips, mood filter chips.
+    - `static/js/profile-stats.js`: Profile header & metrics, mood distribution breakdown, `calculateStreak`.
+  - [x] Rút gọn `app.js` từ 2.025 dòng xuống **386 dòng** (đạt xuất sắc hợp đồng < 400 dòng), chỉ giữ vai trò Bootstrap, View Routing và Event Coordinator.
+- [x] **Khép Lại Khoảng Mù Kiểm Thử & Phát Hành v1.7.0 (Sprint 4):**
+  - [x] Tạo bộ kiểm thử tự động `tests/test_v170_frontend_contracts.py` bao quát 7 hợp đồng frontend, CSDL và bảo mật.
+  - [x] Nâng cấp phiên bản đồng bộ lên `v1.7.0` (`config.py`, `index.html`, `sw.js`).
+  - [x] Toàn bộ test runner đạt **81/81 tests PASS 100%**.
+
+
 
 

@@ -15,6 +15,36 @@ const ProfileStats = {
   ],
 
   /**
+   * Calculate consecutive journaling days streak
+   */
+  calculateStreak(entries) {
+    if (!entries || !entries.length) return 0;
+    const sortedDates = Array.from(new Set(entries.map((e) => e.entryDate).filter(Boolean))).sort().reverse();
+    if (!sortedDates.length) return 0;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    let streak = 0;
+    let expectedDate = sortedDates[0] === todayStr ? todayStr : (sortedDates[0] === yesterdayStr ? yesterdayStr : null);
+    if (!expectedDate) return 0;
+
+    const checkDate = new Date(expectedDate);
+    for (const d of sortedDates) {
+      const curStr = checkDate.toISOString().split('T')[0];
+      if (d === curStr) {
+        streak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    return streak;
+  },
+
+  /**
    * Synchronize mood filter counts across Desktop Sidebar and Mobile Chips
    */
   updateMoodCountBadges(options) {

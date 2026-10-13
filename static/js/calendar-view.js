@@ -21,6 +21,16 @@ const CalendarView = {
   },
 
   /**
+   * Check if two dates represent the same calendar day (YYYY-MM-DD or Date)
+   */
+  isSameDay(date1, date2) {
+    if (!date1 || !date2) return false;
+    const str1 = typeof date1 === 'string' ? date1 : (date1 instanceof Date ? date1.toISOString().split('T')[0] : String(date1));
+    const str2 = typeof date2 === 'string' ? date2 : (date2 instanceof Date ? date2.toISOString().split('T')[0] : String(date2));
+    return str1 === str2;
+  },
+
+  /**
    * Render Mini Calendar Widget (in Desktop Sidebar or Navigation panel)
    */
   renderMiniCalendar(options) {
