@@ -1880,6 +1880,50 @@ body.modal-scroll-locked {
   box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
 }
 
+.card-export-theme-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  touch-action: pan-x;
+  padding: 2px 2px 6px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.card-export-theme-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.export-theme-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-glass-card);
+  background: color-mix(in srgb, var(--surface-glass-card) 60%, transparent);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.export-theme-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--sakura-300);
+}
+
+.export-theme-btn.active {
+  background: var(--sakura-500);
+  color: #ffffff;
+  border-color: var(--sakura-500);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.28);
+}
+
 .card-export-preview-box {
   position: relative;
   width: 100%;

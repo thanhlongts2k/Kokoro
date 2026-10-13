@@ -237,6 +237,149 @@ class TestKokoroV163CardExport(unittest.TestCase):
         self.assertIn("window.KokoroCardExport.open(entry)", app_content)
         self.assertIn("window.KokoroCardExport.init()", app_content)
 
+    def test_08_card_aesthetic_upgrades(self):
+        """Verify aesthetic upgrades (v1.6.5): Adaptive Story photo height, Scrapbook frame, Smart 35% focus & Weekday Date"""
+        card_file = BASE_DIR / "static" / "js" / "card-export.js"
+        content = card_file.read_text(encoding="utf-8")
+
+        # 1. Adaptive photo height in Story 9:16 when text is short (<= 4 lines)
+        self.assertIn("isShortText", content)
+        self.assertIn("photoH = isShortText ?", content)
+        self.assertIn("Math.round(contentWidth * 1.22)", content)
+
+        # 2. Smart 35% crop anchor in drawImageCover
+        self.assertIn("sy = Math.max(0, (img.naturalHeight - sHeight) * 0.35);", content)
+
+        # 3. Scrapbook / Polaroid photo frame with soft shadow
+        self.assertIn("rgba(15, 23, 42, 0.08)", content)
+        self.assertIn("ctx.shadowBlur = 24;", content)
+        self.assertIn("framePad = 7;", content)
+
+        # 4. Weekday timestamp formatting
+        self.assertIn("formatCardDate(entry)", content)
+        self.assertIn("Chủ Nhật", content)
+        self.assertIn("Thứ Ba", content)
+
+        # 5. Poetic quotation marks (“ ”)
+        self.assertIn("“", content)
+        self.assertIn("”", content)
+
+    def test_09_multi_theme_memory_studio(self):
+        """Verify Multi-Theme Memory Studio (v1.6.5): 5 Themes, Switcher UI, drawPhotoFrame & drawDecorations"""
+        # 1. Check index.html Theme Switcher UI
+        index_path = BASE_DIR / "static" / "index.html"
+        index_content = index_path.read_text(encoding="utf-8")
+
+        self.assertIn('id="card-export-theme-bar"', index_content)
+        self.assertIn('data-theme="sakura"', index_content)
+        self.assertIn('data-theme="polaroid"', index_content)
+        self.assertIn('data-theme="scrapbook"', index_content)
+        self.assertIn('data-theme="music"', index_content)
+        self.assertIn('data-theme="editorial"', index_content)
+
+        # 2. Check components.css Capsule styling
+        css_path = BASE_DIR / "static" / "css" / "components.css"
+        css_content = css_path.read_text(encoding="utf-8")
+
+        self.assertIn(".card-export-theme-bar", css_content)
+        self.assertIn(".export-theme-btn", css_content)
+        self.assertIn(".export-theme-btn.active", css_content)
+
+        # 3. Check card-export.js Theme Engine
+        card_file = BASE_DIR / "static" / "js" / "card-export.js"
+        content = card_file.read_text(encoding="utf-8")
+
+        # 5 Themes dictionary
+        for theme in ("sakura", "polaroid", "scrapbook", "music", "editorial"):
+            self.assertIn(f"{theme}: {{", content)
+
+        # State & Controller methods
+        self.assertIn("activeTheme: 'sakura'", content)
+        self.assertIn("setTheme(theme)", content)
+        self.assertIn("updateThemeButtons()", content)
+
+        # Theme Photo Frame Engine
+        self.assertIn("drawPhotoFrame(ctx, entry, photoImg", content)
+        self.assertIn("formatFilmDate(entry)", content)
+        self.assertIn("Washi Tape", content)
+
+        # Theme Decorations Engine
+        self.assertIn("drawDecorations(ctx, layout, theme", content)
+        self.assertIn("KOKORO POST", content)  # Scrapbook cancel stamp
+        self.assertIn("01:43", content)  # Music progress bar
+        self.assertIn("03:20", content)
+        self.assertIn("Georgia, serif", content)  # Editorial watermark
+
+        # Memory hygiene & Blob URL revocation
+        self.assertIn("cleanupMemory()", content)
+        self.assertIn("URL.revokeObjectURL", content)
+
+    def test_10_scrapbook_and_memory_photocard_aesthetics(self):
+        """Verify Scrapbook & Memory Photocard upgrades (v1.6.5): Dot-grid, Tilted Polaroid, Gingham Tape, Doodles & Metadata"""
+        card_file = BASE_DIR / "static" / "js" / "card-export.js"
+        content = card_file.read_text(encoding="utf-8")
+
+        # 1. Bullet Journal Dot-Grid Texture
+        self.assertIn("drawDotGrid", content)
+        self.assertIn("#faf6ed", content)
+        self.assertIn("hasDotGrid: true", content)
+
+        # 2. Tilted Polaroid & Gingham / Caro Washi Tape
+        self.assertIn("drawWashiTapeGingham", content)
+        self.assertIn("tiltAngle", content)
+        self.assertIn("ctx.rotate(tiltAngle)", content)
+
+        # 3. Hand-drawn Doodle Hearts & Floating Music Notes
+        self.assertIn("drawDoodleHeart", content)
+        self.assertIn("Now Playing: ${songName}", content)
+        self.assertIn("Giai điệu ngày bình yên", content)
+
+        # 4. Memory Metadata Engine (Location, Weather, Streak, Signature)
+        self.assertIn("drawMemoryMetadata", content)
+        self.assertIn("📍 ${location} • ${weatherIcon} ${weatherTemp}", content)
+        self.assertIn("Ngày thứ ${streakDays} 🌸", content)
+        self.assertIn("Ghi lại bởi ${authorName} ✒️", content)
+
+    def test_11_layout_collisions_and_vertical_balancing(self):
+        """Verify layout collision fixes & vertical balancing (v1.6.5): Dynamic music Y, safe postmark, Story vertical centering & markdown quote cleaning"""
+        card_file = BASE_DIR / "static" / "js" / "card-export.js"
+        content = card_file.read_text(encoding="utf-8")
+
+        # 1. Dynamic musicWidgetY based on cursorY (no overlapping text)
+        self.assertIn("musicWidgetY = cursorY + 24", content)
+        self.assertIn("photoH = isShortText ? 330 : 290;", content)
+
+        # 2. Safe postal cancellation stamp location (clear of header date text)
+        self.assertIn("stampY = photoTop + 65", content)
+
+        # 3. Vertical balancing in Story 9:16
+        self.assertIn("Vertical Balancing for Story 9:16", content)
+        self.assertIn("freeSpace = availableViewportH - totalContentH", content)
+
+        # 4. Raw markdown blockquote prefix '>' cleaning
+        self.assertIn("paragraph.replace(/^(?:>\\s*)+/, '')", content)
+
+    def test_12_theme_differentiation_and_export_filename(self):
+        """Verify Polaroid vs Scrapbook differentiation, Square Music spacing ceiling, and standardized getExportFilename()"""
+        card_file = BASE_DIR / "static" / "js" / "card-export.js"
+        content = card_file.read_text(encoding="utf-8")
+
+        # 1. Square Theme Music spacing ceiling and hashtag omission
+        self.assertIn("footerY - 54", content)
+        self.assertIn("(isStory || themeId !== 'music')", content)
+
+        # 2. Clear differentiation: polaroid hasDotGrid is false, scrapbook is true
+        self.assertIn("hasDotGrid: false", content)
+        self.assertIn("hasDotGrid: true", content)
+        self.assertIn("if (themeId === 'scrapbook') {", content)
+
+        # 3. Standardized export filename format: kokoro_{theme}_{layout}_{timestamp}.jpg
+        self.assertIn("getExportFilename()", content)
+        self.assertIn("kokoro_${theme}_${layout}_${timestamp}.jpg", content)
+        self.assertIn("this.getExportFilename()", content)
+
 
 if __name__ == "__main__":
     unittest.main()
+
+
