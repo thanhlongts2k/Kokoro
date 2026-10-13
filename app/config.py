@@ -1,12 +1,19 @@
 import os
+import logging
 from pathlib import Path
 from dotenv import load_dotenv
+
+logger = logging.getLogger("kokoro.config")
 
 # Base directory of the project
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load .env file
-load_dotenv(BASE_DIR / ".env")
+_env_path = BASE_DIR / ".env"
+if _env_path.exists():
+    load_dotenv(_env_path)
+else:
+    logger.warning("[Kokoro Security Warning] .env file not found at %s. Falling back to environment variables.", _env_path)
 
 class Config:
     APP_VERSION: str = "v1.6.5"
@@ -20,10 +27,16 @@ class Config:
     DB_PORT: int = int(os.getenv("DB_PORT", "5432"))
     DB_NAME: str = os.getenv("DB_NAME", "kokoro_db")
     DB_USER: str = os.getenv("DB_USER", "postgres")
-    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "postgres")
+    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "")
 
     # Security & Auth
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "kokoro_sakura_healing_pastel_secret_key_2026")
+    _secret = os.getenv("SECRET_KEY")
+    if not _secret:
+        if os.getenv("ENVIRONMENT", "development").lower() in ("production", "prod"):
+            raise RuntimeError("CRITICAL SECURITY ERROR: SECRET_KEY environment variable is mandatory in production!")
+        logger.warning("[Kokoro Security Warning] SECRET_KEY not configured! Using default development key.")
+        _secret = "kokoro_sakura_healing_pastel_secret_key_2026"
+    SECRET_KEY: str = _secret
     MOCK_AUTH: bool = os.getenv("MOCK_AUTH", "True").lower() in ("true", "1", "yes")
     GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
 

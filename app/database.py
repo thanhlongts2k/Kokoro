@@ -160,6 +160,7 @@ def init_db():
 
     -- INDEXES FOR PERFORMANCE
     CREATE INDEX IF NOT EXISTS idx_entries_user_date ON entries(user_id, entry_date DESC);
+    CREATE INDEX IF NOT EXISTS idx_entries_pinned_date ON entries(user_id, is_pinned DESC, entry_date DESC, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_entries_user_mood ON entries(user_id, mood);
     CREATE INDEX IF NOT EXISTS idx_entries_user_cat ON entries(user_id, category_id);
     CREATE INDEX IF NOT EXISTS idx_entry_photos_entry ON entry_photos(entry_id, sort_order ASC);
