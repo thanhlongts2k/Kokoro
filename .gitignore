@@ -28,3 +28,4 @@ EVD/
 
 # Test artifacts & screenshots
 tests/*.png
+tests/**/*.png

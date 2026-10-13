@@ -24,6 +24,10 @@ const KokoroApp = {
   activeMemoriesMood: 'all',
   activeMemoriesTag: null,
   activeZenPrompt: null,
+  timelinePagination: {
+    pageSize: 15,
+    visibleLimit: 15
+  },
   stats: null,
 
   async init() {
@@ -751,6 +755,7 @@ const KokoroApp = {
       this.entries = [];
     } finally {
       this.isLoading = false;
+      this.timelinePagination.visibleLimit = this.timelinePagination.pageSize;
       this.renderTimeline();
       this.renderCalendar();
       if (this.currentView === 'calendar') this.renderFullCalendar();
@@ -951,6 +956,7 @@ const KokoroApp = {
     } else {
       this.activeDateFilter = dateStr;
     }
+    this.timelinePagination.visibleLimit = this.timelinePagination.pageSize;
     this.renderTimeline();
   },
 
@@ -1100,8 +1106,101 @@ const KokoroApp = {
       return;
     }
 
-    feedEl.innerHTML = filtered.map((entry) => this.buildEntryCardHtml(entry)).join('');
+    const limit = this.timelinePagination.visibleLimit;
+    const visibleEntries = filtered.slice(0, limit);
+    let cardsHtml = visibleEntries.map((entry) => this.buildEntryCardHtml(entry)).join('');
+
+    if (filtered.length > limit) {
+      const remainingCount = filtered.length - limit;
+      cardsHtml += `
+        <div class="timeline-load-more-wrap">
+          <button type="button" class="btn-glass timeline-load-more-btn" id="timeline-load-more-btn" aria-label="Xem thêm bài viết cũ hơn">
+            <i class="bi bi-feather"></i> Xem thêm bài viết cũ hơn (${remainingCount} bài) 🍃
+          </button>
+        </div>
+      `;
+    } else if (filtered.length > this.timelinePagination.pageSize) {
+      cardsHtml += `
+        <div class="timeline-end-indicator">
+          <span>🌸 Bạn đã xem hết tất cả ${filtered.length} khoảnh khắc 🌸</span>
+        </div>
+      `;
+    }
+
+    feedEl.innerHTML = cardsHtml;
     this.attachCardActions(feedEl);
+
+    const loadMoreBtn = feedEl.querySelector('#timeline-load-more-btn');
+    if (loadMoreBtn) {
+      loadMoreBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.handleLoadMoreEntries();
+      });
+    }
+  },
+
+  /**
+   * Append next chunk of entries directly to DOM without re-rendering existing cards,
+   * completely eliminating layout jumps and preserving scroll offset on mobile browsers.
+   */
+  handleLoadMoreEntries() {
+    const feedEl = document.getElementById('timeline-feed-container');
+    if (!feedEl) return;
+
+    const filtered = this.getFilteredEntries();
+    const currentLimit = this.timelinePagination.visibleLimit;
+    const nextLimit = currentLimit + this.timelinePagination.pageSize;
+    const nextChunk = filtered.slice(currentLimit, nextLimit);
+
+    if (nextChunk.length === 0) return;
+
+    // 1. Remove the current load-more button wrap
+    const existingWrap = feedEl.querySelector('.timeline-load-more-wrap');
+    if (existingWrap) {
+      existingWrap.remove();
+    }
+
+    // 2. Build and append new cards smoothly
+    const fragment = document.createDocumentFragment();
+    const tempContainer = document.createElement('div');
+    tempContainer.innerHTML = nextChunk.map((entry) => this.buildEntryCardHtml(entry)).join('');
+
+    const newCards = Array.from(tempContainer.children);
+    newCards.forEach((card) => {
+      this.attachCardActions(card);
+      fragment.appendChild(card);
+    });
+
+    feedEl.appendChild(fragment);
+    this.timelinePagination.visibleLimit = nextLimit;
+
+    // 3. Append updated load more button or end indicator
+    if (filtered.length > nextLimit) {
+      const remainingCount = filtered.length - nextLimit;
+      const newWrap = document.createElement('div');
+      newWrap.className = 'timeline-load-more-wrap';
+      newWrap.innerHTML = `
+        <button type="button" class="btn-glass timeline-load-more-btn" id="timeline-load-more-btn" aria-label="Xem thêm bài viết cũ hơn">
+          <i class="bi bi-feather"></i> Xem thêm bài viết cũ hơn (${remainingCount} bài) 🍃
+        </button>
+      `;
+      feedEl.appendChild(newWrap);
+
+      const newBtn = newWrap.querySelector('#timeline-load-more-btn');
+      if (newBtn) {
+        newBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.handleLoadMoreEntries();
+        });
+      }
+    } else {
+      const endIndicator = document.createElement('div');
+      endIndicator.className = 'timeline-end-indicator';
+      endIndicator.innerHTML = `<span>🌸 Bạn đã xem hết tất cả ${filtered.length} khoảnh khắc 🌸</span>`;
+      feedEl.appendChild(endIndicator);
+    }
   },
 
   renderDailyZenCard() {

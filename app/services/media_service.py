@@ -1,7 +1,8 @@
 import os
+import time
 import uuid
 from pathlib import Path
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Dict, Any
 from PIL import Image, ImageOps
 
 try:
@@ -11,6 +12,8 @@ except ImportError:
     pass
 
 from app.config import Config
+from app.schemas.maintenance import CleanupStatsDTO
+from app.repositories.photo_repository import PhotoRepository
 
 ORIGINALS_DIR = Config.UPLOAD_DIR / "originals"
 THUMBNAILS_DIR = Config.UPLOAD_DIR / "thumbnails"
@@ -97,3 +100,85 @@ class MediaService:
                     full_path.unlink()
                 except Exception as e:
                     print(f"[MediaService] Warning: Could not delete {full_path}: {e}")
+
+    @classmethod
+    def scan_and_cleanup_orphans(cls, grace_period_hours: float = 2.0) -> CleanupStatsDTO:
+        """
+        Scan physical storage directories (originals & thumbnails), match against active database records,
+        and safely remove orphaned media files.
+        
+        CRITICAL ARCHITECTURE & SAFETY RULES (AGENTS.md):
+        1. Layer Isolation: PhotoRepository isolates all SQL queries, preventing DB leakage into domain service.
+        2. Strict Typing: Returns strongly-typed CleanupStatsDTO instead of untyped string-keyed dicts.
+        3. Windows Path Normalization: Compares strictly by file basename (e.g. 'abc.webp') rather than full path
+           strings to eliminate cross-OS path separator mismatches ('/' vs '\\').
+        4. Grace Period Protection: Skips unreferenced files modified within the last `grace_period_hours`
+           (default: 2 hours) to avoid deleting active editor drafts in-progress.
+        5. Never deletes system or hidden files (.gitkeep, .DS_Store, etc.).
+        """
+        # 1. Fetch active photo filenames via persistence abstraction
+        active_filenames = PhotoRepository.get_all_active_photo_filenames()
+
+        # 2. Setup scan metrics & cutoff threshold
+        now = time.time()
+        cutoff_time = now - (grace_period_hours * 3600.0)
+
+        scanned_count = 0
+        deleted_count = 0
+        skipped_grace_period = 0
+        freed_bytes = 0
+        deleted_filenames: List[str] = []
+
+        directories_to_scan = [ORIGINALS_DIR, THUMBNAILS_DIR]
+
+        for target_dir in directories_to_scan:
+            if not target_dir.exists() or not target_dir.is_dir():
+                continue
+
+            for file_path in target_dir.iterdir():
+                # Skip non-files or hidden/keep files
+                if not file_path.is_file() or file_path.name.startswith("."):
+                    continue
+
+                scanned_count += 1
+                fname = file_path.name
+
+                # If file exists in DB active set -> KEEP (SAFE)
+                if fname in active_filenames:
+                    continue
+
+                # File is unreferenced in DB. Check Grace Period.
+                try:
+                    file_mtime = file_path.stat().st_mtime
+                    file_size = file_path.stat().st_size
+                except OSError:
+                    continue
+
+                if file_mtime > cutoff_time:
+                    # Recently created/modified draft asset within grace period -> PROTECT
+                    skipped_grace_period += 1
+                    continue
+
+                # Orphaned file older than grace period threshold -> SAFE DELETION
+                try:
+                    file_path.unlink()
+                    deleted_count += 1
+                    freed_bytes += file_size
+                    deleted_filenames.append(fname)
+                except Exception as del_err:
+                    print(f"[MediaService] Error removing orphaned file {file_path}: {del_err}")
+
+        freed_mb = round(freed_bytes / (1024 * 1024), 2)
+
+        return CleanupStatsDTO(
+            scanned_files=scanned_count,
+            active_files_in_db=len(active_filenames),
+            deleted_count=deleted_count,
+            skipped_grace_period=skipped_grace_period,
+            freed_bytes=freed_bytes,
+            freed_mb=freed_mb,
+            grace_period_hours=grace_period_hours,
+            deleted_filenames=deleted_filenames
+        )
+
+

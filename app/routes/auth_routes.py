@@ -18,7 +18,7 @@ from starlette.routing import Route
 logger = logging.getLogger("kokoro.auth")
 
 from app.config import Config
-from app.database import get_cursor
+from app.repositories.user_repository import UserRepository
 from app.auth import (
     SESSION_COOKIE_NAME,
     SESSION_DURATION_SECONDS,
@@ -42,7 +42,8 @@ async def auth_me(request: Request) -> JSONResponse:
     """Return currently authenticated user from session or Bearer token."""
     user = get_current_user(request)
     if user:
-        return JSONResponse({"status": "success", "authenticated": True, "user": user})
+        user_dict = user.to_dict() if hasattr(user, "to_dict") else user
+        return JSONResponse({"status": "success", "authenticated": True, "user": user_dict})
     return JSONResponse({"status": "unauthenticated", "authenticated": False, "user": None})
 
 async def list_mock_users(request: Request) -> JSONResponse:
@@ -50,10 +51,7 @@ async def list_mock_users(request: Request) -> JSONResponse:
     if not Config.MOCK_AUTH:
         return JSONResponse({"status": "error", "message": "Mock auth disabled in production"}, status_code=403)
 
-    with get_cursor() as cur:
-        cur.execute("SELECT id, google_id, email, name, avatar_url FROM users ORDER BY id ASC;")
-        users = [dict(r) for r in cur.fetchall()]
-
+    users = [u.to_dict() for u in UserRepository.list_all_users()]
     return JSONResponse({"status": "success", "users": users})
 
 async def mock_login(request: Request) -> JSONResponse:
@@ -68,11 +66,8 @@ async def mock_login(request: Request) -> JSONResponse:
 
     user_id = body.get("user_id")
     if not user_id:
-        # Default to first user in database
-        with get_cursor() as cur:
-            cur.execute("SELECT id FROM users ORDER BY id ASC LIMIT 1;")
-            row = cur.fetchone()
-            user_id = row["id"] if row else 1
+        first_user = UserRepository.get_first_user()
+        user_id = first_user.id if first_user else 1
 
     user = get_user_by_id(int(user_id))
     if not user:
@@ -83,7 +78,7 @@ async def mock_login(request: Request) -> JSONResponse:
     response = JSONResponse({
         "status": "success",
         "message": f"Đăng nhập thành công với tài khoản {user['name']} 🌸",
-        "user": user,
+        "user": user.to_dict() if hasattr(user, "to_dict") else user,
         "token": token
     })
 
@@ -136,7 +131,7 @@ async def google_login(request: Request) -> JSONResponse:
     response = JSONResponse({
         "status": "success",
         "message": f"Chào mừng {user['name']} đến với Kokoro! 🌸",
-        "user": user,
+        "user": user.to_dict() if hasattr(user, "to_dict") else user,
         "token": token
     })
 

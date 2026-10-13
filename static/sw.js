@@ -1,31 +1,38 @@
-const CACHE_NAME = 'kokoro-v1.6.3';
+const CACHE_NAME = 'kokoro-v1.6.4';
 const STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './css/tokens.css?v=1.6.3',
-  './css/glass.css?v=1.6.3',
-  './css/components.css?v=1.6.3',
-  './css/layout.css?v=1.6.3',
-  './js/mock-data.js?v=1.6.3',
-  './js/api.js?v=1.6.3',
-  './js/auth.js?v=1.6.3',
-  './js/toast.js?v=1.6.3',
-  './js/datetime-picker.js?v=1.6.3',
-  './js/tag-manager.js?v=1.6.3',
-  './js/lightbox.js?v=1.6.3',
-  './js/zen-prompts.js?v=1.6.3',
-  './js/editor.js?v=1.6.3',
-  './js/card-export.js?v=1.6.3',
-  './js/zen-audio.js?v=1.6.3',
-  './js/passcode.js?v=1.6.3',
-  './js/pwa.js?v=1.6.3',
-  './js/app.js?v=1.6.3',
+  './css/tokens.css?v=1.6.4',
+  './css/glass.css?v=1.6.4',
+  './css/components.css?v=1.6.4',
+  './css/layout.css?v=1.6.4',
+  './js/mock-data.js?v=1.6.4',
+  './js/api.js?v=1.6.4',
+  './js/auth.js?v=1.6.4',
+  './js/toast.js?v=1.6.4',
+  './js/datetime-picker.js?v=1.6.4',
+  './js/tag-manager.js?v=1.6.4',
+  './js/lightbox.js?v=1.6.4',
+  './js/zen-prompts.js?v=1.6.4',
+  './js/editor.js?v=1.6.4',
+  './js/card-export.js?v=1.6.4',
+  './js/zen-audio.js?v=1.6.4',
+  './js/passcode.js?v=1.6.4',
+  './js/pwa.js?v=1.6.4',
+  './js/app.js?v=1.6.4',
   './audio/rain.mp3',
   './audio/furin.mp3',
   './audio/waves.mp3',
   './audio/stream.mp3',
   './icons/sakura.svg'
+];
+
+// Whitelist of allowed external CDN hostnames for runtime offline caching
+const ALLOWED_CDN_HOSTS = [
+  'fonts.googleapis.com',
+  'fonts.gstatic.com',
+  'cdn.jsdelivr.net'
 ];
 
 // Install: Cache app shell
@@ -52,6 +59,11 @@ self.addEventListener('activate', (event) => {
 
 // Fetch: Pure native bypass for /api/, Cache-First for static assets, Network-First for Navigation
 self.addEventListener('fetch', (event) => {
+  // Only intercept GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   const url = new URL(event.request.url);
 
   // API calls: Pure native bypass. Never intercept or proxy /api/ through SW
@@ -74,20 +86,32 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets: Cache-First with Network fallback
+  // Static assets & CDN resources: Cache-First with Network fallback
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
         return cachedResponse;
       }
       return fetch(event.request).then((networkResponse) => {
-        if (
-          !networkResponse ||
-          networkResponse.status !== 200 ||
-          networkResponse.type !== 'basic'
-        ) {
+        if (!networkResponse) {
           return networkResponse;
         }
+
+        const isCdn = ALLOWED_CDN_HOSTS.some((host) => url.hostname === host || url.hostname.endsWith('.' + host));
+        const isSameOrigin = url.origin === self.location.origin;
+
+        // Determine if response is cacheable:
+        // 1. Same-origin static or thumbnail asset with status 200 OK
+        // 2. Allowed CDN assets (Google Fonts, Bootstrap Icons) including CORS (200) or opaque (status 0)
+        const isCacheable = (
+          (isSameOrigin && networkResponse.status === 200 && (networkResponse.type === 'basic' || url.pathname.includes('/uploads/thumbnails/'))) ||
+          (isCdn && (networkResponse.status === 200 || networkResponse.type === 'opaque'))
+        );
+
+        if (!isCacheable) {
+          return networkResponse;
+        }
+
         const responseToCache = networkResponse.clone();
         caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, responseToCache);
@@ -97,3 +121,4 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+

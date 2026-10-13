@@ -1938,3 +1938,58 @@ body.modal-scroll-locked {
   cursor: pointer;
 }
 
+/* --------------------------------------------------------------------------
+   16. TIMELINE PROGRESSIVE PAGINATION (v1.6.4)
+   -------------------------------------------------------------------------- */
+.timeline-load-more-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 20px 0 32px 0;
+  width: 100%;
+}
+
+.timeline-load-more-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 12px 28px;
+  border-radius: var(--radius-pill);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--surface-glass);
+  border: 1px solid var(--border-glass-card);
+  color: var(--text-primary);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.timeline-load-more-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--sakura-300);
+  background: var(--surface-glass-heavy);
+  box-shadow: 0 6px 20px rgba(244, 114, 182, 0.2);
+  color: var(--sakura-600);
+}
+
+.timeline-load-more-btn:active {
+  transform: scale(0.97);
+}
+
+.timeline-end-indicator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 20px 0 32px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  opacity: 0.8;
+  letter-spacing: 0.5px;
+}
+
+

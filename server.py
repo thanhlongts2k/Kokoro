@@ -46,7 +46,11 @@ async def api_health(request):
     })
 
 from app.routes.entry_routes import entry_routes
+from app.routes.category_routes import category_routes
+from app.routes.tag_routes import tag_routes
+from app.routes.stats_routes import stats_routes
 from app.routes.auth_routes import auth_routes
+from app.routes.maintenance_routes import maintenance_routes
 
 # --------------------------------------------------------------------------
 # APPLICATION ROUTING & STATIC CACHE OPTIMIZATION
@@ -75,7 +79,11 @@ class AppStaticFiles(StaticFiles):
 routes = [
     Route("/api/health", api_health, methods=["GET"]),
     *auth_routes,
+    *category_routes,
+    *tag_routes,
+    *stats_routes,
     *entry_routes,
+    *maintenance_routes,
     Mount("/uploads", ImmutableStaticFiles(directory=str(UPLOAD_DIR)), name="uploads"),
     Mount("/", AppStaticFiles(directory=str(STATIC_DIR), html=True), name="static"),
 ]

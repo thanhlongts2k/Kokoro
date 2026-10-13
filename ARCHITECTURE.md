@@ -30,8 +30,14 @@
 │                  KOKORO BACKEND (STARLETTE)                  │
 │  ASGI Server (Uvicorn) - Port 5050                           │
 │  ├─ Auth Middleware (Google Token & Dev Mock Auth)           │
-│  ├─ API Endpoints (/api/auth, /api/entries, /api/media)      │
-│  └─ Media Processing Engine (Pillow: WebP/Thumbnail)         │
+│  ├─ Routers: /api/auth, /api/entries, /api/categories,       │
+│  │           /api/tags, /api/stats, /api/maintenance         │
+│  ├─ Domain Services: MediaService (Pillow WebP/Thumbnails)   │
+│  ├─ Schemas / DTOs: Typed dataclasses (app/schemas/*)        │
+│  │   (CategoryDTO, TagDTO, StatsDTO, UserDTO, EntryDTO)      │
+│  └─ Repositories: DAO Layer Isolation (app/repositories/*)   │
+│      (EntryRepository, UserRepository, CategoryRepository,   │
+│       TagRepository, StatsRepository, PhotoRepository)       │
 └───────────────────────────────┬──────────────────────────────┘
                                 │
 ┌───────────────────────────────▼──────────────────────────────┐
@@ -173,6 +179,10 @@ Cơ sở dữ liệu cục bộ: **`kokoro_db`** (Port `5432`).
 ### 5.6. Statistics (`/api/stats`)
 - `GET /api/stats/summary`: Thống kê tổng số ngày viết, chuỗi liên tiếp (streak), biểu đồ phân bổ tâm trạng (Mood breakdown).
 
+### 5.7. System Maintenance & Cleanup (`/api/maintenance` - v1.6.4)
+- `POST /api/maintenance/cleanup-orphaned-media`: Quét và dọn sạch các tệp ảnh mồ côi trên đĩa (`uploads/originals/`, `uploads/thumbnails/`) không có bản ghi trong bảng `entry_photos`. Hỗ trợ Grace Period an toàn (mặc định 2 giờ) bảo vệ các ảnh bản nháp đang soạn thảo; chuẩn hóa so sánh theo tên file thuần túy chống bẫy đường dẫn Windows.
+
+
 ---
 
 ## 6. QUY CHUẨN PWA (PROGRESSIVE WEB APP SPECIFICATION)
@@ -226,4 +236,23 @@ Cơ sở dữ liệu cục bộ: **`kokoro_db`** (Port `5432`).
 4. **Instant Web Share API & Quản trị Bộ nhớ RAM:**
    - Tiền tạo sẵn Blob/File (`currentExportFile`) ngay sau khi render xong preview để gọi `navigator.share({ files })` ngay trong User Gesture (tránh `NotAllowedError` trên iOS Safari).
    - Thu hồi tài nguyên tức thì `URL.revokeObjectURL(activeBlobUrl)` và reset kích thước canvas khi đóng modal.
+
+---
+
+## 9. KIẾN TRÚC CLEAN ARCHITECTURE & PHÂN TẦNG REPOSITORY (GIAI ĐOẠN 1-3)
+
+1. **Nguyên tắc Phân tầng & Cô lập Tầng Dữ liệu (Layer Isolation):**
+   - **Routers / Controllers (`app/routes/*`):** 100% không chứa raw SQL. Chỉ tiếp nhận HTTP request, parse/validate DTO, điều phối gọi Service/Repository, và trả về `JSONResponse`.
+   - **Repositories (`app/repositories/*`):** Đóng gói toàn bộ thao tác truy vấn CSDL PostgreSQL (`psycopg2`), quản lý transaction atomicity, chống race condition và map kết quả trả về typed DTO hoặc dict chuẩn.
+   - **Schemas / DTOs (`app/schemas/*`):** Định nghĩa cấu trúc dữ liệu tường minh bằng Python typed dataclass, triệt tiêu hoàn toàn `dict[str, Any]` thô không kiểm soát kiểu.
+2. **Hệ thống Repositories Độc lập:**
+   - `EntryRepository`: Quản lý toàn bộ nghiệp vụ bài viết (lọc theo mood/tag/category/thời gian, chi tiết, thêm mới atomic kèm tags & ảnh, cập nhật kèm dọn ảnh thừa, xóa, ghim, export/import JSON backup).
+   - `UserRepository`: Quản lý danh sách người dùng, session token, lấy user đầu tiên và upsert Google ID / mock profile.
+   - `CategoryRepository`: Quản lý danh mục bài viết (tạo, cập nhật, xóa an toàn với `ON DELETE SET NULL`).
+   - `TagRepository`: Quản lý thẻ hashtag bài viết và auto-complete.
+   - `StatsRepository`: Tính toán thống kê cảm xúc, chuỗi ngày viết, và tổng số bài viết.
+   - `PhotoRepository`: Quản lý ảnh đính kèm bài viết, truy vấn đường dẫn phục vụ dọn dẹp ảnh mồ côi.
+3. **Quy chuẩn Dung lượng Controller (< 300 Lines):**
+   - God-file `entry_routes.py` (từng chiếm 1.568 dòng) đã được tái cấu trúc thành công xuống còn **291 dòng code**, đạt chuẩn Single Responsibility và dễ dàng bảo trì mở rộng lâu dài.
+
 

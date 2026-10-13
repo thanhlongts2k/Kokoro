@@ -287,6 +287,53 @@
 - [x] **Nâng Cấp Service Worker & Cache PWA (`static/sw.js`, `app/config.py`, `static/index.html`):**
   - [x] Tăng phiên bản chính thức lên `v1.6.3` trong `Config.APP_VERSION`.
   - [x] Nâng cấp bộ nhớ đệm Service Worker lên `kokoro-v1.6.3` và thêm `card-export.js?v=1.6.3` vào danh sách pre-cache.
-- [x] **Bộ Kiểm Thử Tự Động Toàn Diện (`tests/test_v163_card_export.py`):**
-  - [x] 100% PASS bộ kiểm thử cho độ phân giải buffer cố định 1080p, thuật toán bẻ dòng, layout modes, share flow và dọn dẹp bộ nhớ.
+### 🔹 Giai đoạn 12: Bản Phát Hành v1.6.4 — Dọn Dẹp Ảnh Mồ Côi, Caching CDN & Phân Trang Lũy Tiến (Sprint 2 Gap Closure)
+- [x] **Động Cơ Dọn Dẹp Ảnh Mồ Côi Bảo Vệ Dữ Liệu (`app/services/media_service.py` & `app/routes/entry_routes.py`):**
+  - [x] Phương thức `MediaService.scan_and_cleanup_orphans(grace_period_hours=2.0)` quét đối soát đĩa vật lý và bảng `entry_photos`.
+  - [x] **Chống bẫy đường dẫn Windows:** Chuẩn hóa và so sánh theo tên file thuần túy (`os.path.basename(path.replace('\\', '/'))`), loại bỏ nguy cơ xóa nhầm ảnh do lệch dấu gạch chéo giữa OS và DB.
+  - [x] **Grace Period 2 giờ:** Bỏ qua các tệp unreferenced mới tạo trong vòng 2 giờ (`mtime > cutoff_time`), bảo vệ an toàn các ảnh bản nháp đang soạn thảo.
+  - [x] Endpoint bảo trì an toàn `POST /api/maintenance/cleanup-orphaned-media` (yêu cầu đăng nhập, trả về số file và MB giải phóng).
+- [x] **Tối Ưu Service Worker & Cache CDN Ngoại Tuyến (`static/sw.js`, `app/config.py`, `static/index.html`):**
+  - [x] Nâng cấp `Config.APP_VERSION = "v1.6.4"` và bộ nhớ đệm `kokoro-v1.6.4`.
+  - [x] Cập nhật whitelist CDN cho phép cache ngoại tuyến Google Fonts (`fonts.googleapis.com`, `fonts.gstatic.com`) và Bootstrap Icons (`cdn.jsdelivr.net`).
+  - [x] Hỗ trợ runtime caching cho response `opaque` (status 0) và `cors`, cache runtime ảnh thumbnail bài viết (`/uploads/thumbnails/`).
+- [x] **Phân Trang Lũy Tiến & Trải Nghiệm Cuộn Mượt Mà Trên Mobile (`static/js/app.js` & `static/css/components.css`):**
+  - [x] Thiết lập `timelinePagination` (15 bài / trang) và nút Soft Sakura `[ 🍃 Xem thêm bài viết cũ hơn... ]` ở cuối feed.
+  - [x] Giữ scroll offset ổn định tuyệt đối trên mobile bằng kỹ thuật append `DocumentFragment` trực tiếp, không re-render các card cũ.
+  - [x] Reset `visibleLimit = 15` khi thay đổi bất kỳ bộ lọc nào, bảo toàn 100% snapshot dữ liệu cho Mini Calendar và Memories Stats.
+- [x] **Bộ Kiểm Thử Tự Động Toàn Diện (`tests/test_sprint2_gap_closure.py`):**
+  - [x] 100% PASS trên toàn bộ test runner của dự án Kokoro.
+
+### 🔹 Giai đoạn 13: Chuẩn Hóa Kiến Trúc Clean Architecture & Strict Typing (Phased Refactoring: Giai đoạn 1 & 2)
+- [x] **Giai đoạn 1: Thiết Lập Toàn Bộ Contracts & Schemas (`app/schemas/`):**
+  - [x] `app/schemas/category.py`: `CategoryDTO`, `CategoryCreateDTO`, `CategoryUpdateDTO`.
+  - [x] `app/schemas/tag.py`: `TagDTO`, `TagCreateDTO`, `TagUpdateDTO`.
+  - [x] `app/schemas/stats.py`: `StatsSummaryDTO`, `MoodCountDTO`.
+  - [x] `app/schemas/user.py`: `UserDTO`, `UserSessionDTO`.
+  - [x] `app/schemas/entry.py`: `EntryDTO`, `EntryCreateDTO`, `EntryPhotoDTO`.
+  - [x] `app/schemas/maintenance.py`: `CleanupStatsDTO`, `MaintenanceResponseDTO`.
+  - [x] 100% sử dụng typed dataclass, loại bỏ hoàn toàn untyped dictionaries thô.
+- [x] **Giai đoạn 2: Bóc Tách Các Phân Hệ Độc Lập (Category, Tag, Stats, Maintenance):**
+  - [x] **Phân hệ Danh mục (Category):** Bóc tách `app/repositories/category_repository.py` & `app/routes/category_routes.py`.
+  - [x] **Phân hệ Thẻ (Tag):** Bóc tách `app/repositories/tag_repository.py` & `app/routes/tag_routes.py`.
+  - [x] **Phân hệ Thống kê (Stats):** Bóc tách `app/repositories/stats_repository.py` & `app/routes/stats_routes.py`.
+  - [x] **Phân hệ Bảo trì (Maintenance):** Bóc tách `app/repositories/photo_repository.py` & `app/routes/maintenance_routes.py`.
+  - [x] **Giải phóng God-file:** Cắt giảm 503 dòng code rườm rà và raw SQL trực tiếp khỏi `entry_routes.py` (giảm từ 1.568 dòng xuống 1.065 dòng).
+  - [x] Đăng ký các router module vào `server.py` và duy trì 100% PASS trên bộ kiểm thử tự động `tests/test_modular_schemas_and_repositories.py`.
+
+### 🔹 Giai đoạn 14: Chuẩn Hóa Kiến Trúc Clean Architecture (Giai đoạn 3 — Phân Hệ User & Entry)
+- [x] **Khôi Phục & Đồng Bộ Test Runner Suite Toàn Hệ Thống:**
+  - [x] Khôi phục toàn bộ 10 file test in-memory vào thư mục `tests/` gốc (`test_compliance_p0.py`, `test_v156_hotfix.py`, `test_v160_*`, `test_v161_*`, `test_v162_*`, `test_v163_*`, `test_sprint2_gap_closure.py`, `test_modular_schemas_and_repositories.py`).
+  - [x] Đồng bộ kiểm thử phiên bản `v1.6.4` và cơ chế dọn dẹp isolation trong `setUp()`.
+  - [x] Test runner discovery `python -m unittest discover -s tests` chạy đầy đủ và đạt **57/57 tests PASS 100%**.
+- [x] **Phân Hệ Người Dùng & Xác Thực (User & Auth Module):**
+  - [x] Tạo `app/repositories/user_repository.py` đóng gói toàn bộ raw SQL truy vấn người dùng (`get_by_id`, `get_first_user`, `list_all_users`, `upsert_user`).
+  - [x] Tái cấu trúc `app/auth.py` và `app/routes/auth_routes.py` qua `UserRepository` & `UserDTO`, triệt tiêu 100% raw SQL trong controller.
+- [x] **Phân Hệ Nhật Ký Lõi (Entry Module):**
+  - [x] Bổ sung `EntryFilterDTO`, `EntryUpdateDTO` trong `app/schemas/entry.py`.
+  - [x] Tạo `app/repositories/entry_repository.py` (~720 dòng) đóng gói toàn bộ raw SQL: lọc bài viết, chi tiết, thêm mới, sửa đổi kèm đồng bộ ảnh & tag, xóa, toggle pin, xuất/nhập JSON backup.
+  - [x] Tái cấu trúc `app/routes/entry_routes.py` thành Pure Presentation Controller: chỉ xử lý HTTP, validate DTO, gọi EntryRepository & MediaService.
+  - [x] **Cắt giảm triệt để dung lượng:** Thu gọn `entry_routes.py` từ 1.568 dòng ban đầu (1.065 dòng sau Phase 2) xuống còn **291 dòng code** (đạt hợp đồng < 300 dòng code).
+
+
 

@@ -4,6 +4,36 @@ Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal 
 
 ---
 
+## [1.6.4] - 2026-10-13
+### Refactored & Architectural Excellence (Clean Architecture & Strict Typing Transition)
+- **Tách Lớp Kiến Trúc Độc Lập (Modular Layered Architecture & Layer Isolation):**
+  * **Repositories Layer (`app/repositories/`):** Đóng gói 100% raw SQL vào các DAO chuyên biệt: `EntryRepository`, `UserRepository`, `CategoryRepository`, `TagRepository`, `StatsRepository`, `PhotoRepository`.
+  * **Controllers Layer (`app/routes/`):** Tái cấu trúc thành Pure Controllers không chứa bất kỳ câu lệnh raw SQL nào.
+  * **Thu gọn God-file:** Rút gọn `app/routes/entry_routes.py` từ 1.568 dòng xuống còn **291 dòng code** (đạt xuất sắc chuẩn < 300 dòng code).
+  * **Strict Typing DTOs (`app/schemas/`):** Chuẩn hóa toàn bộ dữ liệu trao đổi bằng typed dataclasses (`EntryDTO`, `EntryFilterDTO`, `EntryCreateDTO`, `EntryUpdateDTO`, `UserDTO`, `UserSessionDTO`, `CategoryDTO`, `TagDTO`, `StatsSummaryDTO`, `CleanupStatsDTO`), triệt tiêu hoàn toàn untyped dictionaries thô.
+- **Khôi Phục & Đồng Bộ Bộ Kiểm Thử Tự Động (Test Suite Standardization):**
+  * Khôi phục toàn bộ 10 file test in-memory vào `tests/` gốc.
+  * Chạy `python -m unittest discover -s tests` đạt đầy đủ **57/57 tests PASS 100%**.
+
+### Added & Maintenance (Sprint 2 Gap Closure — Dọn Dẹp Ảnh Mồ Côi, Caching CDN & Phân Trang Lũy Tiến)
+- **Động Cơ Dọn Dẹp Ảnh Mồ Côi Bảo Vệ Dữ Liệu (`app/services/media_service.py` & `app/routes/entry_routes.py`):**
+  * Logic `MediaService.scan_and_cleanup_orphans(grace_period_hours=2.0)` quét đối soát toàn diện giữa kho ảnh vật lý (`uploads/originals/`, `uploads/thumbnails/`) và cơ sở dữ liệu PostgreSQL (`entry_photos`).
+  * **Triệt tiêu bẫy đường dẫn Windows:** Chuẩn hóa và chỉ so sánh theo tên file thuần túy (`os.path.basename(path.replace('\\', '/'))`) giữa đĩa và CSDL, loại bỏ hoàn toàn nguy cơ lệch dấu gạch chéo (`/` vs `\`) làm xóa nhầm ảnh thật của người dùng.
+  * **Khoảng đệm an toàn Grace Period 2 giờ:** Tự động bảo vệ và bỏ qua mọi tệp unreferenced mới tải lên trong vòng 2 giờ (`mtime > cutoff_time`), chống xóa nhầm ảnh khi người dùng đang soạn thảo dở dang chưa bấm lưu bài.
+  * Endpoint bảo trì an toàn `POST /api/maintenance/cleanup-orphaned-media` yêu cầu xác thực người dùng, trả về số lượng tệp giải phóng và dung lượng MB chi tiết.
+- **Tối Ưu Service Worker & Cache CDN Ngoại Tuyến (`static/sw.js`, `app/config.py`, `static/index.html`):**
+  * Nâng cấp phiên bản bộ nhớ đệm lên `kokoro-v1.6.4`.
+  * Bổ sung whitelist máy chủ CDN ngoại tuyến: Google Fonts (`fonts.googleapis.com`, `fonts.gstatic.com`) và Bootstrap Icons (`cdn.jsdelivr.net`).
+  * Hỗ trợ lưu trữ runtime cho các phản hồi cross-origin (`opaque` và `cors`), đồng thời cache runtime ảnh thumbnail bài viết (`/uploads/thumbnails/`), giúp PWA hiển thị trọn vẹn ngoại tuyến ngay cả khi không có kết nối mạng.
+  * Chặn triệt để các yêu cầu không phải GET (`request.method !== 'GET'`) và duy trì native bypass tuyệt đối cho `/api/`.
+- **Phân Trang Lũy Tiến & Trải Nghiệm Cuộn Mượt Mà Trên Mobile (`static/js/app.js` & `static/css/components.css`):**
+  * Tích hợp `timelinePagination` (15 bài viết / trang) và nút Soft Sakura `[ 🍃 Xem thêm bài viết cũ hơn... ]` ở cuối dòng thời gian.
+  * **Chống giật layout & giữ scroll offset trên mobile:** Khi bấm "Xem thêm", hệ thống append trực tiếp các thẻ bài viết mới vào DOM qua `DocumentFragment` mà không re-render các thẻ cũ, loại bỏ hiện tượng giật giật layout hoặc nhảy vị trí cuộn lên đầu trang trên iOS Safari và Android Chrome.
+  * Tự động reset giới hạn hiển thị về 15 khi người dùng đổi bộ lọc (mood, tag, search, date), đảm bảo Mini Calendar và thống kê toàn bộ nhật ký luôn giữ nguyên vẹn 100% snapshot dữ liệu.
+- **Bộ Kiểm Thử Tự Động Toàn Diện (`tests/test_sprint2_gap_closure.py`):**
+  * Thêm 6 ca kiểm thử độc lập bao quát: Chuẩn hóa phiên bản v1.6.4, Bẫy đường dẫn Windows, Grace Period 2 giờ, Endpoint bảo trì, Service Worker CDN Whitelist, và Hợp đồng phân trang frontend.
+  * Đạt 100% PASS (49/49 tests) trên toàn bộ test runner của dự án Kokoro.
+
 ## [1.6.3] - 2026-10-13
 ### Added & Visual (Daily Card Export — Xuất Thẻ Ảnh Kỷ Niệm Canvas)
 - **Công Cụ Render Canvas Chuẩn 1080p Chống Crash Safari (`static/js/card-export.js`):**

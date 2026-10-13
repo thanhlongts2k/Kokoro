@@ -13,9 +13,9 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from starlette.requests import Request
 
-from psycopg2.extras import RealDictCursor
 from app.config import Config
-from app.database import get_db, get_cursor, seed_default_categories
+from app.repositories.user_repository import UserRepository
+from app.schemas.user import UserDTO
 
 SESSION_COOKIE_NAME = "kokoro_session"
 JWT_ALGORITHM = "HS256"
@@ -55,68 +55,13 @@ def verify_google_id_token(credential: str) -> Dict[str, Any]:
     decoded_info = id_token.verify_oauth2_token(credential, req, Config.GOOGLE_CLIENT_ID)
     return decoded_info
 
-def upsert_user(google_id: str, email: str, name: str, avatar_url: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Insert or update user details in PostgreSQL users table upon Google login.
-    Safely handles both google_id and email matching using RealDictCursor.
-    """
-    with get_db() as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            # 1. Check if user already exists by google_id or email
-            cur.execute("""
-                SELECT id FROM users WHERE google_id = %s OR email = %s LIMIT 1;
-            """, (google_id, email))
-            existing = cur.fetchone()
+def upsert_user(google_id: str, email: str, name: str, avatar_url: Optional[str] = None) -> UserDTO:
+    """Insert or update user details via UserRepository."""
+    return UserRepository.upsert_user(google_id, email, name, avatar_url)
 
-            if existing:
-                cur.execute("""
-                    UPDATE users 
-                    SET google_id = %s,
-                        email = %s,
-                        name = %s,
-                        avatar_url = COALESCE(%s, avatar_url),
-                        last_login = CURRENT_TIMESTAMP
-                    WHERE id = %s
-                    RETURNING id, google_id, email, name, avatar_url, created_at, last_login;
-                """, (google_id, email, name, avatar_url, existing["id"]))
-                user = cur.fetchone()
-            else:
-                cur.execute("""
-                    INSERT INTO users (google_id, email, name, avatar_url, last_login)
-                    VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
-                    RETURNING id, google_id, email, name, avatar_url, created_at, last_login;
-                """, (google_id, email, name, avatar_url))
-                user = cur.fetchone()
-                seed_default_categories(user["id"], cur=cur)
-
-            user_dict = dict(user)
-            if user_dict.get("created_at"):
-                user_dict["created_at"] = user_dict["created_at"].isoformat()
-                user_dict["createdAt"] = user_dict["created_at"]
-            if user_dict.get("last_login"):
-                user_dict["last_login"] = user_dict["last_login"].isoformat()
-                user_dict["lastLogin"] = user_dict["last_login"]
-            return user_dict
-
-def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
-    """Retrieve full user profile by primary key id."""
-    with get_cursor() as cur:
-        cur.execute("""
-            SELECT id, google_id, email, name, avatar_url, created_at, last_login
-            FROM users
-            WHERE id = %s;
-        """, (user_id,))
-        row = cur.fetchone()
-        if not row:
-            return None
-        user = dict(row)
-        if user.get("created_at"):
-            user["created_at"] = user["created_at"].isoformat()
-            user["createdAt"] = user["created_at"]
-        if user.get("last_login"):
-            user["last_login"] = user["last_login"].isoformat()
-            user["lastLogin"] = user["last_login"]
-        return user
+def get_user_by_id(user_id: int) -> Optional[UserDTO]:
+    """Retrieve full user profile via UserRepository."""
+    return UserRepository.get_by_id(user_id)
 
 def get_current_user(request: Request) -> Optional[Dict[str, Any]]:
     """
