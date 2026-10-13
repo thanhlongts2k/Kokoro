@@ -136,7 +136,10 @@ const ProfileStats = {
     const nameEl = document.getElementById('profile-view-name');
     const emailEl = document.getElementById('profile-view-email');
 
-    if (avatarEl) avatarEl.src = user ? user.avatar_url || './icons/sakura.svg' : './icons/sakura.svg';
+    if (avatarEl) {
+      avatarEl.onerror = () => { avatarEl.onerror = null; avatarEl.src = './icons/sakura.svg'; };
+      avatarEl.src = (user && user.avatar_url) ? user.avatar_url : './icons/sakura.svg';
+    }
     if (nameEl) nameEl.textContent = user ? user.name : 'Khách vãng lai';
     if (emailEl) emailEl.textContent = user ? user.email : 'chua_dang_nhap@kokoro.me';
 

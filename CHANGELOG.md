@@ -2,17 +2,21 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal Diary & Photo Journal PWA** được ghi nhận chi tiết tại tệp này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) và tuân thủ [Semantic Versioning (SemVer)](https://semver.org/).
 
-## [1.7.7] - 2026-10-13
-### Verified & Production Hardening (Kiểm Thử Trình Duyệt Thực Tế Toàn Diện & Đóng Gói Sản Phẩm)
-- **Kiểm Thử Trình Duyệt E2E Thực Tế (Browser Interactive Verification) (`tests/test_interactive_browser_e2e.py`):**
-  * Tự động hóa kiểm thử hành vi người dùng trên trình duyệt Microsoft Edge Chromium với tài khoản thực tế (`thanhlongts2k@gmail.com`), bảo đảm 0 lỗi JavaScript Console và 100% tính năng hoạt động trơn tru:
-    1. *Zen Audio Relaxation Player:* Mở panel điều khiển, chuyển đổi linh hoạt giữa các bài âm thanh thiền định (`furin`, `waves`), tự động đóng panel khi click ra ngoài.
-    2. *Passcode PIN Security:* Mở modal thiết lập PIN từ trang Cá Nhân, quy trình nhập và xác nhận 4 số mã khóa hai bước chuẩn xác, kích hoạt mã hóa hash trong `localStorage` và tự động cập nhật huy hiệu "Đang bật" trên Profile.
-    3. *Kho Kỷ Niệm (Memories View):* Tải và hiển thị danh sách 6 chip lọc cảm xúc dạng viên thuốc (Capsule Pills) không bị co tròn, tương tác chọn bộ lọc tức thì.
-    4. *Giao Diện Lịch (Calendar View):* Kết xuất đầy đủ 35 ô ngày trong tháng, tương tác chọn ngày và cập nhật tiêu đề ngày được chọn theo thời gian thực.
-    5. *Memory Studio (Card Export):* Mở hộp thoại xuất thẻ ảnh nhật ký từ thẻ bài viết dòng thời gian, chuyển đổi giao diện chủ đề sang Polaroid canvas, đóng modal an toàn.
-    6. *Trình Soạn Thảo (Diary Editor):* Kích hoạt mở modal/bottom sheet ghi nhật ký từ nút hành động hoặc thanh điều hướng đáy, khôi phục bản nháp và đóng an toàn.
-  * Toàn bộ kịch bản E2E đạt kết quả **100% PASS** với **0 lỗi JavaScript Console**.
+## [1.7.7] - 2026-10-14
+### Verified & Mobile-First Production Polish (Kiểm Thử Toàn Diện Mobile PWA & Đóng Gói Sản Phẩm)
+- **Khắc Phục Cốt Lõi Lỗi Xóa Bài Viết & Xóa Ảnh Đã Lưu (`static/js/app.js`, `static/index.html`):**
+  * Sửa lỗi liên kết callback và đồng bộ ID modal xác nhận xóa bài viết (`#delete-confirm-modal`, `#confirm-delete-btn`, `#confirm-cancel-btn`), hiển thị hộp thoại xác nhận buông bỏ êm dịu, khóa cuộn màn hình nền và xóa bài viết khỏi DB ngay tức thì.
+  * Sửa hàm `onEdit(id)` trong `app.js` cho phép nạp đầy đủ ảnh cũ vào khay ảnh `editor-previews-grid` kèm nút đỏ `[x]` để xóa từng ảnh, truyền mảng `deleted_photo_ids` lên API backend xóa sạch file đĩa và CSDL khi cập nhật.
+- **Tối Ưu Hóa Giao Diện Mobile-First & Triệt Tiêu Lỗi Đè Chữ (`static/css/layout.css`, `static/js/profile-stats.js`):**
+  * Thiết lập bảng điều khiển âm thanh Zen `.zen-player-panel` với nền mờ đục 98% (`background: var(--bg-secondary, #fdf0f3) !important`), xóa bỏ hoàn toàn hiện tượng chữ của thẻ bài viết bên dưới xuyên thủng qua bảng điều khiển khi mở trên điện thoại.
+  * Phục hồi thanh điều khiển nổi của Photo Lightbox trên mobile (bỏ inline `display: none !important`), hỗ trợ thao tác chạm phóng to `(+)`, thu nhỏ `(-)` và nút Đóng `(X)` cực nhạy.
+  * Bổ sung cơ chế fallback `onerror` tự động thay thế ảnh đại diện bằng icon hoa anh đào mềm mại khi link avatar Google không tải được.
+- **Quản Lý Phiên Bản Tập Trung Single Source of Truth (`VERSION`, `scripts/sync_version.py`):**
+  * Khởi tạo tệp gốc `VERSION` (`v1.7.7`) tại thư mục gốc dự án.
+  * Xây dựng công cụ tự động hóa `scripts/sync_version.py` đồng bộ một lệnh duy nhất tới tất cả các tệp cấu hình (`app/config.py`, `static/sw.js`, `static/index.html`), loại bỏ nguy cơ lệch version giữa client PWA và server.
+- **Bảng Checklist Kiểm Thử Toàn Diện & Minh Chứng Playwright E2E (`CHECKLIST.md`, `tests/audit_full_screens_playwright.py`):**
+  * Xây dựng tệp `CHECKLIST.md` theo dõi chi tiết 17 màn hình/chức năng đã kiểm thử (Mobile 390px, 360px, 320px và Desktop 1280px), bảng danh mục tính năng roadmap chưa test, kèm bộ 28 hình ảnh chụp thực tế trong `docs/screenshots/`.
+  * Toàn bộ 17/17 kịch bản màn hình Playwright E2E đạt kết quả **100% PASS (Exit Code 0)**.
 - **Đồng Bộ Hóa Phiên Bản & Kiểm Thử Hồi Quy Toàn Hệ Thống (`tests/test_v177_full_production_verification.py`):**
   * Xây dựng bộ test kiểm thử hợp đồng phát hành `v1.7.7`, bảo đảm tính đồng bộ tuyệt đối giữa `Config.APP_VERSION`, Service Worker cache (`kokoro-v1.7.7`), Footer badge `v1.7.7` và tham số cache busting `?v=1.7.7` trên 100% tệp CSS/JS.
   * Toàn bộ 102/102 unit tests trong hệ thống đạt 100% PASS.

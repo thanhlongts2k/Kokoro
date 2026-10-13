@@ -102,7 +102,7 @@
         </button>
 
         <!-- Header Add Entry Button (Desktop) -->
-        <button id="header-add-entry-btn" class="btn-sakura" style="display: none; @media(min-width: 768px){display:inline-flex;}">
+        <button id="header-add-entry-btn" class="btn-sakura header-add-btn">
           <i class="bi bi-pencil-square"></i> Viết bài
         </button>
 
@@ -460,7 +460,7 @@
           <!-- Profile Header Card -->
           <div class="glass-panel c-profile-header-card">
             <div class="c-profile-avatar-wrap">
-              <img src="./icons/sakura.svg" alt="Avatar" id="profile-view-avatar" class="c-profile-avatar-large" />
+              <img src="./icons/sakura.svg" alt="Avatar" id="profile-view-avatar" class="c-profile-avatar-large" onerror="this.onerror=null; this.src='./icons/sakura.svg';" />
             </div>
             <div>
               <h2 class="c-profile-name" id="profile-view-name">Aria Tanaka</h2>
@@ -912,7 +912,7 @@
          7. FULLSCREEN PHOTO LIGHTBOX MODAL
          ==================================================================== -->
     <div class="lightbox-modal" id="lightbox-modal">
-      <div class="lightbox-controls-bar" id="lightbox-controls-bar" style="display: none !important; opacity: 0 !important; pointer-events: none !important;">
+      <div class="lightbox-controls-bar" id="lightbox-controls-bar">
         <button class="lightbox-tool-btn" id="lightbox-zoom-in-btn" title="Phóng to (+)">
           <i class="bi bi-plus-lg"></i>
         </button>

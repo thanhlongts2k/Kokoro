@@ -126,6 +126,19 @@
   color: var(--text-primary);
 }
 
+/* Header Add Entry Button (Desktop only) */
+.header-add-btn {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .header-add-btn {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
 /* PWA Install Button */
 .btn-pwa-install {
   display: none; /* Shown dynamically by pwa.js when beforeinstallprompt fires */
@@ -2014,7 +2027,11 @@ body.modal-scroll-locked {
   flex-direction: column;
   gap: 12px;
   z-index: 160;
-  box-shadow: var(--shadow-lg);
+  background: var(--bg-secondary, #fdf0f3) !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  border: 1px solid var(--border-glass, rgba(244, 114, 182, 0.25)) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18) !important;
   animation: modalPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
