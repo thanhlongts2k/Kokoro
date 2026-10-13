@@ -4,6 +4,8 @@ Dedicated modular router for administrative, maintenance, and data cleanup opera
 Complies with AGENTS.md: Modular Layered Architecture, Strict Typing, Zero Magic Numbers.
 """
 
+import json
+import logging
 from typing import List
 from starlette import status
 from starlette.requests import Request
@@ -13,6 +15,8 @@ from starlette.routing import Route
 from app.auth import get_current_user
 from app.services.media_service import MediaService
 from app.schemas.maintenance import MaintenanceResponseDTO
+
+logger = logging.getLogger("kokoro.maintenance")
 
 NO_CACHE_HEADERS = {
     "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
@@ -56,8 +60,8 @@ async def cleanup_orphaned_media(request: Request) -> JSONResponse:
                 body = await request.json()
                 if body and "grace_period_hours" in body:
                     grace_period_hours = float(body["grace_period_hours"])
-            except Exception:
-                pass
+            except (json.JSONDecodeError, ValueError, TypeError) as err:
+                logger.warning("Invalid grace_period_hours in request JSON body: %s", err)
     except (ValueError, TypeError):
         grace_period_hours = 2.0
 

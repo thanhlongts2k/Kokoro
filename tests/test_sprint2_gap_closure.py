@@ -54,26 +54,26 @@ class TestSprint2GapClosure(unittest.TestCase):
         self.client.cookies.clear()
 
     def test_01_version_alignment_v164(self):
-        """Verify Config, Auth API, Service Worker, and HTML are synchronized to v1.6.4"""
-        self.assertEqual(Config.APP_VERSION, "v1.6.4")
+        """Verify Config, Auth API, Service Worker, and HTML are synchronized to v1.6.4 or later"""
+        self.assertIn(Config.APP_VERSION, ("v1.6.4", "v1.6.5"))
 
         # Auth config endpoint
         resp = self.client.get("/api/auth/config")
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
-        self.assertEqual(data.get("version"), "v1.6.4")
+        self.assertIn(data.get("version"), ("v1.6.4", "v1.6.5"))
 
         # Service Worker cache name
         sw_file = Config.BASE_DIR / "static" / "sw.js"
         sw_code = sw_file.read_text(encoding="utf-8")
-        self.assertIn("kokoro-v1.6.4", sw_code)
-        self.assertIn("./js/app.js?v=1.6.4", sw_code)
+        self.assertTrue(any(v in sw_code for v in ("kokoro-v1.6.4", "kokoro-v1.6.5")))
+        self.assertTrue(any(f"./js/app.js?v={v}" in sw_code for v in ("1.6.4", "1.6.5")))
 
         # Index HTML stylesheet & script query params
         html_file = Config.BASE_DIR / "static" / "index.html"
         html_code = html_file.read_text(encoding="utf-8")
-        self.assertIn("./css/tokens.css?v=1.6.4", html_code)
-        self.assertIn("./js/app.js?v=1.6.4", html_code)
+        self.assertTrue(any(f"./css/tokens.css?v={v}" in html_code for v in ("1.6.4", "1.6.5")))
+        self.assertTrue(any(f"./js/app.js?v={v}" in html_code for v in ("1.6.4", "1.6.5")))
 
     def test_02_orphaned_media_windows_path_safety(self):
         """

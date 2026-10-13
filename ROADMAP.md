@@ -335,5 +335,22 @@
   - [x] Tái cấu trúc `app/routes/entry_routes.py` thành Pure Presentation Controller: chỉ xử lý HTTP, validate DTO, gọi EntryRepository & MediaService.
   - [x] **Cắt giảm triệt để dung lượng:** Thu gọn `entry_routes.py` từ 1.568 dòng ban đầu (1.065 dòng sau Phase 2) xuống còn **291 dòng code** (đạt hợp đồng < 300 dòng code).
 
+### 🔹 Giai đoạn 15: Bản Phát Hành v1.6.5 — Memory Studio Đa Phong Cách & Dọn Dẹp Nợ Kỹ Thuật (Sprint Release)
+- [x] **Memory Studio Đa Phong Cách (`static/js/card-export.js`, `static/index.html`, `static/css/components.css`):**
+  - [x] Tích hợp thanh cuộn Theme Switcher Pill Buttons (5 themes: Sakura, Polaroid, Scrapbook, Music, Editorial).
+  - [x] Scrapbook Craftsmanship: Nền dot-grid bullet journal #faf6ed, ảnh Polaroid nghiêng -2.8° kèm drop shadow mềm, Washi Tape họa tiết caro pastel, dấu bưu điện kép tròn AIR MAIL.
+  - [x] Music Player Widget: Mini playback bar, sóng âm, tính toán toạ độ Y động chống đè văn bản bài viết.
+  - [x] Chuẩn hóa tên file xuất ảnh: `kokoro_{theme}_{layout}_{yyyyMMdd_HHmmss}.jpg`.
+- [x] **Vá Lỗ Hổng Dữ Liệu Ngoại Tuyến & Error Handling (`static/js/api.js`, `app/routes/maintenance_routes.py`):**
+  - [x] Sửa `syncOfflineQueue()` không xóa bài khỏi IndexedDB khi gặp mã 401/403.
+  - [x] Triệt tiêu 100% khối nuốt lỗi (empty catch blocks) trên cả Backend (`maintenance_routes.py`) và Frontend (`api.js`, `app.js`, `card-export.js`, `zen-prompts.js`).
+- [x] **Chuẩn Hóa Layer Isolation (`server.py`, `app/database.py`):**
+  - [x] Đóng gói hàm `check_db_connection()` trong `app/database.py`, loại bỏ hoàn toàn cursor/raw SQL khỏi `server.py`.
+- [x] **Dọn Dẹp Dead Code & Workspace SSoT:**
+  - [x] Xóa bỏ tệp `mock-data.js` và toàn bộ tham chiếu trong `index.html` và `sw.js`.
+  - [x] Dọn dẹp tài liệu báo cáo và các file probe/log tạm thời trong `EVD/`.
+- [x] **Bộ Kiểm Thử Tự Động Toàn Diện (`tests/test_v165_release.py`):**
+  - [x] Đạt **74/74 tests PASS 100%** trên toàn bộ hệ thống test runner.
+
 
 

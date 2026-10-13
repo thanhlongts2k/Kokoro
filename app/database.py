@@ -48,6 +48,19 @@ def get_cursor(cursor_factory=RealDictCursor):
         finally:
             cursor.close()
 
+def check_db_connection() -> tuple[bool, str]:
+    """
+    Check database connectivity health without exposing cursors or raw SQL to callers.
+    Returns (True, "connected") if healthy, or (False, error_message) on failure.
+    """
+    try:
+        with get_cursor() as cur:
+            cur.execute("SELECT 1;")
+        return True, "connected"
+    except Exception as e:
+        logger.error("Database connection check failed: %s", e)
+        return False, str(e)
+
 DEFAULT_CATEGORIES = [
     {"name": "Bình yên", "icon": "🌸", "color": "#ec4899", "sort_order": 0},
     {"name": "Ấm áp", "icon": "☕", "color": "#f59e0b", "sort_order": 1},

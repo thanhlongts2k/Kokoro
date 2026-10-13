@@ -341,7 +341,9 @@
         if (typeof localStorage !== 'undefined') {
           return localStorage.getItem(key);
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn('[ZenPrompts] localStorage read access error:', e);
+      }
       return null;
     },
 
@@ -350,7 +352,9 @@
         if (typeof localStorage !== 'undefined') {
           localStorage.setItem(key, val);
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn('[ZenPrompts] localStorage write access error:', e);
+      }
     },
 
     _removeStorage(key) {
@@ -358,7 +362,9 @@
         if (typeof localStorage !== 'undefined') {
           localStorage.removeItem(key);
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn('[ZenPrompts] localStorage remove access error:', e);
+      }
     },
 
     /**

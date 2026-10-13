@@ -38,26 +38,26 @@ class TestKokoroV162ZenPrompts(unittest.TestCase):
     def test_01_version_and_sw_alignment(self):
         """Verify Config, Auth config API, Service Worker and Footer are aligned to v1.6.2 or later"""
         # 1. Config.APP_VERSION
-        self.assertIn(Config.APP_VERSION, ("v1.6.2", "v1.6.3", "v1.6.4"))
+        self.assertIn(Config.APP_VERSION, ("v1.6.2", "v1.6.3", "v1.6.4", "v1.6.5"))
 
         # 2. GET /api/auth/config
         resp = self.client.get("/api/auth/config")
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
-        self.assertIn(data.get("version"), ("v1.6.2", "v1.6.3", "v1.6.4"))
+        self.assertIn(data.get("version"), ("v1.6.2", "v1.6.3", "v1.6.4", "v1.6.5"))
 
         # 3. static/sw.js
         sw_path = BASE_DIR / "static" / "sw.js"
         sw_content = sw_path.read_text(encoding="utf-8")
-        self.assertTrue(any(v in sw_content for v in ("kokoro-v1.6.2", "kokoro-v1.6.3", "kokoro-v1.6.4")))
-        self.assertTrue(any(v in sw_content for v in ("zen-prompts.js?v=1.6.2", "zen-prompts.js?v=1.6.3", "zen-prompts.js?v=1.6.4")))
-        self.assertTrue(any(v in sw_content for v in ("components.css?v=1.6.2", "components.css?v=1.6.3", "components.css?v=1.6.4")))
+        self.assertTrue(any(v in sw_content for v in ("kokoro-v1.6.2", "kokoro-v1.6.3", "kokoro-v1.6.4", "kokoro-v1.6.5")))
+        self.assertTrue(any(v in sw_content for v in ("zen-prompts.js?v=1.6.2", "zen-prompts.js?v=1.6.3", "zen-prompts.js?v=1.6.4", "zen-prompts.js?v=1.6.5")))
+        self.assertTrue(any(v in sw_content for v in ("components.css?v=1.6.2", "components.css?v=1.6.3", "components.css?v=1.6.4", "components.css?v=1.6.5")))
 
         # 4. static/index.html footer badge
         index_path = BASE_DIR / "static" / "index.html"
         index_content = index_path.read_text(encoding="utf-8")
-        self.assertTrue(any(f'id="app-version-badge">{v}</span>' in index_content for v in ("v1.6.2", "v1.6.3", "v1.6.4")))
-        self.assertTrue(any(f'href="./css/components.css?v={v}"' in index_content for v in ("1.6.2", "1.6.3", "1.6.4")))
+        self.assertTrue(any(f'id="app-version-badge">{v}</span>' in index_content for v in ("v1.6.2", "v1.6.3", "v1.6.4", "v1.6.5")))
+        self.assertTrue(any(f'href="./css/components.css?v={v}"' in index_content for v in ("1.6.2", "1.6.3", "1.6.4", "1.6.5")))
 
     def test_02_script_loading_order_guard(self):
         """Ensure zen-prompts.js is loaded BEFORE editor.js and app.js to prevent ReferenceError"""

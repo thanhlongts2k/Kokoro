@@ -198,7 +198,9 @@
       if (this.currentBlobUrl) {
         try {
           URL.revokeObjectURL(this.currentBlobUrl);
-        } catch (e) {}
+        } catch (e) {
+          console.warn('[CardExport] Failed to revoke object URL:', e);
+        }
         this.currentBlobUrl = null;
       }
       this.currentExportFile = null;

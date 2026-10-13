@@ -4,6 +4,36 @@ Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal 
 
 ---
 
+## [1.6.5] - 2026-10-13
+### Added & Visual (Memory Studio — Xuất Thẻ Ảnh Kỷ Niệm 5 Phong Cách & Thủ Công Scrapbook)
+- **Bộ Chọn Phong Cách Đa Dạng (Memory Studio Switcher UI):**
+  * Tích hợp thanh cuộn nút bấm chọn theme (Pill Buttons) trong modal `#card-export-modal`:
+    - `sakura`: 🌸 Sakura Nhẹ Nhàng (Theme gốc thanh lịch, hoa anh đào rơi)
+    - `polaroid`: 🎞️ Polaroid Hoài Niệm (Khung trắng Polaroid cổ điển có đáy dày, dấu ngày cam máy film '26 10 13)
+    - `scrapbook`: 💌 Sổ Tay Bưu Thiếp (Nền dot-grid bullet journal #faf6ed, ảnh xoay nghiêng -2.8° kèm drop shadow, băng dính Washi Tape caro hồng pastel dán đè ở mép trên, con dấu bưu điện kép AIR MAIL in mờ góc phải)
+    - `music`: 🎵 Giai Điệu Kỷ Niệm (Mini music player widget: 01:43 ──●── 03:20, sóng âm, tính toán toạ độ Y động chống đè văn bản/metadata)
+    - `editorial`: 📰 Tạp Chí Minimal (Dấu ngoặc kép “ ” in chìm mờ, phân cấp quote thanh lịch)
+  * Chuẩn hóa tên tệp tải về: `kokoro_{theme}_{layout}_{yyyyMMdd_HHmmss}.jpg`.
+
+### Fixed & Resilience (Ngoại Tuyến An Toàn & Chuẩn Hóa Xử Lý Ngoại Lệ)
+- **Vá Lỗ Hổng Xóa Dữ Liệu Ngoại Tuyến Khi Mất Phiên (`static/js/api.js`):**
+  * Sửa hàm `syncOfflineQueue()`: Tuyệt đối KHÔNG xóa bài viết khỏi IndexedDB khi gặp mã HTTP 401 (Unauthorized) hoặc 403 (Forbidden). Giữ nguyên bài trong hàng đợi và thông báo yêu cầu đăng nhập lại.
+- **Triệt Tiêu Khối Nuốt Lỗi (No Silent Exception Swallowing):**
+  * Backend: Thay thế `except Exception: pass` trong `app/routes/maintenance_routes.py` bằng `except (json.JSONDecodeError, ValueError, TypeError) as err:` kèm log cảnh báo qua `logger.warning(...)`.
+  * Frontend: Bổ sung log `console.warn(...)` cho toàn bộ các khối `catch` rỗng trong `static/js/api.js`, `static/js/app.js`, `static/js/card-export.js`, `static/js/zen-prompts.js`.
+
+### Refactored & Layer Isolation (Kiến Trúc & Dọn Dẹp Mã Nguồn)
+- **Chuẩn Hóa Layer Isolation Trong `server.py` & `app/database.py`:**
+  * Thêm hàm `check_db_connection() -> tuple[bool, str]` trong `app/database.py`.
+  * Chuyển endpoint `/api/health` sang dùng `check_db_connection()`, xóa bỏ việc import `get_cursor` và raw SQL trực tiếp vào `server.py`.
+- **Dọn Dẹp Dead Code & Workspace SSoT:**
+  * Xóa bỏ hoàn toàn tệp `static/js/mock-data.js` và thẻ script liên quan trong `static/index.html` cùng Service Worker `static/sw.js`.
+  * Xóa tài liệu báo cáo và các file probe/log tạm thời trong `EVD/`.
+- **Nâng Cấp Phiên Bản & Bộ Kiểm Thử Tự Động:**
+  * Cập nhật `Config.APP_VERSION = "v1.6.5"`, bộ nhớ đệm `kokoro-v1.6.5`, và badge `v1.6.5` ở footer.
+  * Thêm file kiểm thử `tests/test_v165_release.py` bao quát 5 hợp đồng phát hành.
+  * Toàn bộ test runner đạt **74/74 tests PASS 100%**.
+
 ## [1.6.4] - 2026-10-13
 ### Refactored & Architectural Excellence (Clean Architecture & Strict Typing Transition)
 - **Tách Lớp Kiến Trúc Độc Lập (Modular Layered Architecture & Layer Isolation):**

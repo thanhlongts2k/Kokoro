@@ -9,7 +9,7 @@ from starlette.middleware.cors import CORSMiddleware
 import uvicorn
 
 from app.config import Config
-from app.database import init_db, get_cursor
+from app.database import init_db, check_db_connection
 
 # Ensure database tables exist on startup
 try:
@@ -28,12 +28,8 @@ UPLOAD_DIR = Config.UPLOAD_DIR
 
 async def api_health(request):
     """Healthcheck endpoint verifying DB and Server status."""
-    db_status = "connected"
-    try:
-        with get_cursor() as cur:
-            cur.execute("SELECT 1;")
-    except Exception as e:
-        db_status = f"error: {e}"
+    is_connected, db_info = check_db_connection()
+    db_status = "connected" if is_connected else f"error: {db_info}"
 
     return JSONResponse({
         "status": "online",

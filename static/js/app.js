@@ -50,11 +50,15 @@ const KokoroApp = {
       this.switchView(initialHash, false);
       try {
         history.replaceState({ view: initialHash }, '', '#' + initialHash);
-      } catch (err) {}
+      } catch (err) {
+        console.warn('[KokoroApp] Failed to update initial history state:', err);
+      }
     } else {
       try {
         history.replaceState({ view: 'timeline' }, '', '#timeline');
-      } catch (err) {}
+      } catch (err) {
+        console.warn('[KokoroApp] Failed to update default history state:', err);
+      }
     }
 
     // Initialize Auth & Session

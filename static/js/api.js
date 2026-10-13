@@ -450,7 +450,9 @@ const KokoroAPI = (() => {
       try {
         const key = `kokoro_draft_${userId || 'guest'}`;
         localStorage.removeItem(key);
-      } catch (e) {}
+      } catch (e) {
+        console.warn('[KokoroAPI] Failed to clear draft from localStorage:', e);
+      }
     },
 
     // -----------------------------------------------------------------------
