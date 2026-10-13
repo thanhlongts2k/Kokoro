@@ -18,7 +18,8 @@ THUMBNAILS_DIR = Config.UPLOAD_DIR / "thumbnails"
 ORIGINALS_DIR.mkdir(parents=True, exist_ok=True)
 THUMBNAILS_DIR.mkdir(parents=True, exist_ok=True)
 
-Image.MAX_IMAGE_PIXELS = None
+# Safe threshold for decompression bomb protection (~89 MegaPixels)
+Image.MAX_IMAGE_PIXELS = 89478485
 
 class MediaService:
     MAX_DIMENSION: int = 1600

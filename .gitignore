@@ -25,3 +25,6 @@ env/
 .idea/
 
 EVD/
+
+# Test artifacts & screenshots
+tests/*.png

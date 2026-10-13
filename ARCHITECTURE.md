@@ -182,8 +182,8 @@ Cơ sở dữ liệu cục bộ: **`kokoro_db`** (Port `5432`).
    - `short_name`: "Kokoro"
    - `start_url`: "/"
    - `display`: "standalone"
-   - `background_color`: "#080b11"
-   - `theme_color`: "#080b11"
+   - `background_color`: "#fff5f7"
+   - `theme_color`: "#fdf2f4"
    - `icons`: Đầy đủ kích thước 192x192 và 512x512 maskable icon.
 2. **Service Worker (`sw.js`):**
    - Cache-First đối với assets tĩnh (HTML, CSS, JS, Fonts, Icons).

@@ -259,7 +259,8 @@
   margin-left: auto;
 }
 
-.card-actions .action-icon-btn {
+.card-actions .action-icon-btn,
+.action-icon-btn {
   width: 30px;
   height: 30px;
   min-width: 30px;
@@ -269,6 +270,21 @@
   align-items: center;
   justify-content: center;
   font-size: 13.5px;
+  position: relative;
+  touch-action: manipulation;
+}
+
+.action-icon-btn::after,
+.card-actions .action-icon-btn::after {
+  content: "";
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  left: -8px;
+  right: -8px;
+  min-width: 44px;
+  min-height: 44px;
+  pointer-events: auto;
 }
 
 @media (max-width: 768px) {
@@ -725,6 +741,18 @@
 
 .preview-remove-btn:active {
   transform: scale(0.92) !important;
+}
+
+.preview-remove-btn::after {
+  content: "";
+  position: absolute;
+  top: -9px;
+  bottom: -9px;
+  left: -9px;
+  right: -9px;
+  min-width: 44px;
+  min-height: 44px;
+  pointer-events: auto;
 }
 
 .preview-saved-badge {
@@ -1671,6 +1699,20 @@ body.modal-scroll-locked {
   color: var(--text-muted);
   cursor: pointer;
   transition: all var(--transition-fast);
+  position: relative;
+  touch-action: manipulation;
+}
+
+.zen-dismiss-btn::after {
+  content: "";
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  left: -6px;
+  right: -6px;
+  min-width: 44px;
+  min-height: 44px;
+  pointer-events: auto;
 }
 
 .zen-dismiss-btn:hover {

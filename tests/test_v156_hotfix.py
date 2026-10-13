@@ -99,5 +99,11 @@ def test_v156_hotfix_suite():
 
     print("\n>>> ALL HOTFIX v1.5.6 VERIFICATION CHECKS PASSED (100% OK) <<<")
 
+import unittest
+
+class TestV156Hotfix(unittest.TestCase):
+    def test_hotfix_suite(self):
+        test_v156_hotfix_suite()
+
 if __name__ == "__main__":
-    test_v156_hotfix_suite()
+    unittest.main()

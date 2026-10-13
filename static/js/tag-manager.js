@@ -4,8 +4,192 @@
  * Features: Tag normalization, editor quick suggestion chips, sidebar popular tags widget.
  */
 
+/**
+ * Global Soft Sakura Dialog Engine (SSoT for Async Modals)
+ * Provides Promise-based confirm() and prompt() dialogs with zero native browser popups.
+ */
+window.KokoroDialog = {
+  confirm({
+    title = 'Xác nhận 🌸',
+    message = '',
+    confirmText = 'Đồng ý',
+    cancelText = 'Hủy bỏ',
+    isDanger = false,
+    icon = 'bi-flower1'
+  } = {}) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('generic-confirm-modal');
+      const titleEl = document.getElementById('generic-confirm-title');
+      const msgEl = document.getElementById('generic-confirm-message');
+      const okBtn = document.getElementById('generic-confirm-ok-btn');
+      const cancelBtn = document.getElementById('generic-confirm-cancel-btn');
+      const iconEl = document.getElementById('generic-confirm-icon');
+
+      if (!modal) {
+        resolve(window.confirm(message));
+        return;
+      }
+
+      if (titleEl) titleEl.textContent = title;
+      if (msgEl) msgEl.textContent = message;
+      if (iconEl) iconEl.className = `bi ${icon}`;
+      if (okBtn) {
+        okBtn.innerHTML = isDanger ? `<i class="bi bi-trash3"></i> ${confirmText}` : `<i class="bi bi-check-lg"></i> ${confirmText}`;
+        if (isDanger) {
+          okBtn.style.background = 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)';
+        } else {
+          okBtn.style.background = '';
+        }
+      }
+      if (cancelBtn) cancelBtn.textContent = cancelText;
+
+      const cleanup = () => {
+        modal.classList.remove('active');
+        if (typeof window.lockBodyScroll === 'function') window.lockBodyScroll(false);
+        okBtn.removeEventListener('click', onOk);
+        cancelBtn.removeEventListener('click', onCancel);
+        modal.removeEventListener('click', onBackdrop);
+      };
+
+      const onOk = () => {
+        cleanup();
+        resolve(true);
+      };
+
+      const onCancel = () => {
+        cleanup();
+        resolve(false);
+      };
+
+      const onBackdrop = (e) => {
+        if (e.target === modal) {
+          cleanup();
+          resolve(false);
+        }
+      };
+
+      okBtn.addEventListener('click', onOk);
+      cancelBtn.addEventListener('click', onCancel);
+      modal.addEventListener('click', onBackdrop);
+
+      if (typeof window.lockBodyScroll === 'function') window.lockBodyScroll(true);
+      modal.classList.add('active');
+    });
+  },
+
+  prompt({
+    title = 'Nhập thông tin ✨',
+    message = '',
+    defaultValue = '',
+    placeholder = 'Nhập nội dung...',
+    label = 'Tên:',
+    extraValue = '',
+    extraLabel = 'Biểu tượng icon:',
+    showExtra = false,
+    confirmText = 'Xác nhận',
+    cancelText = 'Hủy bỏ'
+  } = {}) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('generic-prompt-modal');
+      const titleEl = document.getElementById('generic-prompt-title');
+      const msgEl = document.getElementById('generic-prompt-message');
+      const labelEl = document.getElementById('generic-prompt-label');
+      const inputEl = document.getElementById('generic-prompt-input');
+      const extraGroup = document.getElementById('generic-prompt-extra-group');
+      const extraLabelEl = document.getElementById('generic-prompt-extra-label');
+      const extraInputEl = document.getElementById('generic-prompt-extra-input');
+      const okBtn = document.getElementById('generic-prompt-ok-btn');
+      const cancelBtn = document.getElementById('generic-prompt-cancel-btn');
+
+      if (!modal) {
+        const val = window.prompt(title, defaultValue);
+        resolve(val !== null ? { value: val, extra: extraValue } : null);
+        return;
+      }
+
+      if (titleEl) titleEl.textContent = title;
+      if (msgEl) {
+        msgEl.textContent = message;
+        msgEl.style.display = message ? 'block' : 'none';
+      }
+      if (labelEl) labelEl.textContent = label;
+      if (inputEl) {
+        inputEl.value = defaultValue;
+        inputEl.placeholder = placeholder;
+      }
+      if (extraGroup) {
+        extraGroup.style.display = showExtra ? 'block' : 'none';
+        if (extraLabelEl) extraLabelEl.textContent = extraLabel;
+        if (extraInputEl) extraInputEl.value = extraValue;
+      }
+      if (okBtn) okBtn.innerHTML = `<i class="bi bi-check2"></i> ${confirmText}`;
+      if (cancelBtn) cancelBtn.textContent = cancelText;
+
+      const cleanup = () => {
+        modal.classList.remove('active');
+        if (typeof window.lockBodyScroll === 'function') window.lockBodyScroll(false);
+        okBtn.removeEventListener('click', onOk);
+        cancelBtn.removeEventListener('click', onCancel);
+        modal.removeEventListener('click', onBackdrop);
+        if (inputEl) inputEl.removeEventListener('keydown', onKey);
+      };
+
+      const onOk = () => {
+        const val = inputEl ? inputEl.value.trim() : '';
+        const extra = (showExtra && extraInputEl) ? extraInputEl.value.trim() : '';
+        cleanup();
+        resolve({ value: val, extra });
+      };
+
+      const onCancel = () => {
+        cleanup();
+        resolve(null);
+      };
+
+      const onBackdrop = (e) => {
+        if (e.target === modal) {
+          cleanup();
+          resolve(null);
+        }
+      };
+
+      const onKey = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          onOk();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          onCancel();
+        }
+      };
+
+      okBtn.addEventListener('click', onOk);
+      cancelBtn.addEventListener('click', onCancel);
+      modal.addEventListener('click', onBackdrop);
+      if (inputEl) inputEl.addEventListener('keydown', onKey);
+
+      if (typeof window.lockBodyScroll === 'function') window.lockBodyScroll(true);
+      modal.classList.add('active');
+      setTimeout(() => {
+        if (inputEl) {
+          inputEl.focus();
+          inputEl.select();
+        }
+      }, 50);
+    });
+  }
+};
+
 const KokoroTagManager = (() => {
   let cachedTags = [];
+
+  const notify = (msg, type = 'info') => {
+    if (window.KokoroApp && typeof window.KokoroApp.showToast === 'function') {
+      window.KokoroApp.showToast(msg, type);
+    } else if (window.KokoroToast && typeof window.KokoroToast.show === 'function') {
+      window.KokoroToast.show(msg, type);
+    }
+  };
 
   /**
    * Parse space-separated tags from input string into normalized array
@@ -234,20 +418,24 @@ const KokoroTagManager = (() => {
 
     if (cleanupOrphansBtn) {
       cleanupOrphansBtn.addEventListener('click', async () => {
-        if (!confirm('Bạn có chắc muốn dọn dẹp toàn bộ các thẻ chưa gắn với bài viết nào (0 bài)?')) return;
+        const ok = await window.KokoroDialog.confirm({
+          title: 'Dọn Dẹp Thẻ Mồ Côi 🍃',
+          message: 'Bạn có chắc muốn dọn dẹp toàn bộ các thẻ chưa gắn với bài viết nào (0 bài)?',
+          confirmText: 'Dọn dẹp ngay',
+          isDanger: true,
+          icon: 'bi-stars'
+        });
+        if (!ok) return;
+
         try {
           const res = await window.KokoroAPI.cleanupOrphanTags();
           if (res && res.status === 'success') {
-            if (window.KokoroApp && window.KokoroApp.showToast) {
-              window.KokoroApp.showToast(res.message || 'Đã dọn dẹp thẻ mồ côi thành công! 🌸');
-            }
+            notify(res.message || 'Đã dọn dẹp thẻ mồ côi thành công! 🌸', 'success');
             await renderTagsTab();
             if (window.KokoroApp) await window.KokoroApp.loadPopularTags();
           }
         } catch (err) {
-          if (window.KokoroApp && window.KokoroApp.showToast) {
-            window.KokoroApp.showToast('Lỗi dọn dẹp: ' + err.message, 'error');
-          }
+          notify('Lỗi dọn dẹp: ' + err.message, 'error');
         }
       });
     }
@@ -321,7 +509,7 @@ const KokoroTagManager = (() => {
       if (!nameInput) return;
       const rawName = nameInput.value.trim();
       if (!rawName) {
-        alert('Vui lòng nhập tên danh mục 🌸');
+        notify('Vui lòng nhập tên danh mục 🌸', 'warning');
         nameInput.focus();
         return;
       }
@@ -335,9 +523,7 @@ const KokoroTagManager = (() => {
         const res = await window.KokoroAPI.createCategory(payload);
         if (res && res.status === 'success') {
           nameInput.value = '';
-          if (window.KokoroApp && window.KokoroApp.showToast) {
-            window.KokoroApp.showToast(`Đã tạo danh mục "${rawName}" thành công! 🌸`);
-          }
+          notify(`Đã tạo danh mục "${rawName}" thành công! 🌸`, 'success');
           await renderCategoriesTab();
           if (window.Editor && typeof window.Editor.loadCategories === 'function') {
             await window.Editor.loadCategories();
@@ -347,7 +533,7 @@ const KokoroTagManager = (() => {
           }
         }
       } catch (err) {
-        alert('Lỗi tạo danh mục: ' + err.message);
+        notify('Lỗi tạo danh mục: ' + err.message, 'error');
       }
     };
 
@@ -372,7 +558,7 @@ const KokoroTagManager = (() => {
       if (!tagNameInput) return;
       const rawName = tagNameInput.value.trim();
       if (!rawName) {
-        alert('Vui lòng nhập tên thẻ 🏷️');
+        notify('Vui lòng nhập tên thẻ 🏷️', 'warning');
         tagNameInput.focus();
         return;
       }
@@ -381,14 +567,12 @@ const KokoroTagManager = (() => {
         const res = await window.KokoroAPI.createTag(rawName);
         if (res && res.status === 'success') {
           tagNameInput.value = '';
-          if (window.KokoroApp && window.KokoroApp.showToast) {
-            window.KokoroApp.showToast(res.message || `Đã tạo thẻ thành công! 🏷️`);
-          }
+          notify(res.message || `Đã tạo thẻ thành công! 🏷️`, 'success');
           await renderTagsTab();
           if (window.KokoroApp) await window.KokoroApp.loadPopularTags();
         }
       } catch (err) {
-        alert('Lỗi tạo thẻ: ' + err.message);
+        notify('Lỗi tạo thẻ: ' + err.message, 'error');
       }
     };
 
@@ -475,26 +659,34 @@ const KokoroTagManager = (() => {
           const oldIcon = e.currentTarget.dataset.catIcon;
           const oldColor = e.currentTarget.dataset.catColor;
 
-          const newName = prompt(`Đổi tên danh mục "${oldName}":`, oldName);
-          if (newName === null) return;
-          const trimmedName = newName.trim();
+          const promptResult = await window.KokoroDialog.prompt({
+            title: 'Chỉnh Sửa Danh Mục ✨',
+            message: `Cập nhật thông tin cho danh mục "${oldName}":`,
+            defaultValue: oldName,
+            placeholder: 'Tên danh mục...',
+            label: 'Tên danh mục:',
+            showExtra: true,
+            extraValue: oldIcon,
+            extraLabel: 'Biểu tượng icon:',
+            confirmText: 'Lưu thay đổi'
+          });
+          if (!promptResult) return;
+
+          const trimmedName = promptResult.value.trim();
           if (!trimmedName) {
-            alert('Tên danh mục không được để trống.');
+            notify('Tên danh mục không được để trống.', 'warning');
             return;
           }
-
-          const newIcon = prompt(`Nhập biểu tượng icon mới cho "${trimmedName}" (hiện tại: ${oldIcon}):`, oldIcon) || oldIcon;
+          const newIcon = promptResult.extra.trim() || oldIcon;
 
           try {
             const updateRes = await window.KokoroAPI.updateCategory(catId, {
               name: trimmedName,
-              icon: newIcon.trim() || oldIcon,
+              icon: newIcon,
               color: oldColor
             });
             if (updateRes && updateRes.status === 'success') {
-              if (window.KokoroApp && window.KokoroApp.showToast) {
-                window.KokoroApp.showToast(`Đã cập nhật danh mục "${trimmedName}" ✨`);
-              }
+              notify(`Đã cập nhật danh mục "${trimmedName}" ✨`, 'success');
               await renderCategoriesTab();
               if (window.Editor && typeof window.Editor.loadCategories === 'function') {
                 await window.Editor.loadCategories();
@@ -505,7 +697,7 @@ const KokoroTagManager = (() => {
               if (window.KokoroApp) await window.KokoroApp.loadEntries();
             }
           } catch (err) {
-            alert('Lỗi cập nhật danh mục: ' + err.message);
+            notify('Lỗi cập nhật danh mục: ' + err.message, 'error');
           }
         });
       });
@@ -515,14 +707,19 @@ const KokoroTagManager = (() => {
         btn.addEventListener('click', async (e) => {
           const catId = e.currentTarget.dataset.catId;
           const catName = e.currentTarget.dataset.catName;
-          if (!confirm(`Bạn có chắc muốn xóa danh mục "${catName}"?\n(Lưu ý: Các bài viết thuộc danh mục này sẽ tự động chuyển về trạng thái Chưa phân loại, bài viết của bạn sẽ được an toàn tuyệt đối).`)) return;
+          const ok = await window.KokoroDialog.confirm({
+            title: 'Xóa Danh Mục 🌸',
+            message: `Bạn có chắc muốn xóa danh mục "${catName}"?\n(Lưu ý: Các bài viết thuộc danh mục này sẽ tự động chuyển về trạng thái Chưa phân loại, bài viết của bạn sẽ được an toàn tuyệt đối).`,
+            confirmText: 'Xác nhận xóa',
+            isDanger: true,
+            icon: 'bi-folder-x'
+          });
+          if (!ok) return;
 
           try {
             const delRes = await window.KokoroAPI.deleteCategory(catId);
             if (delRes && delRes.status === 'success') {
-              if (window.KokoroApp && window.KokoroApp.showToast) {
-                window.KokoroApp.showToast(`Đã xóa danh mục "${catName}" thành công 🌸`);
-              }
+              notify(`Đã xóa danh mục "${catName}" thành công 🌸`, 'success');
               await renderCategoriesTab();
               if (window.Editor && typeof window.Editor.loadCategories === 'function') {
                 await window.Editor.loadCategories();
@@ -533,7 +730,7 @@ const KokoroTagManager = (() => {
               if (window.KokoroApp) await window.KokoroApp.loadEntries();
             }
           } catch (err) {
-            alert('Lỗi xóa danh mục: ' + err.message);
+            notify('Lỗi xóa danh mục: ' + err.message, 'error');
           }
         });
       });
@@ -589,20 +786,26 @@ const KokoroTagManager = (() => {
         btn.addEventListener('click', async (e) => {
           const tagId = e.currentTarget.dataset.tagId;
           const oldName = e.currentTarget.dataset.tagName;
-          const newName = prompt(`Nhập tên mới cho thẻ ${oldName}:`, oldName.replace(/^#/, ''));
-          if (newName === null) return;
-          const trimmed = newName.trim();
+          const promptResult = await window.KokoroDialog.prompt({
+            title: 'Đổi Tên Thẻ 🏷️',
+            message: `Nhập tên mới cho thẻ ${oldName}:`,
+            defaultValue: oldName.replace(/^#/, ''),
+            placeholder: 'Tên thẻ mới...',
+            label: 'Tên thẻ:',
+            confirmText: 'Lưu tên mới'
+          });
+          if (!promptResult) return;
+
+          const trimmed = promptResult.value.trim();
           if (!trimmed) {
-            alert('Tên thẻ không được để trống.');
+            notify('Tên thẻ không được để trống.', 'warning');
             return;
           }
 
           try {
             const updateRes = await window.KokoroAPI.updateTag(tagId, trimmed);
             if (updateRes && updateRes.status === 'success') {
-              if (window.KokoroApp && window.KokoroApp.showToast) {
-                window.KokoroApp.showToast(`Đã đổi tên thẻ thành #${trimmed.replace(/^#/, '')} ✨`);
-              }
+              notify(`Đã đổi tên thẻ thành #${trimmed.replace(/^#/, '')} ✨`, 'success');
               await renderTagsTab();
               if (window.KokoroApp) {
                 await window.KokoroApp.loadEntries();
@@ -610,7 +813,7 @@ const KokoroTagManager = (() => {
               }
             }
           } catch (err) {
-            alert('Lỗi đổi tên thẻ: ' + err.message);
+            notify('Lỗi đổi tên thẻ: ' + err.message, 'error');
           }
         });
       });
@@ -620,14 +823,19 @@ const KokoroTagManager = (() => {
         btn.addEventListener('click', async (e) => {
           const tagId = e.currentTarget.dataset.tagId;
           const tagName = e.currentTarget.dataset.tagName;
-          if (!confirm(`Bạn có chắc muốn xóa thẻ ${tagName}? Thẻ sẽ được gỡ khỏi các bài viết liên quan.`)) return;
+          const ok = await window.KokoroDialog.confirm({
+            title: 'Gỡ Bỏ Thẻ 🏷️',
+            message: `Bạn có chắc muốn xóa thẻ ${tagName}? Thẻ sẽ được gỡ khỏi các bài viết liên quan.`,
+            confirmText: 'Xác nhận xóa',
+            isDanger: true,
+            icon: 'bi-tag'
+          });
+          if (!ok) return;
 
           try {
             const delRes = await window.KokoroAPI.deleteTag(tagId);
             if (delRes && delRes.status === 'success') {
-              if (window.KokoroApp && window.KokoroApp.showToast) {
-                window.KokoroApp.showToast(`Đã xóa thẻ ${tagName} thành công 🌸`);
-              }
+              notify(`Đã xóa thẻ ${tagName} thành công 🌸`, 'success');
               await renderTagsTab();
               if (window.KokoroApp) {
                 await window.KokoroApp.loadEntries();
@@ -635,7 +843,7 @@ const KokoroTagManager = (() => {
               }
             }
           } catch (err) {
-            alert('Lỗi xóa thẻ: ' + err.message);
+            notify('Lỗi xóa thẻ: ' + err.message, 'error');
           }
         });
       });

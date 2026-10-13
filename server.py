@@ -45,27 +45,6 @@ async def api_health(request):
         "mock_auth": Config.MOCK_AUTH
     })
 
-async def api_current_user(request):
-    """Return currently active user profile (Mock user in dev)."""
-    with get_cursor() as cur:
-        cur.execute("SELECT id, name, email, avatar_url, created_at FROM users LIMIT 1;")
-        user = cur.fetchone()
-
-    if user:
-        # Convert created_at to ISO string
-        if user.get("created_at"):
-            user["created_at"] = user["created_at"].isoformat()
-        return JSONResponse({"user": user})
-
-    return JSONResponse({
-        "user": {
-            "id": 1,
-            "name": "Aria Tanaka",
-            "email": "aria.tanaka@kokoro.me",
-            "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
-        }
-    })
-
 from app.routes.entry_routes import entry_routes
 from app.routes.auth_routes import auth_routes
 

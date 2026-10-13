@@ -42,6 +42,8 @@ async def get_entries(request: Request) -> JSONResponse:
     month = query_params.get("month")
     search = query_params.get("search")
     category_param = query_params.get("category_id") or query_params.get("category")
+    limit_param = query_params.get("limit")
+    offset_param = query_params.get("offset")
 
     sql = """
         SELECT e.id, e.user_id, e.category_id,
@@ -104,6 +106,22 @@ async def get_entries(request: Request) -> JSONResponse:
         GROUP BY e.id, c.id
         ORDER BY e.is_pinned DESC, e.entry_date DESC, e.created_at DESC
     """
+
+    if limit_param:
+        try:
+            limit_val = max(1, min(int(limit_param), 500))
+            sql += " LIMIT %s"
+            params.append(limit_val)
+        except (ValueError, TypeError):
+            pass
+
+    if offset_param:
+        try:
+            offset_val = max(0, int(offset_param))
+            sql += " OFFSET %s"
+            params.append(offset_val)
+        except (ValueError, TypeError):
+            pass
 
     try:
         with get_cursor() as cur:

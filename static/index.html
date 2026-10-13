@@ -857,6 +857,54 @@
     </div>
 
     <!-- ====================================================================
+         6.1. SOFT SAKURA GENERIC CONFIRMATION MODAL (ASYNC)
+         ==================================================================== -->
+    <div class="modal-overlay" id="generic-confirm-modal">
+      <div class="glass-panel confirm-dialog">
+        <div class="confirm-icon-wrapper" id="generic-confirm-icon-wrap">
+          <i class="bi bi-flower1" id="generic-confirm-icon"></i>
+        </div>
+        <h4 id="generic-confirm-title" style="font-size: 17px; font-weight: 700; color: var(--text-primary); margin: 0 0 8px;">Xác nhận</h4>
+        <p id="generic-confirm-message" style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin: 0 0 24px; white-space: pre-line;">Nội dung xác nhận</p>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+          <button type="button" class="btn-glass" id="generic-confirm-cancel-btn" style="flex: 1; padding: 10px 16px;">Hủy bỏ</button>
+          <button type="button" class="btn-sakura" id="generic-confirm-ok-btn" style="flex: 1; padding: 10px 16px;">
+            <i class="bi bi-check-lg"></i> Đồng ý
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         6.2. SOFT SAKURA GENERIC PROMPT MODAL (ASYNC)
+         ==================================================================== -->
+    <div class="modal-overlay" id="generic-prompt-modal">
+      <div class="glass-panel confirm-dialog" style="max-width: 380px;">
+        <div class="confirm-icon-wrapper" id="generic-prompt-icon-wrap">
+          <i class="bi bi-pencil-square" id="generic-prompt-icon"></i>
+        </div>
+        <h4 id="generic-prompt-title" style="font-size: 17px; font-weight: 700; color: var(--text-primary); margin: 0 0 8px;">Nhập thông tin</h4>
+        <p id="generic-prompt-message" style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin: 0 0 16px;"></p>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+          <div style="text-align: left;">
+            <label id="generic-prompt-label" style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; display: block;">Tên:</label>
+            <input type="text" id="generic-prompt-input" class="form-control" style="width: 100%; padding: 8px 12px; font-size: 14px;" placeholder="Nhập tên...">
+          </div>
+          <div id="generic-prompt-extra-group" style="display: none; text-align: left;">
+            <label id="generic-prompt-extra-label" style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; display: block;">Biểu tượng icon:</label>
+            <input type="text" id="generic-prompt-extra-input" class="form-control" style="width: 100%; padding: 8px 12px; font-size: 14px; text-align: center;" placeholder="🌸">
+          </div>
+        </div>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+          <button type="button" class="btn-glass" id="generic-prompt-cancel-btn" style="flex: 1; padding: 10px 16px;">Hủy bỏ</button>
+          <button type="button" class="btn-sakura" id="generic-prompt-ok-btn" style="flex: 1; padding: 10px 16px;">
+            <i class="bi bi-check2"></i> Xác nhận
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
          7. FULLSCREEN PHOTO LIGHTBOX MODAL
          ==================================================================== -->
     <div class="lightbox-modal" id="lightbox-modal">

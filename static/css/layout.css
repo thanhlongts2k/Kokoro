@@ -1666,7 +1666,9 @@ body.modal-scroll-locked {
 /* ==========================================================================
    CUSTOM SOFT SAKURA CONFIRMATION DIALOG
    ========================================================================== */
-#delete-confirm-modal {
+#delete-confirm-modal,
+#generic-confirm-modal,
+#generic-prompt-modal {
   align-items: center !important;
   justify-content: center !important;
 }
