@@ -430,4 +430,20 @@
   - [x] Toàn bộ 89/89 unit tests trong hệ thống PASS 100%.
   - [x] Nâng cấp phiên bản toàn hệ thống lên `v1.7.4` (`app/config.py`, `sw.js`, `index.html`, test suites).
 
+### 🔹 Giai đoạn 20: Bản Phát Hành v1.7.5 — Hoàn Thiện Giao Diện Kho Kỷ Niệm, Xóa Bỏ Lỗi Trùng Dấu Thẻ & Tối Ưu Lưới Ảnh Mobile (Memories View Polish)
+- [x] **Chuẩn Hóa Chip Cảm Xúc Kho Kỷ Niệm Dạng Capsule Pill (`static/css/components.css`):**
+  - [x] Bổ sung bộ quy tắc CSS chuyên biệt cho `.memories-mood-scroll .memory-mood-pill`: `flex-shrink: 0 !important; white-space: nowrap !important; height: 38px; border-radius: 20px; padding: 0 14px;`.
+  - [x] Ngăn chặn triệt để tình trạng các nút lọc cảm xúc bị ép méo thành hình tròn nhỏ trên màn hình di động hẹp.
+  - [x] Hiệu ứng dải chuyển màu hồng anh đào (`linear-gradient(135deg, var(--sakura-500), #f43f5e)`) rực rỡ và sắc sảo khi kích hoạt.
+- [x] **Khắc Phục Triệt Để Lỗi Trùng Dấu Thẻ `##tag` (`static/js/memories-view.js`):**
+  - [x] Tự động chuẩn hóa tiền tố thẻ `tag.replace(/^#+/, '')` trước khi hiển thị `<span>#${safeTag}</span>`, đảm bảo duy nhất một dấu `#`.
+  - [x] Chuẩn hóa thông báo rỗng khi không tìm thấy ảnh theo thẻ.
+- [x] **Tối Ưu Lưới Ảnh Mobile:**
+  - [x] Bổ sung media query `@media (hover: none) and (pointer: coarse)` tự động hiển thị lớp phủ thông tin mờ đáy trên thiết bị cảm ứng di động.
+- [x] **Bộ Kiểm Thử Tự Động:**
+  - [x] Xây dựng `tests/test_memories_view_polish.py` ➔ PASS 4/4 (100%).
+  - [x] Toàn bộ 90/90 unit tests trong hệ thống PASS 100%.
+  - [x] Nâng cấp phiên bản toàn hệ thống lên `v1.7.5` (`app/config.py`, `sw.js`, `index.html`, test suites).
+
+
 

@@ -2,6 +2,22 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal Diary & Photo Journal PWA** được ghi nhận chi tiết tại tệp này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) và tuân thủ [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.7.5] - 2026-10-13
+### Fixed & UI Polish (Khắc Phục Chip Cảm Xúc Kho Kỷ Niệm, Xóa Bỏ Lỗi Trùng Dấu Thẻ & Tối Ưu Lưới Ảnh Mobile)
+- **Chuẩn Hóa Chip Cảm Xúc Kho Kỷ Niệm Dạng Capsule Pill (`static/css/components.css`):**
+  * Sửa lỗi các nút lọc cảm xúc `.memory-mood-pill` trong Kho Kỷ Niệm bị ép méo thành hình tròn nhỏ trên màn hình di động hẹp do thiếu thuộc tính chống co giãn (`flex-shrink: 0`).
+  * Định nghĩa hệ thống style hoàn chỉnh cho `.memories-mood-scroll .memory-mood-pill`: chiều cao 38px, bo góc viên thuốc `border-radius: 20px`, đệm ngang 14px, `white-space: nowrap !important;`, căn chỉnh icon cảm xúc và nhãn chữ thẳng hàng, tích hợp huy hiệu đếm số lượng ảnh với màu nền tương phản rõ nét.
+  * Hiệu ứng chuyển trạng thái Active sang dải chuyển màu hồng anh đào (`linear-gradient(135deg, var(--sakura-500), #f43f5e)`) rực rỡ, chữ trắng sắc sảo, bóng đổ phát quang êm dịu.
+- **Khắc Phục Triệt Để Lỗi Trùng Dấu Thẻ `##tag` (`static/js/memories-view.js`):**
+  * Chuẩn hóa bộ lọc thẻ hashtag: Tự động loại bỏ tiền tố `#` thô (`tag.replace(/^#+/, '')`) trước khi gán chuỗi hiển thị `<span>#${safeTag}</span>`, đảm bảo mọi chip thẻ luôn hiển thị chính xác đúng một ký tự `#` duy nhất (ví dụ: `#muabuon (1)` thay vì `##muabuon (1)`).
+  * Chuẩn hóa thông báo trạng thái rỗng khi không có ảnh theo thẻ được chọn trong Kho Kỷ Niệm.
+- **Tối Ưu Hiển Thị Lưới Ảnh Kho Kỷ Niệm Trên Màn Hình Cảm Ứng Di Động (`static/css/components.css`):**
+  * Bổ sung media query `@media (hover: none) and (pointer: coarse)` cho `.c-memory-overlay`, hiển thị lớp phủ thông tin mờ đáy tự nhiên kèm tiêu đề và thời gian chụp trên điện thoại/máy tính bảng mà không đòi hỏi thao tác rê chuột.
+- **Bộ Kiểm Thử Tự Động:**
+  * Xây dựng `tests/test_memories_view_polish.py` kiểm thử 4 kịch bản quy chuẩn ➔ PASS 4/4 (100%).
+  * Toàn bộ 90/90 unit tests trong hệ thống PASS 100%.
+  * Nâng cấp phiên bản toàn hệ thống lên `v1.7.5` (`app/config.py`, `sw.js`, `index.html`, test suites).
+
 ## [1.7.4] - 2026-10-13
 ### Fixed & Data Integrity (Khắc Phục Động Cơ Xóa Ảnh & Đồng Bộ Tài Sản Đĩa - CSDL)
 - **Khắc Phục Động Cơ Xóa Ảnh Trong Trình Soạn Thảo (`static/js/editor.js`, `app/routes/entry_routes.py`, `app/repositories/entry_repository.py`):**

@@ -124,9 +124,10 @@ const MemoriesView = {
         tagScrollEl.style.display = 'flex';
         tagScrollEl.innerHTML = tagList.map((tag) => {
           const isSelected = memoriesState.tag === tag;
-          const safeTag = window.escapeHtml(tag);
+          const cleanTagName = tag.replace(/^#+/, '');
+          const safeTag = window.escapeHtml(cleanTagName);
           return `
-            <button type="button" class="memory-tag-chip ${isSelected ? 'active' : ''}" data-memories-tag="${safeTag}">
+            <button type="button" class="memory-tag-chip ${isSelected ? 'active' : ''}" data-memories-tag="${window.escapeHtml(tag)}">
               <span>#${safeTag}</span>
               <span style="opacity: 0.7; font-size: 11px;">(${tagCounts[tag]})</span>
             </button>
@@ -183,7 +184,8 @@ const MemoriesView = {
 
     // 4. Render photo grid or empty state
     if (filteredPhotos.length === 0) {
-      const safeEmptyTag = memoriesState.tag ? window.escapeHtml(memoriesState.tag) : '';
+      const cleanEmptyTag = memoriesState.tag ? memoriesState.tag.replace(/^#+/, '') : '';
+      const safeEmptyTag = cleanEmptyTag ? window.escapeHtml(cleanEmptyTag) : '';
       gridEl.innerHTML = `
         <div class="glass-panel" style="padding: 44px 20px; text-align: center; grid-column: 1 / -1; border-radius: var(--radius-lg);">
           <div style="font-size: 38px; margin-bottom: 8px;">📷</div>

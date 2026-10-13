@@ -954,6 +954,13 @@
   opacity: 1;
 }
 
+@media (hover: none) and (pointer: coarse) {
+  .c-memory-overlay {
+    opacity: 1 !important;
+    background: linear-gradient(180deg, transparent 50%, rgba(15, 16, 22, 0.78) 100%) !important;
+  }
+}
+
 .c-memory-title {
   color: #ffffff;
   font-size: 11px;
@@ -1472,6 +1479,74 @@ body.modal-scroll-locked {
 
 .memories-mood-scroll::-webkit-scrollbar {
   display: none !important;
+}
+
+/* Memories Mood Pill Component */
+.memories-mood-scroll .memory-mood-pill {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  border-radius: 20px !important;
+  padding: 0 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  color: var(--text-primary) !important;
+  background: var(--surface-glass) !important;
+  border: 1px solid var(--border-glass) !important;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.memories-mood-scroll .memory-mood-pill .chip-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.memories-mood-scroll .memory-mood-pill .chip-label {
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.memories-mood-scroll .memory-mood-pill .memories-mood-count {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: var(--surface-glass-subtle);
+  color: var(--text-muted);
+  border: 1px solid var(--border-glass-subtle);
+  line-height: 1.2;
+}
+
+.memories-mood-scroll .memory-mood-pill:hover {
+  background: var(--surface-hover-overlay) !important;
+  border-color: var(--sakura-300) !important;
+  transform: translateY(-1px);
+}
+
+.memories-mood-scroll .memory-mood-pill.active {
+  background: linear-gradient(135deg, var(--sakura-500), #f43f5e) !important;
+  border-color: var(--sakura-600) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.35) !important;
+  transform: translateY(-1px);
+}
+
+.memories-mood-scroll .memory-mood-pill.active .chip-label {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+.memories-mood-scroll .memory-mood-pill.active .memories-mood-count {
+  background: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
 }
 
 .memories-tags-scroll {
