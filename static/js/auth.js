@@ -30,13 +30,18 @@ const KokoroAuth = {
     if (this.config && this.config.mock_auth) {
       try {
         const mockRes = await window.KokoroAPI.getMockUsers();
-        if (mockRes && mockRes.status === 'success') {
-          this.mockUsers = mockRes.users || [];
+        if (mockRes && mockRes.status === 'success' && mockRes.users && mockRes.users.length > 0) {
+          this.mockUsers = mockRes.users;
           this.renderMockUsersUI();
+        } else {
+          this.hideMockUsersUI();
         }
       } catch (e) {
         console.warn('[KokoroAuth] Không thể tải danh sách mock users:', e);
+        this.hideMockUsersUI();
       }
+    } else {
+      this.hideMockUsersUI();
     }
 
     // 3. Initialize Google Identity Services (GIS)
@@ -154,8 +159,22 @@ const KokoroAuth = {
     }
   },
 
+  hideMockUsersUI() {
+    const switcher = document.getElementById('mock-account-switcher');
+    const divider = document.getElementById('mock-account-divider');
+    const loginDivider = document.getElementById('login-divider');
+    const quickSection = document.getElementById('login-quick-dev-section');
+    if (switcher) switcher.style.display = 'none';
+    if (divider) divider.style.display = 'none';
+    if (loginDivider) loginDivider.style.display = 'none';
+    if (quickSection) quickSection.style.display = 'none';
+  },
+
   renderMockUsersUI() {
-    if (!this.mockUsers || this.mockUsers.length === 0) return;
+    if (!this.mockUsers || this.mockUsers.length === 0 || !this.config || !this.config.mock_auth) {
+      this.hideMockUsersUI();
+      return;
+    }
 
     // 1. In Profile Dropdown
     const switcher = document.getElementById('mock-account-switcher');

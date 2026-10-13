@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from server import app
 from app.config import Config
-from app.database import init_db, get_cursor, get_db
+from app.database import init_db, get_cursor, get_db, seed_mock_users_for_testing, clean_mock_users_after_testing
 from app.auth import create_session_token
 from app.services.media_service import MediaService, ORIGINALS_DIR, THUMBNAILS_DIR
 from app.schemas.maintenance import CleanupStatsDTO, MaintenanceResponseDTO
@@ -39,6 +39,7 @@ class TestSprint2GapClosure(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         init_db()
+        seed_mock_users_for_testing()
         cls.client = TestClient(app, base_url="https://testserver")
 
         # Get test user (Aria Tanaka)
@@ -50,30 +51,34 @@ class TestSprint2GapClosure(unittest.TestCase):
         cls.token = create_session_token(cls.user_id, cls.user["email"], cls.user["name"])
         cls.headers = {"Authorization": f"Bearer {cls.token}"}
 
+    @classmethod
+    def tearDownClass(cls):
+        clean_mock_users_after_testing()
+
     def setUp(self):
         self.client.cookies.clear()
 
     def test_01_version_alignment_v164(self):
         """Verify Config, Auth API, Service Worker, and HTML are synchronized to v1.6.4 or later"""
-        self.assertIn(Config.APP_VERSION, ("v1.6.4", "v1.6.5", "v1.7.0"))
+        self.assertIn(Config.APP_VERSION, ("v1.6.4", "v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2"))
 
         # Auth config endpoint
         resp = self.client.get("/api/auth/config")
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
-        self.assertIn(data.get("version"), ("v1.6.4", "v1.6.5", "v1.7.0"))
+        self.assertIn(data.get("version"), ("v1.6.4", "v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2"))
 
         # Service Worker cache name
         sw_file = Config.BASE_DIR / "static" / "sw.js"
         sw_code = sw_file.read_text(encoding="utf-8")
-        self.assertTrue(any(v in sw_code for v in ("kokoro-v1.6.4", "kokoro-v1.6.5", "kokoro-v1.7.0")))
-        self.assertTrue(any(f"./js/app.js?v={v}" in sw_code for v in ("1.6.4", "1.6.5", "1.7.0")))
+        self.assertTrue(any(v in sw_code for v in ("kokoro-v1.6.4", "kokoro-v1.6.5", "kokoro-v1.7.0", "kokoro-v1.7.1", "kokoro-v1.7.2")))
+        self.assertTrue(any(f"./js/app.js?v={v}" in sw_code for v in ("1.6.4", "1.6.5", "1.7.0", "1.7.1", "1.7.2")))
 
         # Index HTML stylesheet & script query params
         html_file = Config.BASE_DIR / "static" / "index.html"
         html_code = html_file.read_text(encoding="utf-8")
-        self.assertTrue(any(f"./css/tokens.css?v={v}" in html_code for v in ("1.6.4", "1.6.5", "1.7.0")))
-        self.assertTrue(any(f"./js/app.js?v={v}" in html_code for v in ("1.6.4", "1.6.5", "1.7.0")))
+        self.assertTrue(any(f"./css/tokens.css?v={v}" in html_code for v in ("1.6.4", "1.6.5", "1.7.0", "1.7.1", "1.7.2")))
+        self.assertTrue(any(f"./js/app.js?v={v}" in html_code for v in ("1.6.4", "1.6.5", "1.7.0", "1.7.1", "1.7.2")))
 
     def test_02_orphaned_media_windows_path_safety(self):
         """

@@ -51,8 +51,49 @@ const KokoroApp = {
     this.initZenPromptHandlers();
   },
 
+  async onUserChanged(user) {
+    await this.loadCategories(); await this.loadEntries(); await this.loadStats(); await this.loadPopularTags();
+    if (this.currentView === 'profile') this.renderProfileView();
+  },
+
   setupEventListeners() {
-    document.querySelectorAll('[data-view-target]').forEach((b) => b.addEventListener('click', (e) => this.switchView(e.currentTarget.dataset.viewTarget)));
+    document.querySelectorAll('[data-switch-view], [data-view-target]').forEach((b) => b.addEventListener('click', (e) => {
+      const v = e.currentTarget.dataset.switchView || e.currentTarget.dataset.viewTarget;
+      if (v) this.switchView(v);
+    }));
+    document.querySelectorAll('.bottom-nav-item').forEach((b) => b.addEventListener('click', (e) => {
+      const tab = e.currentTarget.dataset.tab;
+      if (tab === 'editor') { if (window.Editor) window.Editor.open(); } else if (tab) this.switchView(tab);
+    }));
+
+    document.addEventListener('click', (e) => {
+      const pill = e.target.closest('#header-profile-pill, .header-profile-pill, #user-profile-pill');
+      const dropdown = document.getElementById('profile-dropdown-menu');
+      if (pill) { e.stopPropagation(); if (dropdown) dropdown.classList.toggle('active'); return; }
+      if (dropdown && !e.target.closest('#profile-dropdown-menu')) dropdown.classList.remove('active');
+    });
+    document.addEventListener('click', (e) => {
+      const item = e.target.closest('#profile-dropdown-menu .dropdown-item, #profile-dropdown-menu .dropdown-header');
+      if (item) {
+        const dropdown = document.getElementById('profile-dropdown-menu');
+        if (dropdown) setTimeout(() => dropdown.classList.remove('active'), 150);
+        if (item.classList.contains('dropdown-header') || item.dataset.switchView === 'profile') this.switchView('profile');
+      }
+    });
+
+    const bind = (ids, fn) => ids.forEach((id) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); });
+    bind(['lock-screen-now-btn', 'profile-action-lock-now'], (e) => { e.preventDefault(); if (window.PasscodeLock) window.PasscodeLock.lockNow(); });
+    bind(['passcode-settings-btn', 'profile-action-pin'], (e) => { e.preventDefault(); if (window.PasscodeLock) window.PasscodeLock.openSetupModal(); });
+    bind(['passcode-close-settings-btn'], () => { if (window.PasscodeLock) window.PasscodeLock.closeSetupModal(); });
+    bind(['profile-action-category-tags'], () => { if (window.KokoroTagManager && window.KokoroTagManager.openCategoryModal) window.KokoroTagManager.openCategoryModal(); });
+    bind(['profile-action-theme', 'dropdown-theme-toggle-btn', 'theme-toggle-btn'], () => this.toggleTheme());
+    bind(['profile-action-logout'], () => { if (window.KokoroAuth) window.KokoroAuth.logout(); });
+    bind(['profile-action-pwa', 'pwa-install-menu-item'], () => { const p = document.getElementById('pwa-install-btn'); if (p) p.click(); });
+    bind(['export-backup-btn', 'profile-action-export'], (e) => { e.preventDefault(); this.exportBackup(); });
+    const backupInput = document.getElementById('backup-file-input');
+    bind(['import-backup-btn', 'profile-action-import'], (e) => { e.preventDefault(); if (backupInput) { backupInput.value = ''; backupInput.click(); } });
+    if (backupInput) backupInput.addEventListener('change', async (e) => { const f = e.target.files && e.target.files[0]; if (f) await this.importBackup(f); });
+
     window.addEventListener('hashchange', () => {
       const hash = location.hash.replace('#', '') || 'timeline';
       if (['timeline', 'calendar', 'memories', 'profile'].includes(hash) && hash !== this.currentView) this.switchView(hash, false);
@@ -65,47 +106,35 @@ const KokoroApp = {
       if (btn) btn.addEventListener('click', () => { if (window.Editor) window.Editor.open(); });
     });
 
-    const searchInput = document.getElementById('search-input');
-    const searchClearBtn = document.getElementById('search-clear-btn');
+    const searchInput = document.getElementById('search-input'), searchClearBtn = document.getElementById('search-clear-btn');
     let searchDebounceTimer = null;
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
         const val = e.target.value;
         if (searchClearBtn) searchClearBtn.style.display = val.length > 0 ? 'inline-flex' : 'none';
         clearTimeout(searchDebounceTimer);
-        searchDebounceTimer = setTimeout(() => {
-          this.searchQuery = val.trim();
-          this.timelineState.search = this.searchQuery;
-          this.loadEntries();
-        }, (window.KokoroConstants ? window.KokoroConstants.TIMEOUTS.SEARCH_DEBOUNCE_MS : 300));
+        searchDebounceTimer = setTimeout(() => { this.searchQuery = val.trim(); this.timelineState.search = this.searchQuery; this.loadEntries(); }, (window.KokoroConstants ? window.KokoroConstants.TIMEOUTS.SEARCH_DEBOUNCE_MS : 300));
       });
     }
     if (searchClearBtn && searchInput) {
-      searchClearBtn.addEventListener('click', () => {
-        searchInput.value = ''; searchClearBtn.style.display = 'none';
-        this.searchQuery = ''; this.timelineState.search = ''; this.loadEntries();
-      });
+      searchClearBtn.addEventListener('click', () => { searchInput.value = ''; searchClearBtn.style.display = 'none'; this.searchQuery = ''; this.timelineState.search = ''; this.loadEntries(); });
     }
 
-    const prevMonthBtn = document.getElementById('full-cal-prev-btn');
-    const nextMonthBtn = document.getElementById('full-cal-next-btn');
+    const prevMonthBtn = document.getElementById('full-cal-prev-btn'), nextMonthBtn = document.getElementById('full-cal-next-btn');
     if (prevMonthBtn) prevMonthBtn.addEventListener('click', () => { this.calMonth--; if (this.calMonth < 0) { this.calMonth = 11; this.calYear--; } this.renderFullCalendar(); });
     if (nextMonthBtn) nextMonthBtn.addEventListener('click', () => { this.calMonth++; if (this.calMonth > 11) { this.calMonth = 0; this.calYear++; } this.renderFullCalendar(); });
 
-    const deleteConfirmBtn = document.getElementById('delete-confirm-btn');
-    const deleteCancelBtn = document.getElementById('delete-cancel-btn');
+    const deleteConfirmBtn = document.getElementById('delete-confirm-btn'), deleteCancelBtn = document.getElementById('delete-cancel-btn');
     if (deleteConfirmBtn) deleteConfirmBtn.addEventListener('click', () => this.confirmDelete());
     if (deleteCancelBtn) deleteCancelBtn.addEventListener('click', () => this.closeDeleteConfirm());
     window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.pendingDeleteId !== null) this.closeDeleteConfirm(); });
-
-    const themeBtn = document.getElementById('theme-toggle-btn');
-    if (themeBtn) themeBtn.addEventListener('click', () => this.applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
   },
 
   async loadCategories() {
     try {
       const res = await window.KokoroAPI.getCategories();
-      if (res && res.data) { this.categories = res.data; this.renderMoodFilterChips(); this.renderMemoriesMoodFilterChips(); }
+      const cats = (res && (res.categories || res.data)) ? (res.categories || res.data) : [];
+      if (cats) { this.categories = cats; this.renderMoodFilterChips(); this.renderMemoriesMoodFilterChips(); }
     } catch (e) { console.warn('[KokoroApp] Failed to load categories:', e); }
   },
 
@@ -117,7 +146,8 @@ const KokoroApp = {
         mood: this.timelineState.mood, category_id: this.timelineState.categoryId,
         tag: this.timelineState.tag, search: this.timelineState.search
       });
-      this.entries = (res && res.data) ? res.data : [];
+      const items = (res && (res.entries || res.data)) ? (res.entries || res.data) : [];
+      this.entries = items;
       if (!this.timelineState.mood && !this.timelineState.categoryId && !this.timelineState.tag && !this.timelineState.search) {
         this.allEntries = this.entries;
       }
@@ -137,7 +167,8 @@ const KokoroApp = {
   async loadStats() {
     try {
       const res = await window.KokoroAPI.getStats();
-      if (res && res.data) { this.stats = res.data; this.renderStats(); this.updateMoodCountBadges(this.stats); }
+      const st = res && (res.data || (res.totalEntries !== undefined ? res : null));
+      if (st) { this.stats = st; this.renderStats(); this.updateMoodCountBadges(this.stats); }
     } catch (err) { console.warn('[KokoroApp] Failed to load stats:', err); }
   },
 
@@ -181,31 +212,17 @@ const KokoroApp = {
   renderTimeline() {
     this.renderDailyZenCard();
     const feedEl = document.getElementById('timeline-feed-container');
-    if (!feedEl || !window.TimelineFeed) return;
-    window.TimelineFeed.renderTimeline({
-      feedEl, filteredEntries: this.getFilteredEntries(), isLoading: this.isLoading,
-      pagination: this.timelinePagination, activeTagFilter: this.activeTagFilter, callbacks: this._getCardCallbacks()
-    });
+    if (feedEl && window.TimelineFeed) window.TimelineFeed.renderTimeline({ feedEl, filteredEntries: this.getFilteredEntries(), isLoading: this.isLoading, pagination: this.timelinePagination, activeTagFilter: this.activeTagFilter, callbacks: this._getCardCallbacks() });
   },
 
   handleLoadMoreEntries() {
-    // Pagination contract: timeline-load-more-btn / timeline-end-indicator
+    // Contract: timeline-load-more-btn, timeline-end-indicator
     const feedEl = document.getElementById('timeline-feed-container');
-    if (!feedEl || !window.TimelineFeed) return;
-    window.TimelineFeed.handleLoadMoreEntries({
-      feedEl, filteredEntries: this.getFilteredEntries(), pagination: this.timelinePagination,
-      activeTagFilter: this.activeTagFilter, callbacks: this._getCardCallbacks()
-    });
+    if (feedEl && window.TimelineFeed) window.TimelineFeed.handleLoadMoreEntries({ feedEl, filteredEntries: this.getFilteredEntries(), pagination: this.timelinePagination, activeTagFilter: this.activeTagFilter, callbacks: this._getCardCallbacks() });
   },
 
   renderMoodFilterChips() {
-    if (!window.TimelineFeed) return;
-    window.TimelineFeed.renderMoodFilterChips({
-      sidebarContainer: document.getElementById('sidebar-mood-filters'),
-      mobileContainer: document.getElementById('mobile-mood-chips'),
-      categories: this.categories, totalEntries: this.allEntries.length,
-      timelineState: this.timelineState, onSelectMood: (mood, catId) => this.setMoodFilter(mood, catId)
-    });
+    if (window.TimelineFeed) window.TimelineFeed.renderMoodFilterChips({ sidebarContainer: document.getElementById('sidebar-mood-filters'), mobileContainer: document.getElementById('mobile-mood-chips'), categories: this.categories, totalEntries: this.allEntries.length, timelineState: this.timelineState, onSelectMood: (m, c) => this.setMoodFilter(m, c) });
   },
 
   renderCalendar() {
@@ -241,22 +258,17 @@ const KokoroApp = {
     this.timelineState.mood = mood; this.timelineState.categoryId = categoryId;
     this.activeTagFilter = null; this.timelineState.tag = null; this.activeDateFilter = null;
     this.timelinePagination.visibleLimit = (window.KokoroConstants ? window.KokoroConstants.PAGINATION.INITIAL_VISIBLE_LIMIT : 15);
-    const tagContainer = document.getElementById('sidebar-popular-tags');
-    if (tagContainer) tagContainer.querySelectorAll('.tag-pill').forEach((p) => p.classList.remove('active'));
-    this.renderMoodFilterChips();
-    await this.loadEntries();
+    const tc = document.getElementById('sidebar-popular-tags');
+    if (tc) tc.querySelectorAll('.tag-pill').forEach((p) => p.classList.remove('active'));
+    this.renderMoodFilterChips(); await this.loadEntries();
   },
 
   async setTagFilter(tag) {
     this.activeTagFilter = (this.activeTagFilter && this.activeTagFilter.toLowerCase() === tag.toLowerCase()) ? null : tag;
     this.timelineState.tag = this.activeTagFilter;
     this.timelinePagination.visibleLimit = (window.KokoroConstants ? window.KokoroConstants.PAGINATION.INITIAL_VISIBLE_LIMIT : 15);
-    const tagContainer = document.getElementById('sidebar-popular-tags');
-    if (tagContainer) {
-      tagContainer.querySelectorAll('.tag-pill').forEach((pill) => {
-        pill.classList.toggle('active', !!(this.activeTagFilter && this.activeTagFilter.toLowerCase() === pill.dataset.tag.toLowerCase()));
-      });
-    }
+    const tc = document.getElementById('sidebar-popular-tags');
+    if (tc) tc.querySelectorAll('.tag-pill').forEach((p) => p.classList.toggle('active', !!(this.activeTagFilter && this.activeTagFilter.toLowerCase() === p.dataset.tag.toLowerCase())));
     await this.loadEntries();
   },
 
@@ -268,53 +280,38 @@ const KokoroApp = {
 
   async togglePin(id) {
     try {
-      await window.KokoroAPI.togglePin(id);
-      await this.loadEntries();
+      await window.KokoroAPI.togglePin(id); await this.loadEntries();
       this.showToast('Đã cập nhật trạng thái ghim bài viết! 📌');
-    } catch (err) {
-      console.error('[KokoroApp] Failed to toggle pin:', err);
-      this.showToast('Lỗi ghim bài viết: ' + err.message, 'error');
-    }
+    } catch (err) { this.showToast('Lỗi ghim bài viết: ' + err.message, 'error'); }
   },
 
   openDeleteConfirm(id) {
-    this.pendingDeleteId = id;
-    const modal = document.getElementById('delete-modal');
-    if (modal) {
-      modal.classList.add('active'); modal.setAttribute('aria-hidden', 'false');
-      const confirmBtn = document.getElementById('delete-confirm-btn');
-      if (confirmBtn) confirmBtn.focus();
-    }
+    this.pendingDeleteId = id; const modal = document.getElementById('delete-modal');
+    if (modal) { modal.classList.add('active'); modal.setAttribute('aria-hidden', 'false'); const b = document.getElementById('delete-confirm-btn'); if (b) b.focus(); }
   },
-
   closeDeleteConfirm() {
-    this.pendingDeleteId = null;
-    const modal = document.getElementById('delete-modal');
+    this.pendingDeleteId = null; const modal = document.getElementById('delete-modal');
     if (modal) { modal.classList.remove('active'); modal.setAttribute('aria-hidden', 'true'); }
   },
-
   async confirmDelete() {
     if (!this.pendingDeleteId) return;
-    const id = this.pendingDeleteId;
     try {
-      await window.KokoroAPI.deleteEntry(id);
+      await window.KokoroAPI.deleteEntry(this.pendingDeleteId);
       this.showToast('Đã xóa bài viết khỏi dòng thời gian 🍃');
-      this.closeDeleteConfirm();
-      await this.loadEntries();
-      await this.loadStats();
-    } catch (err) {
-      console.error('[KokoroApp] Failed to delete entry:', err);
-      this.showToast('Lỗi khi xóa bài viết: ' + err.message, 'error');
-    }
+      this.closeDeleteConfirm(); await this.loadEntries(); await this.loadStats();
+    } catch (err) { this.showToast('Lỗi khi xóa bài viết: ' + err.message, 'error'); }
   },
 
   switchView(viewName, updateHistory = true) {
     const validViews = ['timeline', 'calendar', 'memories', 'profile'];
     if (!validViews.includes(viewName)) return;
     this.currentView = viewName;
-    document.querySelectorAll('.app-view').forEach((s) => { s.style.display = 'none'; s.classList.remove('active'); });
+    document.querySelectorAll('.c-view, .app-view').forEach((s) => { s.style.display = 'none'; s.classList.remove('active'); });
     const targetSection = document.getElementById(`view-${viewName}`);
     if (targetSection) { targetSection.style.display = 'block'; targetSection.classList.add('active'); }
+
+    document.querySelectorAll('[data-switch-view]').forEach((b) => b.classList.toggle('active', b.dataset.switchView === viewName));
+    document.querySelectorAll('.bottom-nav-item').forEach((b) => b.classList.toggle('active', b.dataset.tab === viewName));
     document.querySelectorAll('[data-view-target]').forEach((b) => b.classList.toggle('active', b.dataset.viewTarget === viewName));
 
     if (viewName === 'timeline') this.renderTimeline();
@@ -329,6 +326,24 @@ const KokoroApp = {
   },
 
   initTheme() { this.applyTheme(localStorage.getItem('kokoro_theme') || 'light'); },
+  toggleTheme() { this.applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); },
+
+  async exportBackup() {
+    try {
+      this.showToast('Đang trích xuất bản sao lưu nhật ký... 🌸');
+      await window.KokoroAPI.exportEntries();
+      this.showToast('Đã tải bản sao lưu JSON thành công! ✨');
+    } catch (err) { this.showToast('Lỗi tải bản sao lưu: ' + err.message, 'error'); }
+  },
+
+  async importBackup(file) {
+    try {
+      this.showToast('Đang khôi phục dữ liệu từ file... 🌸');
+      const res = await window.KokoroAPI.importEntries(file);
+      this.showToast(res.message || 'Khôi phục dữ liệu thành công! ✨');
+      await this.loadCategories(); await this.loadEntries(); await this.loadStats();
+    } catch (err) { this.showToast('Lỗi khôi phục: ' + err.message, 'error'); }
+  },
 
   applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
@@ -340,10 +355,7 @@ const KokoroApp = {
 
   renderDailyZenCard() {
     const cardEl = document.getElementById('daily-zen-card');
-    if (!cardEl || !window.KokoroZenPrompt || window.KokoroZenPrompt.isDismissed()) {
-      if (cardEl) cardEl.style.display = 'none';
-      return;
-    }
+    if (!cardEl || !window.KokoroZenPrompt || window.KokoroZenPrompt.isDismissed()) { if (cardEl) cardEl.style.display = 'none'; return; }
     const prompt = window.KokoroZenPrompt.getDailyPrompt();
     if (!prompt) { if (cardEl) cardEl.style.display = 'none'; return; }
     this.activeZenPrompt = prompt;
@@ -353,8 +365,7 @@ const KokoroApp = {
     if (iconEl) iconEl.textContent = prompt.icon || '🌸';
     if (textEl) textEl.textContent = prompt.text;
     if (moodEl) moodEl.textContent = prompt.pillarName || `Gợi ý: ${prompt.suggestedMoodLabel || prompt.suggestedMood || 'Bình yên'}`;
-    cardEl.classList.remove('collapsed');
-    cardEl.style.display = 'flex';
+    cardEl.classList.remove('collapsed'); cardEl.style.display = 'flex';
   },
 
   initZenPromptHandlers() {
@@ -370,10 +381,8 @@ const KokoroApp = {
     });
     const dismissBtn = document.getElementById('zen-prompt-dismiss-btn') || document.getElementById('daily-zen-dismiss-btn');
     if (dismissBtn && window.KokoroZenPrompt) dismissBtn.addEventListener('click', () => {
-      window.KokoroZenPrompt.setDismissed(null, true);
-      cardEl.classList.add('collapsed');
-      setTimeout(() => { cardEl.style.display = 'none'; }, 360);
-      this.showToast('Đã ẩn gợi ý hôm nay 🍃', 'info');
+      window.KokoroZenPrompt.setDismissed(null, true); cardEl.classList.add('collapsed');
+      setTimeout(() => { cardEl.style.display = 'none'; }, 360); this.showToast('Đã ẩn gợi ý hôm nay 🍃', 'info');
     });
   },
 

@@ -11,12 +11,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Load .env file
 _env_path = BASE_DIR / ".env"
 if _env_path.exists():
-    load_dotenv(_env_path)
+    load_dotenv(_env_path, override=True)
 else:
     logger.warning("[Kokoro Security Warning] .env file not found at %s. Falling back to environment variables.", _env_path)
 
 class Config:
-    APP_VERSION: str = "v1.7.0"
+    APP_VERSION: str = "v1.7.2"
     BASE_DIR: Path = BASE_DIR
     PORT: int = int(os.getenv("PORT", "5050"))
     HOST: str = os.getenv("HOST", "0.0.0.0")

@@ -149,6 +149,8 @@ Cơ sở dữ liệu cục bộ: **`kokoro_db`** (Port `5432`).
 - `POST /api/auth/google`: Nhận Google ID Token (`credential`), xác thực qua Google Auth Library, tìm hoặc tạo User, trả về JWT Session Cookie / Bearer Token.
 - `GET /api/auth/me`: Lấy thông tin user hiện tại và phiên làm việc.
 - `POST /api/auth/logout`: Xóa phiên đăng nhập.
+- `GET /api/auth/config`: Cung cấp cấu hình auth công khai (`google_client_id`, `mock_auth`, `version`).
+- `GET /api/auth/mock-users` & `POST /api/auth/mock-login`: Chỉ khả dụng khi `MOCK_AUTH=True` cho môi trường dev/testing; được bảo vệ nghiêm ngặt bằng rào chắn Privacy Guard (chỉ truy vấn/cho phép đăng nhập với tài khoản có `google_id LIKE 'mock_%' OR email LIKE '%@kokoro.me'`, trả về `403 Forbidden` khi `MOCK_AUTH=False` và chặn tuyệt đối việc để lộ hoặc đăng nhập vào tài khoản cá nhân thật).
 
 ### 5.2. Diary Entries (`/api/entries`)
 - `GET /api/entries`: Danh sách bài viết (hỗ trợ lọc theo `category_id`, `mood`, `tag`, `month`, `search`).
@@ -254,5 +256,33 @@ Cơ sở dữ liệu cục bộ: **`kokoro_db`** (Port `5432`).
    - `PhotoRepository`: Quản lý ảnh đính kèm bài viết, truy vấn đường dẫn phục vụ dọn dẹp ảnh mồ côi.
 3. **Quy chuẩn Dung lượng Controller (< 300 Lines):**
    - God-file `entry_routes.py` (từng chiếm 1.568 dòng) đã được tái cấu trúc thành công xuống còn **291 dòng code**, đạt chuẩn Single Responsibility và dễ dàng bảo trì mở rộng lâu dài.
+
+---
+
+## 10. KIẾN TRÚC ĐIỀU HƯỚNG & PHÂN TẦNG HIỂN THỊ FRONTEND (v1.7.0 MODULAR ARCHITECTURE)
+
+1. **Bộ Điều Phối Trung Tâm & Điều Hướng (`static/js/app.js` < 400 dòng):**
+   - Đóng vai trò Bootstrapper & Routing Orchestrator duy nhất, liên kết các module hiển thị độc lập:
+     * `timeline-feed.js`: Timeline Feed, Photo Mosaic, Progressive Pagination (15 items/lần).
+     * `calendar-view.js`: Mini & Full Calendar Grid, phép tính ngày `isSameDay`, lọc bài theo ngày.
+     * `memories-view.js`: Album ảnh kỷ niệm, Lightbox kết nối, bộ lọc thẻ/cảm xúc.
+     * `profile-stats.js`: Trang cá nhân, chuỗi streak liên tục (`calculateStreak`), biểu đồ tâm trạng.
+   - **Cơ chế Event Delegation Đa Nền Tảng (Cross-platform Navigation Contract):**
+     * Desktop Navigation: Tương thích cả `[data-switch-view]` và `[data-view-target]`.
+     * Mobile Navigation: Lắng nghe `.bottom-nav-item[data-tab]`.
+     * Profile Dropdown Menu: Lắng nghe `#user-profile-pill` và điều hướng nội bộ từ `#dropdown-profile-view-btn`.
+     * View Container: Đồng bộ chuyển đổi trạng thái hiển thị giữa `.c-view` và `.app-view`.
+2. **Chiến Lược Bộ Nhớ Đệm & Invalidation (`static/sw.js`):**
+   - Service Worker Cache-First đối với static assets, tích hợp cơ chế chủ động kiểm tra cập nhật `reg.update()`.
+   - Mỗi lần cập nhật logic giao diện, `sw.js` mang dấu vết phiên bản để ép trình duyệt nạp lại mã nguồn mới nhất mà không gây xung đột cache cục bộ.
+3. **Hợp Đồng Phản Hồi API & Vòng Đời Phiên Đăng Nhập (API Response Contracts & Session Lifecycle):**
+   - **Quy chuẩn khóa phản hồi REST API (Response Payload Contract):**
+     * `GET /api/entries`: Bắt buộc trả về `{ "status": "success", "entries": [...] }`.
+     * `GET /api/categories`: Bắt buộc trả về `{ "status": "success", "categories": [...] }`.
+     * `GET /api/stats/summary`: Trả về phẳng `{ "status": "success", "totalEntries": N, ... }`.
+     * **Client Invariant:** Mã nguồn `static/js/app.js` luôn sử dụng biểu thức fallback an toàn `res.entries || res.data` và `res.categories || res.data`, triệt tiêu hoàn toàn rủi ro gán nhầm mảng rỗng (`[]`) làm ẩn bài viết của người dùng.
+   - **Vòng đời chuyển đổi tài khoản (`onUserChanged`):**
+     * Khi người dùng đăng nhập Google hoặc chọn tài khoản, `auth.js` kích hoạt sự kiện `window.KokoroApp.onUserChanged(user)`.
+     * Ứng dụng tự động kích hoạt nạp lại song song 4 luồng dữ liệu (`loadCategories`, `loadEntries`, `loadStats`, `loadPopularTags`) phân tách theo `user_id`, bảo đảm dữ liệu cá nhân hóa hiển thị tức thì và cô lập 100%.
 
 

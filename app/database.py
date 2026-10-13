@@ -89,6 +89,29 @@ def seed_default_categories(user_id: int, cur=None):
                 for cat in DEFAULT_CATEGORIES:
                     local_cur.execute(query, (user_id, cat["name"], cat["icon"], cat["color"], cat["sort_order"]))
 
+def seed_mock_users_for_testing():
+    """Explicitly seed mock development users Aria Tanaka & Kenji Sato for automated test suites."""
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+            INSERT INTO users (google_id, email, name, avatar_url)
+            VALUES 
+                ('mock_google_id_001', 'aria.tanaka@kokoro.me', 'Aria Tanaka (心)', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'),
+                ('mock_google_id_002', 'kenji.sato@kokoro.me', 'Kenji Sato (Zen)', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80')
+            ON CONFLICT (google_id) DO UPDATE 
+            SET last_login = CURRENT_TIMESTAMP
+            RETURNING id;
+            """)
+            rows = cur.fetchall()
+            for r in rows:
+                seed_default_categories(r[0], cur=cur)
+
+def clean_mock_users_after_testing():
+    """Remove transient mock development users created for automated test suites."""
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM users WHERE google_id LIKE 'mock_%' OR email LIKE '%@kokoro.me';")
+
 def init_db():
     """Initialize PostgreSQL schema with all required tables, indexes, and migrations."""
     schema_sql = """
@@ -177,16 +200,6 @@ def init_db():
         with conn.cursor() as cur:
             cur.execute(schema_sql)
 
-            # Insert default Mock Users for development if MOCK_AUTH is enabled
-            if Config.MOCK_AUTH:
-                cur.execute("""
-                INSERT INTO users (google_id, email, name, avatar_url)
-                VALUES 
-                    ('mock_google_id_001', 'aria.tanaka@kokoro.me', 'Aria Tanaka (心)', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'),
-                    ('mock_google_id_002', 'kenji.sato@kokoro.me', 'Kenji Sato (Zen)', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80')
-                ON CONFLICT (google_id) DO UPDATE 
-                SET last_login = CURRENT_TIMESTAMP;
-                """)
 
             # Clean legacy dummy categories ('Đời thường', 'Công việc', 'Tình cảm', 'Du lịch', 'Học tập') that have no entries
             legacy_names = ('Đời thường', 'Công việc', 'Tình cảm', 'Du lịch', 'Học tập')

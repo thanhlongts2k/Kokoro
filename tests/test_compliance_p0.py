@@ -121,15 +121,24 @@ class TestComplianceP0(unittest.TestCase):
 
     def test_08_optional_pagination_get_entries(self):
         """Test that GET /api/entries handles optional limit and offset params."""
+        from app.database import get_cursor
+        from app.auth import create_session_token
+        with get_cursor() as cur:
+            cur.execute("SELECT id, email, name FROM users LIMIT 1;")
+            user = cur.fetchone()
+        self.assertIsNotNone(user, "At least one user must exist in users table")
+        token = create_session_token(user["id"], user["email"], user["name"])
+        auth_headers = {"Authorization": f"Bearer {token}"}
+
         # 1. Unbounded / default call (returns entries without crashing)
-        resp_all = self.client.get("/api/entries", headers={"X-Mock-User-Id": "1"})
+        resp_all = self.client.get("/api/entries", headers=auth_headers)
         self.assertEqual(resp_all.status_code, 200)
         data_all = resp_all.json()
         self.assertEqual(data_all.get("status"), "success")
         total_count = len(data_all.get("entries", []))
 
         # 2. Bounded call with limit=1
-        resp_limit = self.client.get("/api/entries?limit=1", headers={"X-Mock-User-Id": "1"})
+        resp_limit = self.client.get("/api/entries?limit=1", headers=auth_headers)
         self.assertEqual(resp_limit.status_code, 200)
         data_limit = resp_limit.json()
         self.assertEqual(data_limit.get("status"), "success")
@@ -137,7 +146,7 @@ class TestComplianceP0(unittest.TestCase):
             self.assertEqual(len(data_limit.get("entries", [])), 1)
 
         # 3. Call with invalid limit (fallback safely)
-        resp_invalid = self.client.get("/api/entries?limit=invalid&offset=bad", headers={"X-Mock-User-Id": "1"})
+        resp_invalid = self.client.get("/api/entries?limit=invalid&offset=bad", headers=auth_headers)
         self.assertEqual(resp_invalid.status_code, 200)
 
 

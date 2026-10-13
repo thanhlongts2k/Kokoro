@@ -25,13 +25,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from server import app
 from app.config import Config
-from app.database import init_db, get_cursor, get_db
+from app.database import init_db, get_cursor, get_db, seed_mock_users_for_testing, clean_mock_users_after_testing
 from app.auth import create_session_token
 
 class TestV161DataIntegrity(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         init_db()
+        seed_mock_users_for_testing()
         cls.client = TestClient(app, base_url="https://testserver")
 
         # Get test user (Aria Tanaka)
@@ -43,27 +44,31 @@ class TestV161DataIntegrity(unittest.TestCase):
         cls.token = create_session_token(cls.user_id, cls.user["email"], cls.user["name"])
         cls.headers = {"Authorization": f"Bearer {cls.token}"}
 
+    @classmethod
+    def tearDownClass(cls):
+        clean_mock_users_after_testing()
+
     def setUp(self):
         self.client.cookies.clear()
 
     def test_01_version_alignment(self):
         """Verify Config, Auth config API, and Service Worker versions are aligned with v1.6.1 or later"""
-        self.assertIn(Config.APP_VERSION, ("v1.6.1", "v1.6.2", "v1.6.3", "v1.6.4", "v1.6.5", "v1.7.0"))
+        self.assertIn(Config.APP_VERSION, ("v1.6.1", "v1.6.2", "v1.6.3", "v1.6.4", "v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2"))
 
         resp = self.client.get("/api/auth/config")
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
-        self.assertIn(data.get("version"), ("v1.6.1", "v1.6.2", "v1.6.3", "v1.6.4", "v1.6.5", "v1.7.0"))
+        self.assertIn(data.get("version"), ("v1.6.1", "v1.6.2", "v1.6.3", "v1.6.4", "v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2"))
 
         sw_path = Config.BASE_DIR / "static" / "sw.js"
         sw_content = sw_path.read_text(encoding="utf-8")
-        self.assertTrue(any(v in sw_content for v in ("kokoro-v1.6.1", "kokoro-v1.6.2", "kokoro-v1.6.3", "kokoro-v1.6.4", "kokoro-v1.6.5", "kokoro-v1.7.0")))
-        self.assertTrue(any(v in sw_content for v in ("?v=1.6.1", "?v=1.6.2", "?v=1.6.3", "?v=1.6.4", "?v=1.6.5", "?v=1.7.0")))
+        self.assertTrue(any(v in sw_content for v in ("kokoro-v1.6.1", "kokoro-v1.6.2", "kokoro-v1.6.3", "kokoro-v1.6.4", "kokoro-v1.6.5", "kokoro-v1.7.0", "kokoro-v1.7.1", "kokoro-v1.7.2")))
+        self.assertTrue(any(v in sw_content for v in ("?v=1.6.1", "?v=1.6.2", "?v=1.6.3", "?v=1.6.4", "?v=1.6.5", "?v=1.7.0", "?v=1.7.1", "?v=1.7.2")))
 
         index_path = Config.BASE_DIR / "static" / "index.html"
         index_content = index_path.read_text(encoding="utf-8")
-        self.assertTrue(any(v in index_content for v in ("tokens.css?v=1.6.1", "tokens.css?v=1.6.2", "tokens.css?v=1.6.3", "tokens.css?v=1.6.4", "tokens.css?v=1.6.5", "tokens.css?v=1.7.0")))
-        self.assertTrue(any(v in index_content for v in ("app.js?v=1.6.1", "app.js?v=1.6.2", "app.js?v=1.6.3", "app.js?v=1.6.4", "app.js?v=1.6.5", "app.js?v=1.7.0")))
+        self.assertTrue(any(v in index_content for v in ("tokens.css?v=1.6.1", "tokens.css?v=1.6.2", "tokens.css?v=1.6.3", "tokens.css?v=1.6.4", "tokens.css?v=1.6.5", "tokens.css?v=1.7.0", "tokens.css?v=1.7.1", "tokens.css?v=1.7.2")))
+        self.assertTrue(any(v in index_content for v in ("app.js?v=1.6.1", "app.js?v=1.6.2", "app.js?v=1.6.3", "app.js?v=1.6.4", "app.js?v=1.6.5", "app.js?v=1.7.0", "app.js?v=1.7.1", "app.js?v=1.7.2")))
 
     def test_02_weather_lifecycle(self):
         """Test creating and updating entries with weather (PUT /api/entries/{id} weather = %s)"""

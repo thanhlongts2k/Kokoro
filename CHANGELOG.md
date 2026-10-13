@@ -2,6 +2,36 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal Diary & Photo Journal PWA** được ghi nhận chi tiết tại tệp này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) và tuân thủ [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.7.2] - 2026-10-13
+### Security & Production Hardening (Bảo Vệ Quyền Riêng Tư & Dọn Dẹp Sạch CSDL Sẵn Sàng Triển Khai Production)
+- **Dọn Dẹp Triệt Để Tài Khoản Test & Toàn Bộ Dữ Liệu/Ảnh Liên Quan (Mock Accounts Cleanup):**
+  * Xóa bỏ hoàn toàn các tài khoản mock dev (`aria.tanaka@kokoro.me`, `kenji.sato@kokoro.me`) cùng 90 bài viết mẫu và 158 tệp ảnh rác khỏi CSDL PostgreSQL `kokoro_db` và thư mục lưu trữ `uploads/`.
+  * Khẳng định tính toàn vẹn 100% của tài khoản thật `thanhlongts2k@gmail.com` (6 bài viết, 7 ảnh WebP, 4 tags, 5 categories).
+- **Vá Lỗ Hổng Hiển Thị & Bảo Vệ Riêng Tư Tài Khoản Thật (Privacy Guard Gate):**
+  * Bổ sung `UserRepository.list_mock_users()`: Chỉ truy vấn người dùng có `google_id LIKE 'mock_%' OR email LIKE '%@kokoro.me'`, loại trừ hoàn toàn tài khoản cá nhân thật (`*@gmail.com`) khỏi endpoint `GET /api/auth/mock-users`.
+  * Thắt chặt rào chắn `POST /api/auth/mock-login`: Chặn đứng hành vi đăng nhập trái phép vào tài khoản thật thông qua mock login (trả về `403 Forbidden`).
+  * Cấu hình Production: Đặt `MOCK_AUTH=False` trong `.env` và hỗ trợ nạp cấu hình tức thì với `load_dotenv(override=True)`.
+  * Cập nhật `static/js/auth.js`: Khi `MOCK_AUTH=False` hoặc danh sách mock users rỗng, frontend ẩn hoàn toàn `#mock-account-switcher`, `#mock-account-divider`, `#login-divider`, và `#login-quick-dev-section`, chuyển giao diện về trạng thái Production chuẩn chỉ hiển thị nút Google Sign-In chính thức.
+  * Tối ưu hóa Database Seeding cho Unit Tests: Chuyển mock seeding từ `init_db()` sang các hàm kiểm thử chuyên biệt `seed_mock_users_for_testing()` và `clean_mock_users_after_testing()`, đảm bảo toàn bộ 81/81 unit test PASS 100% trong khi CSDL production giữ sạch tuyệt đối.
+  * Nâng cấp phiên bản toàn hệ thống lên `v1.7.2` (`app/config.py`, `sw.js`, `index.html`, `README.md`, `ROADMAP.md`).
+
+## [1.7.1] - 2026-10-13
+### Fixed & UI Navigation (Hotfix Đồng Bộ Điều Hướng, Khắc Phục Lệch Ánh Xạ Dữ Liệu & Audit An Toàn CSDL)
+- **Kiểm Toán & Xác Minh Toàn Vẹn CSDL Người Dùng (`thanhlongts2k@gmail.com`):**
+  * Khẳng định tính toàn vẹn 100% trong PostgreSQL `kokoro_db`: Tài khoản `thanhlongts2k@gmail.com` (User ID: 38) bảo toàn trọn vẹn 6/6 bài viết (ID: 25, 26, 95, 123, 148, 600), 7/7 tệp ảnh gốc/thumbnail WebP, 4 thẻ tag (`#Tuoidep`, `#Muabuon`, `#cupdien`, `#rangro`), và 5 danh mục cảm xúc mặc định. Tuyệt đối không xảy ra hiện tượng mất mát dữ liệu ở tầng lưu trữ.
+- **Khắc Phục Lỗi Ánh Xạ Hợp Đồng Phản Hồi API (API Response Contract Mapping Bug):**
+  * Sửa lỗi trong `static/js/app.js`: Bản `v1.7.0` đọc nhầm `res.data` dẫn đến gán `this.entries = []` do REST API trả về `{ status: "success", entries: [...] }`.
+  * Chuẩn hóa logic nạp dữ liệu: `res.entries || res.data` (đối với danh sách bài viết), `res.categories || res.data` (đối với danh mục), và `res.totalEntries !== undefined ? res : res.data` (đối với thống kê).
+  * Bổ sung hàm vòng đời `onUserChanged(user)` trong `app.js` được gọi tự động bởi `auth.js` khi đăng nhập, đăng xuất hoặc chuyển đổi tài khoản, đảm bảo dữ liệu luôn được nạp lại tức thì theo `user_id` hiện hành.
+- **Đồng Bộ Event Delegation Điều Hướng (`static/js/app.js`):**
+  * Sửa lỗi lệch khớp bộ chọn thuộc tính giữa `index.html` (`[data-switch-view]`, `.bottom-nav-item[data-tab]`) và `setupEventListeners()`: gắn sự kiện click cho cả Desktop Chips, Mobile Navigation Bar, và các nút chuyển view.
+  * Cập nhật `switchView(viewName)` ẩn đúng lớp container `.c-view, .app-view` và bật `#view-${viewName}`, chuyển trạng thái active trên các tab tương ứng.
+  * Bổ sung click listener cho `#user-profile-pill` và `.header-profile-pill` mở tắt menu `#profile-dropdown-menu`, đồng thời kết nối toàn bộ nút hành động (Trang cá nhân & Thống kê, Đổi theme, Khóa mã PIN, Quản lý Tag/Danh mục, Xuất/Nhập sao lưu JSON).
+- **Cập Nhật DOM, Service Worker & Cache Invalidation (`static/index.html`, `static/sw.js`, `app/config.py`):**
+  * Đồng bộ thuộc tính `data-view-target` và ID `dropdown-profile-view-btn` trên các nút điều hướng.
+  * Nâng cấp `CACHE_NAME` lên `kokoro-v1.7.1` và query string `?v=1.7.1` cho toàn bộ tài nguyên tĩnh trong `sw.js` và `index.html`.
+  * Nâng cấp phiên bản toàn hệ thống lên `v1.7.1` (`app/config.py`, `/api/health`, `/api/auth/config`, badge giao diện, bộ kiểm thử hồi quy 81 tests).
+
 ## [1.7.0] - 2026-10-13
 ### Refactored & Architecture (Đại Phẫu Thuật God-File `app.js` & Tập Trung Hóa Hằng Số)
 - **Đại Phẫu Thuật God-File `static/js/app.js` (2.025 dòng ➔ 386 dòng):**

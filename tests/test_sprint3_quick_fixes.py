@@ -21,7 +21,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from server import app
-from app.database import init_db, get_cursor
+from app.database import init_db, get_cursor, seed_mock_users_for_testing, clean_mock_users_after_testing
 from app.auth import create_session_token
 from app.exceptions import (
     KokoroDomainError,
@@ -42,6 +42,7 @@ class TestSprint3QuickFixes(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         init_db()
+        seed_mock_users_for_testing()
         cls.client = TestClient(app, base_url="https://testserver")
 
         with get_cursor() as cur:
@@ -51,6 +52,10 @@ class TestSprint3QuickFixes(unittest.TestCase):
         cls.user_id = cls.user["id"]
         cls.token = create_session_token(cls.user_id, cls.user["email"], cls.user["name"])
         cls.headers = {"Authorization": f"Bearer {cls.token}"}
+
+    @classmethod
+    def tearDownClass(cls):
+        clean_mock_users_after_testing()
 
     def test_01_domain_exceptions_hierarchy_and_status_codes(self):
         """Verify custom domain exceptions have appropriate status codes and inherit KokoroDomainError"""

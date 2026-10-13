@@ -24,21 +24,26 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from server import app
 from app.config import Config
-from app.database import init_db, get_cursor, get_db
+from app.database import init_db, get_cursor, get_db, seed_mock_users_for_testing, clean_mock_users_after_testing
 
 class TestV160BackendAPI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         init_db()
+        cls._orig_mock_auth = Config.MOCK_AUTH
+        Config.MOCK_AUTH = True
+
         # Initialize client with https scheme to pass secure cookie check
         cls.client = TestClient(app, base_url="https://testserver")
         
-        # Find Aria Tanaka and Kenji Sato IDs
-        with get_cursor() as cur:
-            cur.execute("SELECT id FROM users WHERE email = 'aria.tanaka@kokoro.me';")
-            cls.aria_id = cur.fetchone()["id"]
-            cur.execute("SELECT id FROM users WHERE email = 'kenji.sato@kokoro.me';")
-            cls.kenji_id = cur.fetchone()["id"]
+        # Ensure Aria Tanaka and Kenji Sato exist and have default categories for testing
+        seed_mock_users_for_testing()
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id FROM users WHERE email = 'aria.tanaka@kokoro.me';")
+                cls.aria_id = cur.fetchone()[0]
+                cur.execute("SELECT id FROM users WHERE email = 'kenji.sato@kokoro.me';")
+                cls.kenji_id = cur.fetchone()[0]
 
         # Login as User 1 (Aria Tanaka)
         resp1 = cls.client.post("/api/auth/mock-login", json={"user_id": cls.aria_id})
@@ -54,6 +59,11 @@ class TestV160BackendAPI(unittest.TestCase):
         with get_db() as conn:
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM categories WHERE name LIKE 'Aria Only%' OR name LIKE 'Tạm thời Xóa%' OR name LIKE 'Hạnh phúc 2026%' OR name LIKE 'Thư giãn%';")
+
+    @classmethod
+    def tearDownClass(cls):
+        Config.MOCK_AUTH = cls._orig_mock_auth
+        clean_mock_users_after_testing()
 
     def setUp(self):
         # Clear test client cookies to test Authorization header strictly

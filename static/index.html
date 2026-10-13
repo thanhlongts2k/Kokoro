@@ -35,10 +35,10 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <!-- Stylesheets (Relative paths for Nginx reverse proxy subpath support) -->
-  <link rel="stylesheet" href="./css/tokens.css?v=1.7.0">
-  <link rel="stylesheet" href="./css/glass.css?v=1.7.0">
-  <link rel="stylesheet" href="./css/components.css?v=1.7.0">
-  <link rel="stylesheet" href="./css/layout.css?v=1.7.0">
+  <link rel="stylesheet" href="./css/tokens.css?v=1.7.2">
+  <link rel="stylesheet" href="./css/glass.css?v=1.7.2">
+  <link rel="stylesheet" href="./css/components.css?v=1.7.2">
+  <link rel="stylesheet" href="./css/layout.css?v=1.7.2">
 </head>
 <body>
 
@@ -120,6 +120,10 @@
               <div style="font-weight: 700; color: var(--text-primary); font-size: 13.5px;" id="dropdown-name">Aria Tanaka</div>
               <div style="font-size: 11px; color: var(--text-muted);" id="dropdown-email">aria.tanaka@kokoro.me</div>
             </div>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item" id="dropdown-profile-view-btn" style="color: var(--text-primary);" data-switch-view="profile">
+              <i class="bi bi-person-circle text-sakura"></i> Trang cá nhân & Thống kê
+            </button>
             <div class="dropdown-divider"></div>
             <!-- Mock accounts switcher (shown when mock_auth is active) -->
             <div id="mock-account-switcher" style="padding: 6px 14px; display: none;">
@@ -242,10 +246,10 @@
       <section class="timeline-feed dashboard-col-center" id="center-content-area">
         <!-- Desktop Quick View Switcher Tabs -->
         <div class="desktop-view-tabs" id="desktop-view-tabs">
-          <button class="c-chip active" data-switch-view="timeline"><i class="bi bi-journal-richtext"></i> Nhật ký</button>
-          <button class="c-chip" data-switch-view="calendar"><i class="bi bi-calendar-heart"></i> Lịch cảm xúc</button>
-          <button class="c-chip" data-switch-view="memories"><i class="bi bi-images"></i> Kỷ niệm</button>
-          <button class="c-chip" data-switch-view="profile"><i class="bi bi-person-circle"></i> Cá nhân</button>
+          <button class="c-chip active" data-switch-view="timeline" data-view-target="timeline"><i class="bi bi-journal-richtext"></i> Nhật ký</button>
+          <button class="c-chip" data-switch-view="calendar" data-view-target="calendar"><i class="bi bi-calendar-heart"></i> Lịch cảm xúc</button>
+          <button class="c-chip" data-switch-view="memories" data-view-target="memories"><i class="bi bi-images"></i> Kỷ niệm</button>
+          <button class="c-chip" data-switch-view="profile" data-view-target="profile"><i class="bi bi-person-circle"></i> Cá nhân</button>
         </div>
 
         <!-- ==========================================
@@ -646,7 +650,7 @@
         <div class="footer-brand">
           <img src="./icons/sakura.svg" alt="Kokoro Logo" class="footer-logo" />
           <span class="footer-title">Kokoro <span style="font-weight: 500; font-size: 14px; color: var(--sakura-500);">心</span></span>
-          <span class="footer-version-badge" id="app-version-badge">v1.7.0</span>
+          <span class="footer-version-badge" id="app-version-badge">v1.7.2</span>
         </div>
         <p class="footer-tagline">
           Lắng đọng tâm trí & lưu giữ những khoảnh khắc nhẹ nhàng trong không gian an yên.
@@ -673,11 +677,11 @@
          4. MOBILE BOTTOM NAVIGATION (THUMB ZONE)
          ==================================================================== -->
     <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
-      <button class="bottom-nav-item active" data-tab="timeline">
+      <button class="bottom-nav-item active" data-tab="timeline" data-view-target="timeline">
         <i class="bi bi-journal-richtext"></i>
         <span>Nhật ký</span>
       </button>
-      <button class="bottom-nav-item" data-tab="calendar">
+      <button class="bottom-nav-item" data-tab="calendar" data-view-target="calendar">
         <i class="bi bi-calendar-heart"></i>
         <span>Lịch</span>
       </button>
@@ -685,11 +689,11 @@
         <i class="bi bi-plus-circle-fill" style="color: var(--sakura-500); font-size: 24px;"></i>
         <span>Viết bài</span>
       </button>
-      <button class="bottom-nav-item" data-tab="memories">
+      <button class="bottom-nav-item" data-tab="memories" data-view-target="memories">
         <i class="bi bi-images"></i>
         <span>Kỷ niệm</span>
       </button>
-      <button class="bottom-nav-item" data-tab="profile">
+      <button class="bottom-nav-item" data-tab="profile" data-view-target="profile">
         <i class="bi bi-person-circle"></i>
         <span>Cá nhân</span>
       </button>
@@ -1301,25 +1305,25 @@
   </div>
 
   <!-- Scripts Execution (Relative paths for reverse proxy subpath) -->
-  <script src="./js/constants.js?v=1.7.0"></script>
-  <script src="./js/api.js?v=1.7.0"></script>
-  <script src="./js/auth.js?v=1.7.0"></script>
-  <script src="./js/toast.js?v=1.7.0"></script>
-  <script src="./js/datetime-picker.js?v=1.7.0"></script>
-  <script src="./js/tag-manager.js?v=1.7.0"></script>
-  <script src="./js/lightbox.js?v=1.7.0"></script>
-  <script src="./js/zen-prompts.js?v=1.7.0"></script>
-  <script src="./js/editor.js?v=1.7.0"></script>
-  <script src="./js/card-themes.js?v=1.7.0"></script>
-  <script src="./js/card-canvas-engine.js?v=1.7.0"></script>
-  <script src="./js/card-export.js?v=1.7.0"></script>
-  <script src="./js/zen-audio.js?v=1.7.0"></script>
-  <script src="./js/passcode.js?v=1.7.0"></script>
-  <script src="./js/pwa.js?v=1.7.0"></script>
-  <script src="./js/timeline-feed.js?v=1.7.0"></script>
-  <script src="./js/calendar-view.js?v=1.7.0"></script>
-  <script src="./js/memories-view.js?v=1.7.0"></script>
-  <script src="./js/profile-stats.js?v=1.7.0"></script>
-  <script src="./js/app.js?v=1.7.0"></script>
+  <script src="./js/constants.js?v=1.7.2"></script>
+  <script src="./js/api.js?v=1.7.2"></script>
+  <script src="./js/auth.js?v=1.7.2"></script>
+  <script src="./js/toast.js?v=1.7.2"></script>
+  <script src="./js/datetime-picker.js?v=1.7.2"></script>
+  <script src="./js/tag-manager.js?v=1.7.2"></script>
+  <script src="./js/lightbox.js?v=1.7.2"></script>
+  <script src="./js/zen-prompts.js?v=1.7.2"></script>
+  <script src="./js/editor.js?v=1.7.2"></script>
+  <script src="./js/card-themes.js?v=1.7.2"></script>
+  <script src="./js/card-canvas-engine.js?v=1.7.2"></script>
+  <script src="./js/card-export.js?v=1.7.2"></script>
+  <script src="./js/zen-audio.js?v=1.7.2"></script>
+  <script src="./js/passcode.js?v=1.7.2"></script>
+  <script src="./js/pwa.js?v=1.7.2"></script>
+  <script src="./js/timeline-feed.js?v=1.7.2"></script>
+  <script src="./js/calendar-view.js?v=1.7.2"></script>
+  <script src="./js/memories-view.js?v=1.7.2"></script>
+  <script src="./js/profile-stats.js?v=1.7.2"></script>
+  <script src="./js/app.js?v=1.7.2"></script>
 </body>
 </html>

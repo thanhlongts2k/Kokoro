@@ -55,7 +55,7 @@ async def list_mock_users(request: Request) -> JSONResponse:
     if not Config.MOCK_AUTH:
         return JSONResponse({"status": "error", "message": "Mock auth disabled in production"}, status_code=status.HTTP_403_FORBIDDEN)
 
-    users = [u.to_dict() for u in UserRepository.list_all_users()]
+    users = [u.to_dict() for u in UserRepository.list_mock_users()]
     return JSONResponse({"status": "success", "users": users})
 
 async def mock_login(request: Request) -> JSONResponse:
@@ -70,12 +70,22 @@ async def mock_login(request: Request) -> JSONResponse:
 
     user_id = body.get("user_id")
     if not user_id:
-        first_user = UserRepository.get_first_user()
-        user_id = first_user.id if first_user else 1
+        mock_users = UserRepository.list_mock_users()
+        if not mock_users:
+            return JSONResponse({"status": "error", "message": "Không có tài khoản mock khả dụng"}, status_code=status.HTTP_404_NOT_FOUND)
+        user = mock_users[0]
+    else:
+        user = get_user_by_id(int(user_id))
 
-    user = get_user_by_id(int(user_id))
     if not user:
         return JSONResponse({"status": "error", "message": f"Không tìm thấy user id {user_id}"}, status_code=status.HTTP_404_NOT_FOUND)
+
+    # Privacy Guard: ONLY allow mock logins into mock accounts, NEVER real user accounts
+    user_google_id = user.google_id if hasattr(user, "google_id") else user.get("google_id", "")
+    user_email = user.email if hasattr(user, "email") else user.get("email", "")
+    if not (str(user_google_id).startswith("mock_") or str(user_email).endswith("@kokoro.me")):
+        logger.warning("[Auth.mock_login] Chặn truy cập trái phép vào tài khoản thật qua mock: user_id=%s, email=%s", user_id, user_email)
+        return JSONResponse({"status": "error", "message": "Tài khoản cá nhân không thể đăng nhập qua mock switcher 🌸"}, status_code=status.HTTP_403_FORBIDDEN)
 
     token = create_session_token(user["id"], user["email"], user["name"])
 

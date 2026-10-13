@@ -55,6 +55,19 @@ class UserRepository:
             return [cls._row_to_dto(dict(r)) for r in rows]
 
     @classmethod
+    def list_mock_users(cls) -> List[UserDTO]:
+        """Retrieve ONLY mock development accounts. NEVER leak real/private users."""
+        with get_cursor() as cur:
+            cur.execute("""
+                SELECT id, google_id, email, name, avatar_url, created_at, last_login
+                FROM users
+                WHERE google_id LIKE 'mock_%' OR email LIKE '%@kokoro.me'
+                ORDER BY id ASC;
+            """)
+            rows = cur.fetchall()
+            return [cls._row_to_dto(dict(r)) for r in rows]
+
+    @classmethod
     def upsert_user(
         cls,
         google_id: str,

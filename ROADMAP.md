@@ -371,7 +371,25 @@
   - [x] Tạo bộ kiểm thử tự động `tests/test_v170_frontend_contracts.py` bao quát 7 hợp đồng frontend, CSDL và bảo mật.
   - [x] Nâng cấp phiên bản đồng bộ lên `v1.7.0` (`config.py`, `index.html`, `sw.js`).
   - [x] Toàn bộ test runner đạt **81/81 tests PASS 100%**.
+- [x] **Bản Phát Hành Hotfix v1.7.1 (Navigation, Data Integrity Audit & API Contract Sync):**
+  - [x] Kiểm toán toàn vẹn CSDL tài khoản `thanhlongts2k@gmail.com` (User 38): Khẳng định 100% dữ liệu gốc (6 bài viết, 7 ảnh WebP, 4 tags, 5 danh mục) tồn tại nguyên vẹn trong PostgreSQL, không bị mất mát hay xóa nhầm.
+  - [x] Khắc phục lỗi ánh xạ hợp đồng REST API trong `static/js/app.js`: Chuyển từ `res.data` sang `res.entries || res.data` và `res.categories || res.data`, triệt tiêu lỗi gán `entries = []` khi nạp dữ liệu.
+  - [x] Bổ sung hàm vòng đời `onUserChanged(user)` đồng bộ nạp lại dữ liệu người dùng khi login/switch user.
+  - [x] Khắc phục lệch bộ chọn sự kiện điều hướng (`[data-switch-view]`, `.bottom-nav-item[data-tab]`, `[data-view-target]`) trong `static/js/app.js`.
+  - [x] Đồng bộ cơ chế ẩn hiện phân vùng view container `.c-view, .app-view` trong `switchView()`.
+  - [x] Kích hoạt sự kiện click mở menu `#user-profile-pill` và điều hướng Profile View từ dropdown menu.
+  - [x] Nâng cấp `APP_VERSION = "v1.7.1"`, bộ nhớ đệm `CACHE_NAME = 'kokoro-v1.7.1'`, query string `?v=1.7.1` và badge `v1.7.1`.
+  - [x] Kiểm thử tự động E2E bằng Playwright trên Microsoft Edge xác nhận chuyển đổi trơn tru 4 view và dropdown menu.
+  - [x] Toàn bộ 81/81 regression tests PASS 100%.
 
-
-
-
+### 🔹 Giai đoạn 17: Bản Phát Hành v1.7.2 — Chuẩn Bị Triển Khai Production & Bảo Vệ Riêng Tư (Production Hardening & Privacy Gate)
+- [x] **Dọn Dẹp Triệt Để Tài Khoản Test & Dữ Liệu Rác (Mock Accounts Cleanup):**
+  - [x] Xóa bỏ hoàn toàn các tài khoản mock dev (`aria.tanaka@kokoro.me`, `kenji.sato@kokoro.me`) cùng 90 bài viết mẫu và 158 tệp ảnh rác khỏi CSDL PostgreSQL `kokoro_db`.
+  - [x] Bảo toàn tuyệt đối tài khoản thật `thanhlongts2k@gmail.com` (6 bài viết, 7 ảnh WebP, 4 tags, 5 categories).
+- [x] **Vá Lỗ Hổng Hiển Thị & Bảo Vệ Riêng Tư Tài Khoản Thật (Privacy Guard Gate):**
+  - [x] Bổ sung `UserRepository.list_mock_users()`: Chỉ truy vấn người dùng có `google_id LIKE 'mock_%' OR email LIKE '%@kokoro.me'`, loại trừ hoàn toàn tài khoản cá nhân thật (`*@gmail.com`) khỏi endpoint `GET /api/auth/mock-users`.
+  - [x] Thắt chặt rào chắn `POST /api/auth/mock-login`: Chặn đứng hành vi đăng nhập trái phép vào tài khoản thật thông qua mock login (trả về `403 Forbidden`).
+  - [x] Cấu hình Production: Đặt `MOCK_AUTH=False` trong `.env`.
+  - [x] Cập nhật `static/js/auth.js`: Khi `MOCK_AUTH=False` hoặc danh sách mock users rỗng, frontend ẩn hoàn toàn `#mock-account-switcher`, `#mock-account-divider`, `#login-divider`, và `#login-quick-dev-section`, chuyển giao diện về trạng thái Production chuẩn chỉ hiển thị nút Google Sign-In chính thức.
+  - [x] Tối ưu hóa Database Seeding cho Unit Tests: Chuyển mock seeding từ `init_db()` sang các hàm kiểm thử chuyên biệt `seed_mock_users_for_testing()` và `clean_mock_users_after_testing()`, đảm bảo toàn bộ 81/81 unit test PASS 100% trong khi CSDL production giữ sạch tuyệt đối.
+  - [x] Nâng cấp phiên bản toàn hệ thống lên `v1.7.2` (`app/config.py`, `static/sw.js`, `static/index.html`, `README.md`, `CHANGELOG.md`).
