@@ -34,6 +34,15 @@ class TestKokoroV163CardExport(unittest.TestCase):
     def setUpClass(cls):
         cls.client = TestClient(app)
 
+    @classmethod
+    def _get_card_module_content(cls):
+        files = [
+            BASE_DIR / "static" / "js" / "card-export.js",
+            BASE_DIR / "static" / "js" / "card-canvas-engine.js",
+            BASE_DIR / "static" / "js" / "card-themes.js",
+        ]
+        return "\n".join(f.read_text(encoding="utf-8") for f in files if f.exists())
+
     def test_01_version_and_sw_alignment(self):
         """Verify Config, Auth config API, Service Worker and Footer are aligned to v1.6.3 or later"""
         # 1. Config.APP_VERSION
@@ -72,8 +81,7 @@ class TestKokoroV163CardExport(unittest.TestCase):
 
     def test_03_fixed_1080p_canvas_buffer_contract(self):
         """Verify Canvas physical buffer is locked to 1080p (1080x1080 & 1080x1920) WITHOUT devicePixelRatio multiplication"""
-        card_file = BASE_DIR / "static" / "js" / "card-export.js"
-        content = card_file.read_text(encoding="utf-8")
+        content = self._get_card_module_content()
 
         # 1. Target width must be 1080
         self.assertIn("targetWidth = 1080;", content)
@@ -87,8 +95,7 @@ class TestKokoroV163CardExport(unittest.TestCase):
 
     def test_04_smart_vietnamese_word_wrap_and_paragraphs(self):
         """Verify paragraph splitting, word wrapping and safe truncation with '...'"""
-        card_file = BASE_DIR / "static" / "js" / "card-export.js"
-        content = card_file.read_text(encoding="utf-8")
+        content = self._get_card_module_content()
 
         # Check paragraph splitting by \r?\n in wrapAndFitText
         self.assertIn("text.split(/\\r?\\n/)", content)
@@ -167,8 +174,7 @@ class TestKokoroV163CardExport(unittest.TestCase):
 
     def test_05_adaptive_layout_and_photo_frame_contract(self):
         """Verify adaptive layout 'CÓ GÌ HIỂN THỊ NẤY': Photo-Only, Photo+Text, and Text-Only modes"""
-        card_file = BASE_DIR / "static" / "js" / "card-export.js"
-        content = card_file.read_text(encoding="utf-8")
+        content = self._get_card_module_content()
 
         # 1. Photo-Only Mode Contract (Khi người dùng chỉ đăng ảnh, không có text)
         self.assertIn("LAYOUT 1: PHOTO-ONLY MODE", content)
@@ -187,8 +193,7 @@ class TestKokoroV163CardExport(unittest.TestCase):
 
     def test_06_pregenerated_blob_and_memory_hygiene(self):
         """Verify pre-generated Blob/File for instant Web Share (User Gesture) & memory cleanup"""
-        card_file = BASE_DIR / "static" / "js" / "card-export.js"
-        content = card_file.read_text(encoding="utf-8")
+        content = self._get_card_module_content()
 
         # 1. Pre-generate Blob & File right after render
         self.assertIn("canvas.toBlob", content)
@@ -239,8 +244,7 @@ class TestKokoroV163CardExport(unittest.TestCase):
 
     def test_08_card_aesthetic_upgrades(self):
         """Verify aesthetic upgrades (v1.6.5): Adaptive Story photo height, Scrapbook frame, Smart 35% focus & Weekday Date"""
-        card_file = BASE_DIR / "static" / "js" / "card-export.js"
-        content = card_file.read_text(encoding="utf-8")
+        content = self._get_card_module_content()
 
         # 1. Adaptive photo height in Story 9:16 when text is short (<= 4 lines)
         self.assertIn("isShortText", content)
@@ -285,9 +289,8 @@ class TestKokoroV163CardExport(unittest.TestCase):
         self.assertIn(".export-theme-btn", css_content)
         self.assertIn(".export-theme-btn.active", css_content)
 
-        # 3. Check card-export.js Theme Engine
-        card_file = BASE_DIR / "static" / "js" / "card-export.js"
-        content = card_file.read_text(encoding="utf-8")
+        # 3. Check Card Module Theme Engine
+        content = self._get_card_module_content()
 
         # 5 Themes dictionary
         for theme in ("sakura", "polaroid", "scrapbook", "music", "editorial"):
@@ -316,8 +319,7 @@ class TestKokoroV163CardExport(unittest.TestCase):
 
     def test_10_scrapbook_and_memory_photocard_aesthetics(self):
         """Verify Scrapbook & Memory Photocard upgrades (v1.6.5): Dot-grid, Tilted Polaroid, Gingham Tape, Doodles & Metadata"""
-        card_file = BASE_DIR / "static" / "js" / "card-export.js"
-        content = card_file.read_text(encoding="utf-8")
+        content = self._get_card_module_content()
 
         # 1. Bullet Journal Dot-Grid Texture
         self.assertIn("drawDotGrid", content)
@@ -342,8 +344,7 @@ class TestKokoroV163CardExport(unittest.TestCase):
 
     def test_11_layout_collisions_and_vertical_balancing(self):
         """Verify layout collision fixes & vertical balancing (v1.6.5): Dynamic music Y, safe postmark, Story vertical centering & markdown quote cleaning"""
-        card_file = BASE_DIR / "static" / "js" / "card-export.js"
-        content = card_file.read_text(encoding="utf-8")
+        content = self._get_card_module_content()
 
         # 1. Dynamic musicWidgetY based on cursorY (no overlapping text)
         self.assertIn("musicWidgetY = cursorY + 24", content)
@@ -361,8 +362,7 @@ class TestKokoroV163CardExport(unittest.TestCase):
 
     def test_12_theme_differentiation_and_export_filename(self):
         """Verify Polaroid vs Scrapbook differentiation, Square Music spacing ceiling, and standardized getExportFilename()"""
-        card_file = BASE_DIR / "static" / "js" / "card-export.js"
-        content = card_file.read_text(encoding="utf-8")
+        content = self._get_card_module_content()
 
         # 1. Square Theme Music spacing ceiling and hashtag omission
         self.assertIn("footerY - 54", content)
