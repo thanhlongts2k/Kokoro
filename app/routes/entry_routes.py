@@ -659,8 +659,21 @@ async def export_entries(request: Request) -> Response:
 
     try:
         with get_cursor() as cur:
+            # 1. Export custom categories of current user
             cur.execute("""
-                SELECT e.id, e.title, e.content, e.mood, e.weather,
+                SELECT id, name, icon, color, sort_order
+                FROM categories
+                WHERE user_id = %s
+                ORDER BY sort_order ASC, id ASC;
+            """, (user_id,))
+            cat_rows = cur.fetchall()
+            categories_list = [dict(c) for c in cat_rows]
+
+            # 2. Export entries with joined category metadata
+            cur.execute("""
+                SELECT e.id, e.category_id,
+                       c.name AS category_name, c.icon AS category_icon, c.color AS category_color,
+                       e.title, e.content, e.mood, e.weather,
                        e.entry_date, e.is_pinned, e.created_at, e.updated_at,
                        COALESCE(
                            json_agg(
@@ -677,9 +690,10 @@ async def export_entries(request: Request) -> Response:
                            ) FILTER (WHERE ep.id IS NOT NULL), '[]'
                        ) AS photos
                 FROM entries e
+                LEFT JOIN categories c ON e.category_id = c.id
                 LEFT JOIN entry_photos ep ON e.id = ep.entry_id
                 WHERE e.user_id = %s
-                GROUP BY e.id
+                GROUP BY e.id, c.id
                 ORDER BY e.entry_date DESC, e.id DESC;
             """, (user_id,))
             raw_entries = cur.fetchall()
@@ -712,13 +726,15 @@ async def export_entries(request: Request) -> Response:
         export_data = {
             "app": "Kokoro (心) — Nhật Ký Cảm Xúc & Kỷ Niệm",
             "version": Config.APP_VERSION,
-            "export_version": "1.0",
+            "export_version": "1.1",
             "exported_at": datetime.now().isoformat(),
             "user": {
                 "id": user["id"],
                 "name": user["name"],
                 "email": user["email"]
             },
+            "total_categories": len(categories_list),
+            "categories": categories_list,
             "total_entries": len(entries_list),
             "entries": entries_list
         }
@@ -740,7 +756,8 @@ async def export_entries(request: Request) -> Response:
 
 async def import_entries(request: Request) -> JSONResponse:
     """
-    Import entries from a JSON backup file or payload into current user's account.
+    Import entries and custom categories from a JSON backup file or payload into current user's account.
+    Fully backward-compatible with v1.0 backup files (entries without category_id or categories table).
     Accepts:
     - multipart/form-data with file field 'backup_file' or 'file'
     - application/json with backup JSON payload
@@ -784,19 +801,98 @@ async def import_entries(request: Request) -> JSONResponse:
 
         imported_count = 0
         with get_cursor() as cur:
+            # 1. Fetch current user's existing categories to avoid redundant inserts
+            cur.execute("SELECT id, name FROM categories WHERE user_id = %s;", (user_id,))
+            existing_cats = {r["name"]: r["id"] for r in cur.fetchall()}
+
+            cat_id_mapping = {}   # old_id -> new_id
+            cat_name_mapping = {} # name -> new_id
+
+            # 2. Import and reconcile categories if present in backup (v1.1+)
+            raw_cats = payload.get("categories") if isinstance(payload, dict) else []
+            if raw_cats and isinstance(raw_cats, list):
+                for cat in raw_cats:
+                    cat_name = (cat.get("name") or "").strip()
+                    if not cat_name:
+                        continue
+                    old_id = cat.get("id")
+                    icon = cat.get("icon") or "📁"
+                    color = cat.get("color") or "#ec4899"
+                    sort_order = cat.get("sort_order") if cat.get("sort_order") is not None else 0
+
+                    if cat_name in existing_cats:
+                        new_cat_id = existing_cats[cat_name]
+                    else:
+                        # Fallback pre-check by name to be 100% immune to UNIQUE constraint syntax issues
+                        cur.execute("SELECT id FROM categories WHERE user_id = %s AND name = %s;", (user_id, cat_name))
+                        found_cat = cur.fetchone()
+                        if found_cat:
+                            new_cat_id = found_cat["id"]
+                        else:
+                            cur.execute("""
+                                INSERT INTO categories (user_id, name, icon, color, sort_order)
+                                VALUES (%s, %s, %s, %s, %s)
+                                ON CONFLICT (user_id, name) DO UPDATE SET icon = EXCLUDED.icon, color = EXCLUDED.color
+                                RETURNING id;
+                            """, (user_id, cat_name, icon, color, sort_order))
+                            new_cat_id = cur.fetchone()["id"]
+                        existing_cats[cat_name] = new_cat_id
+
+                    if old_id is not None:
+                        cat_id_mapping[old_id] = new_cat_id
+                    cat_name_mapping[cat_name] = new_cat_id
+
+            # 3. Import entries with robust fallback
             for item in entries_to_import:
                 title = item.get("title") or "Nhật ký không tên"
                 content = item.get("content") or ""
                 mood = item.get("mood") or "serene"
-                weather = item.get("weather") or ""
+                weather = item.get("weather") or "sunny"
                 entry_date = item.get("entry_date") or datetime.now().date().isoformat()
                 is_pinned = bool(item.get("is_pinned", False))
 
-                cur.execute("""
-                    INSERT INTO entries (user_id, title, content, mood, weather, entry_date, is_pinned, created_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
-                    RETURNING id;
-                """, (user_id, title, content, mood, weather, entry_date, is_pinned))
+                # Parse creation timestamp if present, otherwise default to NOW()
+                custom_created_at = None
+                if item.get("created_at"):
+                    try:
+                        custom_created_at = datetime.fromisoformat(item["created_at"])
+                    except Exception:
+                        custom_created_at = None
+
+                custom_updated_at = None
+                if item.get("updated_at"):
+                    try:
+                        custom_updated_at = datetime.fromisoformat(item["updated_at"])
+                    except Exception:
+                        custom_updated_at = None
+
+                # Resolve category_id safely
+                old_cat_id = item.get("category_id")
+                cat_name = (item.get("category_name") or "").strip()
+                resolved_cat_id = None
+
+                if old_cat_id is not None and old_cat_id in cat_id_mapping:
+                    resolved_cat_id = cat_id_mapping[old_cat_id]
+                elif cat_name and cat_name in cat_name_mapping:
+                    resolved_cat_id = cat_name_mapping[cat_name]
+                elif cat_name and cat_name in existing_cats:
+                    resolved_cat_id = existing_cats[cat_name]
+                elif old_cat_id is not None and old_cat_id in existing_cats.values():
+                    resolved_cat_id = old_cat_id
+
+                if custom_created_at:
+                    cur.execute("""
+                        INSERT INTO entries (user_id, category_id, title, content, mood, weather, entry_date, is_pinned, created_at, updated_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        RETURNING id;
+                    """, (user_id, resolved_cat_id, title, content, mood, weather, entry_date, is_pinned, custom_created_at, custom_updated_at or custom_created_at))
+                else:
+                    cur.execute("""
+                        INSERT INTO entries (user_id, category_id, title, content, mood, weather, entry_date, is_pinned, created_at, updated_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                        RETURNING id;
+                    """, (user_id, resolved_cat_id, title, content, mood, weather, entry_date, is_pinned))
+
                 new_entry_id = cur.fetchone()["id"]
                 imported_count += 1
 

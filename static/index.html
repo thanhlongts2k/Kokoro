@@ -35,10 +35,10 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <!-- Stylesheets (Relative paths for Nginx reverse proxy subpath support) -->
-  <link rel="stylesheet" href="./css/tokens.css?v=1.5.6">
-  <link rel="stylesheet" href="./css/glass.css?v=1.5.6">
-  <link rel="stylesheet" href="./css/components.css?v=1.5.6">
-  <link rel="stylesheet" href="./css/layout.css?v=1.5.6">
+  <link rel="stylesheet" href="./css/tokens.css?v=1.6.1">
+  <link rel="stylesheet" href="./css/glass.css?v=1.6.1">
+  <link rel="stylesheet" href="./css/components.css?v=1.6.1">
+  <link rel="stylesheet" href="./css/layout.css?v=1.6.1">
 </head>
 <body>
 
@@ -725,6 +725,36 @@
             <input type="hidden" id="editor-created-at-input" value="" />
           </div>
 
+          <!-- Weather Selection (v1.6.1) -->
+          <div class="editor-weather-section" style="margin-top: 4px; margin-bottom: 10px;">
+            <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">
+              Thời tiết hôm nay
+            </label>
+            <div class="weather-picker-list" id="editor-weather-picker-list">
+              <button type="button" class="weather-chip active" data-weather="sunny">
+                <span class="weather-icon">☀️</span>
+                <span class="weather-label">Nắng</span>
+              </button>
+              <button type="button" class="weather-chip" data-weather="rainy">
+                <span class="weather-icon">🌧️</span>
+                <span class="weather-label">Mưa</span>
+              </button>
+              <button type="button" class="weather-chip" data-weather="cloudy">
+                <span class="weather-icon">⛅</span>
+                <span class="weather-label">Nhiều mây</span>
+              </button>
+              <button type="button" class="weather-chip" data-weather="windy">
+                <span class="weather-icon">🍃</span>
+                <span class="weather-label">Gió</span>
+              </button>
+              <button type="button" class="weather-chip" data-weather="snowy">
+                <span class="weather-icon">❄️</span>
+                <span class="weather-label">Tuyết</span>
+              </button>
+            </div>
+            <input type="hidden" id="editor-weather-input" value="sunny" />
+          </div>
+
           <!-- Title Input -->
           <div>
             <input type="text" id="editor-title-input" class="editor-input" placeholder="Tiêu đề nhật ký (ví dụ: Buổi sáng ngắm hoa anh đào...)" />
@@ -1123,17 +1153,17 @@
   </div>
 
   <!-- Scripts Execution (Relative paths for reverse proxy subpath) -->
-  <script src="./js/mock-data.js?v=1.6.0"></script>
-  <script src="./js/api.js?v=1.6.0"></script>
-  <script src="./js/auth.js?v=1.6.0"></script>
-  <script src="./js/toast.js?v=1.6.0"></script>
-  <script src="./js/datetime-picker.js?v=1.6.0"></script>
-  <script src="./js/tag-manager.js?v=1.6.0"></script>
-  <script src="./js/lightbox.js?v=1.6.0"></script>
-  <script src="./js/editor.js?v=1.6.0"></script>
-  <script src="./js/zen-audio.js?v=1.6.0"></script>
-  <script src="./js/passcode.js?v=1.6.0"></script>
-  <script src="./js/pwa.js?v=1.6.0"></script>
-  <script src="./js/app.js?v=1.6.0"></script>
+  <script src="./js/mock-data.js?v=1.6.1"></script>
+  <script src="./js/api.js?v=1.6.1"></script>
+  <script src="./js/auth.js?v=1.6.1"></script>
+  <script src="./js/toast.js?v=1.6.1"></script>
+  <script src="./js/datetime-picker.js?v=1.6.1"></script>
+  <script src="./js/tag-manager.js?v=1.6.1"></script>
+  <script src="./js/lightbox.js?v=1.6.1"></script>
+  <script src="./js/editor.js?v=1.6.1"></script>
+  <script src="./js/zen-audio.js?v=1.6.1"></script>
+  <script src="./js/passcode.js?v=1.6.1"></script>
+  <script src="./js/pwa.js?v=1.6.1"></script>
+  <script src="./js/app.js?v=1.6.1"></script>
 </body>
 </html>

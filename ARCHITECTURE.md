@@ -146,10 +146,12 @@ Cơ sở dữ liệu cục bộ: **`kokoro_db`** (Port `5432`).
 
 ### 5.2. Diary Entries (`/api/entries`)
 - `GET /api/entries`: Danh sách bài viết (hỗ trợ lọc theo `category_id`, `mood`, `tag`, `month`, `search`).
-- `POST /api/entries`: Tạo bài viết mới kèm `category_id`, ảnh và tags (trả về HTTP 201 Created).
+- `POST /api/entries`: Tạo bài viết mới kèm `category_id`, `weather`, ảnh và tags (trả về HTTP 201 Created).
 - `GET /api/entries/{id}`: Xem chi tiết bài viết kèm toàn bộ ảnh và thông tin danh mục liên kết.
-- `PUT /api/entries/{id}`: Cập nhật nội dung, cảm xúc, danh mục, ngày viết và ảnh.
+- `PUT /api/entries/{id}`: Cập nhật nội dung, cảm xúc, thời tiết (`weather`), danh mục, ngày viết và ảnh.
 - `DELETE /api/entries/{id}`: Xóa bài viết và giải phóng các file ảnh liên quan.
+- `GET /api/entries/export`: Xuất tệp sao lưu JSON chuẩn v1.1 bao gồm toàn bộ danh mục tùy chỉnh (`categories`) và bài viết.
+- `POST /api/entries/import`: Khôi phục dữ liệu từ tệp sao lưu JSON kèm ánh xạ danh mục, tương thích ngược 100% với tệp v1.0 cũ.
 
 ### 5.3. Categories & Dynamic Moods (`/api/categories` - v1.6.0)
 - `GET /api/categories`: Lấy danh sách danh mục/moods của user kèm số lượng bài viết (`usage_count`).

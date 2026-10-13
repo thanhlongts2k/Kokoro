@@ -148,7 +148,7 @@ if __name__ == "__main__":
         "server:app",
         host=Config.HOST,
         port=Config.PORT,
-        reload=False,
+        reload=Config.DEBUG,
         proxy_headers=True,
         forwarded_allow_ips="*",
         log_level="info"

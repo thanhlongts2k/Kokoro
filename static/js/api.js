@@ -303,8 +303,13 @@ const KokoroAPI = (() => {
       return new Promise((resolve, reject) => {
         const tx = db.transaction('offline_entries', 'readwrite');
         const store = tx.objectStore('offline_entries');
+        const hasValidCategory = entryData.category_id !== undefined && 
+                                  entryData.category_id !== null && 
+                                  entryData.category_id !== '' && 
+                                  entryData.category_id !== 'null';
         const req = store.add({
           user_id: currentUserId,
+          category_id: hasValidCategory ? Number(entryData.category_id) : null,
           title: entryData.title,
           content: entryData.content,
           mood: entryData.mood,
@@ -360,6 +365,14 @@ const KokoroAPI = (() => {
           formData.append('weather', item.weather || 'sunny');
           formData.append('entry_date', item.entry_date || new Date().toISOString().slice(0, 10));
           formData.append('tags', item.tags || '');
+
+          // Data integrity: Only append category_id when it is genuinely a valid non-null value
+          if (item.category_id !== undefined && 
+              item.category_id !== null && 
+              item.category_id !== '' && 
+              item.category_id !== 'null') {
+            formData.append('category_id', String(item.category_id));
+          }
 
           if (item.photos && item.photos.length > 0) {
             for (const file of item.photos) {

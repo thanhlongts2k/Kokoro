@@ -1219,6 +1219,33 @@ const KokoroApp = {
       categoryBadgeHtml = `<span class="mood-pill mood-${entry.mood}">${safeMoodLabel}</span>`;
     }
 
+    // Weather badge (v1.6.1)
+    const weatherIcons = {
+      sunny: '☀️',
+      rainy: '🌧️',
+      cloudy: '⛅',
+      windy: '🍃',
+      snowy: '❄️'
+    };
+    const weatherLabels = {
+      sunny: 'Trời nắng',
+      rainy: 'Trời mưa',
+      cloudy: 'Nhiều mây',
+      windy: 'Có gió',
+      snowy: 'Có tuyết'
+    };
+    let weatherBadgeHtml = '';
+    if (entry.weather && weatherIcons[entry.weather]) {
+      const wIcon = weatherIcons[entry.weather];
+      const wLabel = weatherLabels[entry.weather] || entry.weather;
+      weatherBadgeHtml = `
+        <span class="card-meta-dot">&bull;</span>
+        <span class="weather-badge-pill" title="${window.escapeHtml(wLabel)}">
+          <span>${wIcon}</span>
+        </span>
+      `;
+    }
+
     return `
       <article class="glass-panel journal-card glass-card-interactive" id="entry-${entry.id}">
         <div class="card-header entry-card-header">
@@ -1226,6 +1253,7 @@ const KokoroApp = {
             ${categoryBadgeHtml}
             <span class="card-meta-dot">&bull;</span>
             <span class="card-meta-time entry-date"><i class="bi bi-clock"></i> ${safeDisplayDate}</span>
+            ${weatherBadgeHtml}
             ${entry.isPinned ? `<span style="color: var(--sakura-500); margin-left: 4px;" title="Đã ghim"><i class="bi bi-pin-angle-fill"></i></span>` : ''}
           </div>
           <div class="card-actions">

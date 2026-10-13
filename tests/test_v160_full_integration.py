@@ -49,18 +49,18 @@ class TestKokoroV160FullIntegration(unittest.TestCase):
         cls.headers = {"Authorization": f"Bearer {cls.token}"}
 
     def test_01_version_alignment(self):
-        """Verify Config, Auth config API, and Service Worker versions match v1.6.0"""
-        self.assertEqual(Config.APP_VERSION, "v1.6.0")
+        """Verify Config, Auth config API, and Service Worker versions match."""
+        self.assertIn(Config.APP_VERSION, ("v1.6.0", "v1.6.1"))
 
         resp = self.client.get("/api/auth/config")
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
-        self.assertEqual(data.get("version"), "v1.6.0")
+        self.assertEqual(data.get("version"), Config.APP_VERSION)
 
         sw_path = BASE_DIR / "static" / "sw.js"
         sw_content = sw_path.read_text(encoding="utf-8")
-        self.assertIn("kokoro-v1.6.0", sw_content)
-        self.assertIn("?v=1.6.0", sw_content)
+        self.assertIn(f"kokoro-{Config.APP_VERSION}", sw_content)
+        self.assertIn(f"?v={Config.APP_VERSION[1:]}", sw_content)
 
     def test_02_client_markup_and_js_integration(self):
         """Verify unified mood/category containers in HTML, editor.js, and app.js"""

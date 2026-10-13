@@ -1557,3 +1557,63 @@ body.modal-scroll-locked {
 .category-picker-scroll::-webkit-scrollbar {
   display: none !important;
 }
+
+/* --------------------------------------------------------------------------
+   WEATHER PICKER CHIPS & TIMELINE BADGE (v1.6.1)
+   -------------------------------------------------------------------------- */
+.weather-picker-list {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 2px;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.weather-picker-list::-webkit-scrollbar {
+  display: none;
+}
+
+.weather-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--surface-glass-subtle);
+  border: 1px solid var(--border-glass-subtle);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+  touch-action: manipulation;
+  min-height: 36px;
+}
+
+.weather-chip:hover {
+  background: var(--surface-hover-overlay);
+  color: var(--text-primary);
+  border-color: var(--border-glass-active);
+}
+
+.weather-chip.active {
+  background: var(--sakura-500) !important;
+  color: #ffffff !important;
+  border-color: var(--sakura-500) !important;
+  box-shadow: 0 3px 12px rgba(236, 72, 153, 0.35) !important;
+  font-weight: 700;
+}
+
+.weather-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  cursor: default;
+}

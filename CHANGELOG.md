@@ -4,6 +4,30 @@ Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal 
 
 ---
 
+## [1.6.1] - 2026-10-13
+### Added & Enhanced (Data Integrity, Weather Selector UI & Dev Hot-Reload)
+- **Vá Lỗ Hổng Toàn Vẹn Dữ Liệu Ngoại Tuyến IndexedDB (`static/js/api.js`):**
+  * Lưu trữ `category_id` chuẩn kiểu số nguyên vào cơ sở dữ liệu ngoại tuyến `offline_entries` trong `saveOfflineEntry()`.
+  * Phòng chống triệt để bẫy ép kiểu chuỗi `"null"` khi mạng kết nối lại trong `syncOfflineQueue()`. Chỉ đính kèm trường `category_id` vào `FormData` khi thực sự mang giá trị hợp lệ, triệt tiêu hoàn toàn lỗi `ValueError` HTTP 500 do backend parse `int("null")`.
+- **Nâng Cấp Hệ Thống Sao Lưu & Khôi Phục JSON (`app/routes/entry_routes.py`):**
+  * **Xuất Dữ Liệu (`GET /api/entries/export`):** Bổ sung danh sách bảng `categories` tùy chỉnh của người dùng (`id`, `name`, `icon`, `color`, `sort_order`) và đính kèm `category_id`, `category_name`, `category_icon`, `category_color` vào từng bài viết với phiên bản định dạng `export_version = "1.1"`.
+  * **Khôi Phục Dữ Liệu (`POST /api/entries/import`):** Tự động nạp và ánh xạ lại `categories` tùy chỉnh từ tệp sao lưu; tự động map lại `category_id` mới với xử lý xung đột `ON CONFLICT (user_id, name)` và cơ chế kiểm tra dự phòng (pre-check query fallback).
+  * **Tương Thích Ngược 100% (Backward Compatibility):** Khôi phục trơn tru và hoàn hảo các tệp sao lưu chuẩn v1.0 cũ không có trường `category_id` hoặc thiếu bảng `categories`, không bao giờ phát sinh `KeyError`.
+  * Bảo toàn mốc thời gian nguyên bản `created_at` và `updated_at` của bài viết khi khôi phục từ tệp sao lưu.
+- **Trình Chọn Thời Tiết Trực Quan Trong Editor (`static/index.html`, `static/css/components.css`, `static/js/editor.js`):**
+  * Bổ sung thanh chọn thời tiết capsule chips (`#editor-weather-picker-list`) gồm 5 trạng thái thời tiết tinh tế: Nắng ☀️ (`sunny`), Mưa 🌧️ (`rainy`), Nhiều mây ⛅ (`cloudy`), Gió 🍃 (`windy`), Tuyết ❄️ (`snowy`).
+  * Đồng bộ trường thời tiết với vòng đời biên tập: Tự động lưu và khôi phục trong bản nháp (`localStorage`), nạp thời tiết khi chỉnh sửa bài viết cũ, và gửi chính xác lên máy chủ (thay thế giá trị `'sunny'` cố định trước đây).
+  * Hiển thị biểu tượng thời tiết `.weather-badge-pill` tinh tế trên tiêu đề thẻ bài viết Dòng thời gian (`static/js/app.js`).
+- **Xác Thực Tuyệt Đối Cập Nhật Bài Viết (`PUT /api/entries/{id}`):**
+  * Xác minh và đảm bảo 100% câu lệnh SQL UPDATE cập nhật chuẩn xác trường `weather = %s` cùng `category_id` trên mọi nhánh điều kiện.
+- **Tự Động Nạp Lại Mã Nguồn Trong Môi Trường Phát Triển (`server.py`):**
+  * Kích hoạt tham số `reload=Config.DEBUG` trong `uvicorn.run()` giúp máy chủ tự động cập nhật khi mã nguồn thay đổi mà không cần khởi động lại thủ công.
+- **Nâng Cấp Phiên Bản Ứng Dụng & Cache PWA (`app/config.py`, `static/sw.js`, `static/index.html`):**
+  * Tăng phiên bản chính thức lên `v1.6.1` trong `Config.APP_VERSION`.
+  * Nâng cấp bộ nhớ đệm Service Worker lên `kokoro-v1.6.1` và cập nhật chuỗi truy vấn tài nguyên `?v=1.6.1`.
+- **Bộ Kiểm Thử Tự Động Toàn Diện Cho Tính Toàn Vẹn Dữ Liệu (`tests/test_v161_data_integrity.py`):**
+  * 100% PASS bộ kiểm thử mới kiểm tra toàn diện: Vòng đời thời tiết (Create/Read/Update), Đồng bộ ngoại tuyến không có chuỗi "null", Xuất/Nhập JSON v1.1 có danh mục, Tương thích ngược với tệp JSON v1.0, và Bảo toàn mốc thời gian.
+
 ## [1.6.0] - 2026-10-12
 ### Added & Unified (Official Release: Dynamic Mood & Category Management System)
 - **Hệ Thống Quản Lý Danh Mục & Cảm Xúc Động (Dynamic Mood Taxonomy & Unified Categories):**

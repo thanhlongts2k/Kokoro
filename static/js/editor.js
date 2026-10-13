@@ -30,6 +30,11 @@ const Editor = {
   selectedEntryDate: null,
   selectedCreatedAt: null,
 
+  // Weather Picker elements & state (v1.6.1)
+  weatherPickerContainer: null,
+  weatherInput: null,
+  selectedWeather: 'sunny',
+
   editingEntryId: null,
   selectedCategoryId: null,
   categories: [],
@@ -88,6 +93,18 @@ const Editor = {
     this.datetimeDisplay = document.getElementById('editor-datetime-display');
     this.entryDateInput = document.getElementById('editor-entry-date-input');
     this.createdAtInput = document.getElementById('editor-created-at-input');
+
+    // Weather Picker integration (v1.6.1)
+    this.weatherPickerContainer = document.getElementById('editor-weather-picker-list');
+    this.weatherInput = document.getElementById('editor-weather-input');
+    if (this.weatherPickerContainer) {
+      this.weatherPickerContainer.querySelectorAll('.weather-chip').forEach((chip) => {
+        chip.addEventListener('click', () => {
+          this.setWeather(chip.dataset.weather);
+          this.scheduleDraftSave();
+        });
+      });
+    }
 
     if (!this.overlayEl) return;
 
@@ -201,6 +218,21 @@ const Editor = {
     if (this.createdAtInput) this.createdAtInput.value = this.selectedCreatedAt;
   },
 
+  setWeather(weather = 'sunny') {
+    const w = weather || 'sunny';
+    this.selectedWeather = w;
+    if (this.weatherInput) this.weatherInput.value = w;
+    if (this.weatherPickerContainer) {
+      this.weatherPickerContainer.querySelectorAll('.weather-chip').forEach((chip) => {
+        if (chip.dataset.weather === w) {
+          chip.classList.add('active');
+        } else {
+          chip.classList.remove('active');
+        }
+      });
+    }
+  },
+
   scheduleDraftSave() {
     if (this.editingEntryId) return; // Do not auto-save draft when editing an existing entry
     clearTimeout(this.draftTimeout);
@@ -216,6 +248,7 @@ const Editor = {
           content,
           mood: this.selectedMood,
           category_id: this.selectedCategoryId,
+          weather: this.selectedWeather,
           tags,
           created_at: this.selectedCreatedAt,
           entry_date: this.selectedEntryDate
@@ -240,6 +273,12 @@ const Editor = {
 
       if (draft.category_id || draft.mood) {
         this.renderCategoryChips(draft.category_id, draft.mood);
+      }
+
+      if (draft.weather) {
+        this.setWeather(draft.weather);
+      } else {
+        this.setWeather('sunny');
       }
 
       if (draft.created_at) {
@@ -370,6 +409,7 @@ const Editor = {
       if (this.tagInput) this.tagInput.value = (entry.tags || []).join(' ');
 
       await this.loadCategories(entry.categoryId || entry.category_id, entry.mood);
+      this.setWeather(entry.weather || 'sunny');
 
       // Populate datetime from existing entry
       const dtSource = entry.createdAt || entry.created_at || (entry.entryDate || entry.entry_date ? `${entry.entryDate || entry.entry_date}T12:00:00` : new Date());
@@ -397,6 +437,7 @@ const Editor = {
       if (this.saveBtnTextEl) this.saveBtnTextEl.textContent = 'Lưu nhật ký ✨';
 
       this.updateDatetimeState(new Date());
+      this.setWeather('sunny');
       await this.loadCategories();
       this.checkAndRestoreDraft();
     }
@@ -442,6 +483,7 @@ const Editor = {
     }
 
     this.updateDatetimeState(new Date());
+    this.setWeather('sunny');
 
     if (this.draftBannerEl) this.draftBannerEl.style.display = 'none';
     this.setLoading(false);
@@ -592,7 +634,7 @@ const Editor = {
           content,
           mood: this.selectedMood,
           category_id: this.selectedCategoryId,
-          weather: 'sunny',
+          weather: this.selectedWeather || 'sunny',
           entry_date: targetDate,
           created_at: targetCreatedAt,
           tags: rawTags,
@@ -620,7 +662,7 @@ const Editor = {
     if (this.selectedCategoryId) {
       formData.append('category_id', String(this.selectedCategoryId));
     }
-    formData.append('weather', 'sunny');
+    formData.append('weather', this.selectedWeather || 'sunny');
     formData.append('entry_date', targetDate);
     formData.append('created_at', targetCreatedAt);
     formData.append('tags', rawTags);
