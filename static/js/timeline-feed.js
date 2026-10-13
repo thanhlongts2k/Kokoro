@@ -125,7 +125,7 @@ const TimelineFeed = {
             const safeAlt = window.escapeHtml(p.name || 'Photo ' + (idx + 1));
             return `
               <div class="gallery-item" data-full-src="${fullUrl}">
-                <img src="${thumbUrl}" alt="${safeAlt}" loading="lazy" />
+                <img src="${thumbUrl}" alt="${safeAlt}" loading="lazy" onerror="this.onerror=null; this.src='./icons/sakura.svg'; this.classList.add('img-fallback');" />
               </div>
             `;
           })
@@ -141,7 +141,7 @@ const TimelineFeed = {
             const safeAlt = window.escapeHtml(p.name || 'Photo ' + (idx + 1));
             return `
               <div class="gallery-item" data-full-src="${fullUrl}">
-                <img src="${thumbUrl}" alt="${safeAlt}" loading="lazy" />
+                <img src="${thumbUrl}" alt="${safeAlt}" loading="lazy" onerror="this.onerror=null; this.src='./icons/sakura.svg'; this.classList.add('img-fallback');" />
                 ${isLast ? `<div class="gallery-more-overlay">+${extraCount} ảnh</div>` : ''}
               </div>
             `;

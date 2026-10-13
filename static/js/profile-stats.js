@@ -169,7 +169,10 @@ const ProfileStats = {
     // 4. Passcode PIN Status Badge
     const pinBadge = document.getElementById('profile-action-pin-badge');
     if (pinBadge) {
-      const isPinSet = window.PasscodeLock && window.PasscodeLock.isPasscodeSetForUser && window.PasscodeLock.isPasscodeSetForUser();
+      const isPinSet = Boolean(window.PasscodeLock && (
+        (typeof window.PasscodeLock.isEnabled === 'function' && window.PasscodeLock.isEnabled()) ||
+        (typeof window.PasscodeLock.isPasscodeSetForUser === 'function' && window.PasscodeLock.isPasscodeSetForUser())
+      ));
       pinBadge.textContent = isPinSet ? 'Đang bật' : 'Chưa bật';
       pinBadge.className = isPinSet ? 'badge-pill badge-active' : 'badge-pill badge-inactive';
     }

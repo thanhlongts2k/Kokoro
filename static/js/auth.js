@@ -63,6 +63,20 @@ const KokoroAuth = {
     if (loginHeaderBtn) {
       loginHeaderBtn.addEventListener('click', () => this.showLoginModal());
     }
+
+    const loginCloseBtn = document.getElementById('login-modal-close-btn');
+    if (loginCloseBtn) {
+      loginCloseBtn.addEventListener('click', () => this.hideLoginModal());
+    }
+
+    const loginOverlay = document.getElementById('login-modal-overlay');
+    if (loginOverlay) {
+      loginOverlay.addEventListener('click', (e) => {
+        if (e.target === loginOverlay) {
+          this.hideLoginModal();
+        }
+      });
+    }
   },
 
   initGoogleIdentity() {
@@ -124,6 +138,9 @@ const KokoroAuth = {
         this.currentUser = res.user;
         this.updateHeaderUI(res.user);
         this.hideLoginModal();
+        if (window.PasscodeLock && res.user.id) {
+          window.PasscodeLock.onUserChanged(res.user.id);
+        }
         return res.user;
       }
     } catch (e) {
@@ -247,6 +264,9 @@ const KokoroAuth = {
     this.currentUser = user;
     this.updateHeaderUI(user);
     this.hideLoginModal();
+    if (window.PasscodeLock && user && user.id) {
+      window.PasscodeLock.onUserChanged(user.id);
+    }
 
     const dropdown = document.getElementById('profile-dropdown-menu');
     if (dropdown) dropdown.classList.remove('active');

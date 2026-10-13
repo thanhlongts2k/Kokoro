@@ -53,22 +53,22 @@ class TestV161DataIntegrity(unittest.TestCase):
 
     def test_01_version_alignment(self):
         """Verify Config, Auth config API, and Service Worker versions are aligned with v1.6.1 or later"""
-        self.assertIn(Config.APP_VERSION, ("v1.6.1", "v1.6.2", "v1.6.3", "v1.6.4", "v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2"))
+        self.assertIn(Config.APP_VERSION, ("v1.6.1", "v1.6.2", "v1.6.3", "v1.6.4", "v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3"))
 
         resp = self.client.get("/api/auth/config")
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
-        self.assertIn(data.get("version"), ("v1.6.1", "v1.6.2", "v1.6.3", "v1.6.4", "v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2"))
+        self.assertIn(data.get("version"), ("v1.6.1", "v1.6.2", "v1.6.3", "v1.6.4", "v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3"))
 
         sw_path = Config.BASE_DIR / "static" / "sw.js"
         sw_content = sw_path.read_text(encoding="utf-8")
-        self.assertTrue(any(v in sw_content for v in ("kokoro-v1.6.1", "kokoro-v1.6.2", "kokoro-v1.6.3", "kokoro-v1.6.4", "kokoro-v1.6.5", "kokoro-v1.7.0", "kokoro-v1.7.1", "kokoro-v1.7.2")))
-        self.assertTrue(any(v in sw_content for v in ("?v=1.6.1", "?v=1.6.2", "?v=1.6.3", "?v=1.6.4", "?v=1.6.5", "?v=1.7.0", "?v=1.7.1", "?v=1.7.2")))
+        self.assertTrue(any(v in sw_content for v in ("kokoro-v1.6.1", "kokoro-v1.6.2", "kokoro-v1.6.3", "kokoro-v1.6.4", "kokoro-v1.6.5", "kokoro-v1.7.0", "kokoro-v1.7.1", "kokoro-v1.7.2", "kokoro-v1.7.3")))
+        self.assertTrue(any(v in sw_content for v in ("?v=1.6.1", "?v=1.6.2", "?v=1.6.3", "?v=1.6.4", "?v=1.6.5", "?v=1.7.0", "?v=1.7.1", "?v=1.7.2", "?v=1.7.3")))
 
         index_path = Config.BASE_DIR / "static" / "index.html"
         index_content = index_path.read_text(encoding="utf-8")
-        self.assertTrue(any(v in index_content for v in ("tokens.css?v=1.6.1", "tokens.css?v=1.6.2", "tokens.css?v=1.6.3", "tokens.css?v=1.6.4", "tokens.css?v=1.6.5", "tokens.css?v=1.7.0", "tokens.css?v=1.7.1", "tokens.css?v=1.7.2")))
-        self.assertTrue(any(v in index_content for v in ("app.js?v=1.6.1", "app.js?v=1.6.2", "app.js?v=1.6.3", "app.js?v=1.6.4", "app.js?v=1.6.5", "app.js?v=1.7.0", "app.js?v=1.7.1", "app.js?v=1.7.2")))
+        self.assertTrue(any(v in index_content for v in ("tokens.css?v=1.6.1", "tokens.css?v=1.6.2", "tokens.css?v=1.6.3", "tokens.css?v=1.6.4", "tokens.css?v=1.6.5", "tokens.css?v=1.7.0", "tokens.css?v=1.7.1", "tokens.css?v=1.7.2", "tokens.css?v=1.7.3")))
+        self.assertTrue(any(v in index_content for v in ("app.js?v=1.6.1", "app.js?v=1.6.2", "app.js?v=1.6.3", "app.js?v=1.6.4", "app.js?v=1.6.5", "app.js?v=1.7.0", "app.js?v=1.7.1", "app.js?v=1.7.2", "app.js?v=1.7.3")))
 
     def test_02_weather_lifecycle(self):
         """Test creating and updating entries with weather (PUT /api/entries/{id} weather = %s)"""

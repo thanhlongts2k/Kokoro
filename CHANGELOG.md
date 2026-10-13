@@ -2,6 +2,31 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal Diary & Photo Journal PWA** được ghi nhận chi tiết tại tệp này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) và tuân thủ [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.7.3] - 2026-10-13
+### Fixed & PWA Polish (Khắc Phục Lỗi Đổi Nhạc Nền, Sự Kiện Mã PIN, Lưới Kho Kỷ Niệm & Fallback Ảnh 404)
+- **Khắc Phục Lỗi Đổi Nhạc Nền Zen Audio Trên Mobile/PWA & Desktop (`static/css/layout.css`, `static/js/zen-audio.js`):**
+  * Sửa lỗi nút `.zen-expand-btn` bị ẩn cứng trên màn hình di động do rule `@media (max-width: 640px) .zen-expand-btn { display: none !important; }`. Cấu hình lại nút hiển thị dạng compact button tròn (`inline-flex`, ẩn nhãn chữ) trên thiết bị di động/PWA để người dùng dễ dàng chạm mở panel chuyển bài hát thư giãn (Rain, Waves, Forest, Windchime/Furin, Night).
+  * Tối ưu hóa giao diện `.zen-player-panel` trên mobile với `max-width: calc(100vw - 24px)`, căn chỉnh danh sách chip track cuộn ngang mượt mà.
+  * Bổ sung phím tắt `Escape` tự động đóng bảng điều khiển Zen Audio.
+- **Khắc Phục Sự Kiện Thiết Lập & Đổi Mã PIN Passcode (`static/js/passcode.js`, `static/js/auth.js`, `static/js/profile-stats.js`):**
+  * Sửa lỗi không đổi được mã PIN do thiếu event listener trực tiếp trên các nút `#passcode-change-btn`, `#passcode-toggle-switch`, `#passcode-timeout-select`, `#passcode-close-settings-btn`.
+  * Hoàn thiện hàm `PasscodeLock.openSettingsModal()` và `PasscodeLock.openSetupOverlay()`.
+  * Bổ sung hàm alias `isPasscodeSetForUser()` và hàm `onUserChanged(userId)` hỗ trợ lưu trữ mã PIN độc lập cho từng tài khoản người dùng (`kokoro_passcode_hash_{userId}`, `kokoro_passcode_enabled_{userId}`).
+  * Đồng bộ trạng thái badge `#profile-action-pin-badge` ("Đang bật" / "Chưa bật") tức thì sau khi người dùng tạo, thay đổi hoặc tắt mã PIN.
+- **Khắc Phục Thanh Lọc Cảm Xúc Kho Kỷ Niệm (`static/index.html`, `static/js/app.js`):**
+  * Chuẩn hóa ID container `#memories-mood-filters` với CSS class `.memories-mood-scroll`, loại bỏ hiện tượng lệch ID giữa các module và bảo toàn 100% hợp đồng DOM của bộ kiểm thử hồi quy.
+- **Khắc Phục Lỗi Dính Cụm Thẻ & Xử Lý Ảnh 404 Fallback (`static/js/timeline-feed.js`, `static/js/memories-view.js`, `static/css/components.css`):**
+  * Bổ sung bộ xử lý lỗi ảnh `onerror="this.onerror=null; this.src='./icons/sakura.svg'; this.classList.add('img-fallback');"` trên cả Timeline Feed và Album Kho Kỷ Niệm.
+  * Định kiểu `.img-fallback` với hoa văn anh đào trang nhã, bảo toàn kích thước và tỉ lệ lưới ảnh mosaic, ngăn chặn hiện tượng vỡ layout hoặc dính cụm khi ảnh tải thất bại.
+- **Khắc Phục Điều Hướng Tablet & Nút Đóng Login Modal (`static/css/layout.css`, `static/index.html`, `static/js/auth.js`):**
+  * Bổ sung media query `@media (min-width: 769px)` trong `layout.css` đảm bảo cụm tab `.desktop-view-tabs` luôn hiển thị trên cả tablet và desktop.
+  * Bổ sung nút đóng `#login-modal-close-btn` và xử lý click backdrop cho modal đăng nhập.
+- **Bộ Kiểm Thử Tự Động Toàn Diện (Full System Test Suite):**
+  * Xây dựng `tests/test_full_system_e2e.py` bao phủ toàn diện 13 module cốt lõi (Auth, Entries, Editor, Weather, Categories, Tags, JSON Export v1.1, 31 Static Assets) ➔ PASS 6/6 (100%).
+  * Xây dựng `tests/test_interactive_browser_e2e.py` kiểm thử tương tác trình duyệt thực tế Playwright (Zen Audio, Passcode PIN flow, Memories mood chips, Calendar navigation, Card Export Modal) ➔ PASS 100% với 0 lỗi console JavaScript.
+  * Toàn bộ 87/87 unit tests trong `tests/` PASS 100%.
+  * Nâng cấp phiên bản toàn hệ thống lên `v1.7.3` (`app/config.py`, `sw.js`, `index.html`).
+
 ## [1.7.2] - 2026-10-13
 ### Security & Production Hardening (Bảo Vệ Quyền Riêng Tư & Dọn Dẹp Sạch CSDL Sẵn Sàng Triển Khai Production)
 - **Dọn Dẹp Triệt Để Tài Khoản Test & Toàn Bộ Dữ Liệu/Ảnh Liên Quan (Mock Accounts Cleanup):**

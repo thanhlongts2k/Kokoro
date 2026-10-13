@@ -356,11 +356,15 @@ const PasscodeLock = {
   },
 
   updateProfileMenuUi() {
-    const badge = document.getElementById('profile-lock-badge');
+    const badge = document.getElementById('profile-action-pin-badge') || document.getElementById('profile-lock-badge');
     if (badge) {
       badge.textContent = this.isEnabled() ? 'Đang bật' : 'Chưa bật';
       badge.className = this.isEnabled() ? 'badge-pill badge-active' : 'badge-pill badge-inactive';
     }
+  },
+
+  isPasscodeSetForUser() {
+    return this.isEnabled();
   },
 
   // --------------------------------------------------------------------------
@@ -429,6 +433,57 @@ const PasscodeLock = {
           this.hideLockScreen();
         } else {
           this.showLockScreen();
+        }
+      });
+    }
+
+    // Passcode Settings Modal Controls
+    const changePinBtn = document.getElementById('passcode-change-btn');
+    if (changePinBtn) {
+      changePinBtn.addEventListener('click', () => {
+        this.startSetNewPinFlow();
+      });
+    }
+
+    const toggleSwitch = document.getElementById('passcode-toggle-switch');
+    if (toggleSwitch) {
+      toggleSwitch.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          this.startSetNewPinFlow();
+        } else {
+          this.disablePin();
+          this.updateSettingsModalState();
+          this.updateProfileMenuUi();
+          if (window.KokoroApp) {
+            window.KokoroApp.showToast('Đã tắt khóa bảo vệ mã PIN 🍃', 'info');
+          }
+        }
+      });
+    }
+
+    const timeoutSelect = document.getElementById('passcode-timeout-select');
+    if (timeoutSelect) {
+      timeoutSelect.addEventListener('change', (e) => {
+        const val = parseInt(e.target.value, 10);
+        localStorage.setItem(`kokoro_pin_timeout_${this.currentUserId}`, String(val));
+        if (window.KokoroApp) {
+          window.KokoroApp.showToast(`Đã lưu thời gian tự khóa: ${val} phút ✨`, 'info');
+        }
+      });
+    }
+
+    const closeSettingsBtn = document.getElementById('passcode-close-settings-btn');
+    if (closeSettingsBtn) {
+      closeSettingsBtn.addEventListener('click', () => {
+        this.closeSetupModal();
+      });
+    }
+
+    const settingsModal = document.getElementById('passcode-settings-modal');
+    if (settingsModal) {
+      settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) {
+          this.closeSetupModal();
         }
       });
     }

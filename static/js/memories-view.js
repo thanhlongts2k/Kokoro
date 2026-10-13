@@ -211,7 +211,7 @@ const MemoriesView = {
         const safeAlt = window.escapeHtml(p.name || 'Memory Photo');
         return `
           <div class="c-memory-item" data-full-src="${fullUrl}" data-title="${safeTitle}" data-date="${safeDate}">
-            <img src="${thumbUrl}" alt="${safeAlt}" loading="lazy" />
+            <img src="${thumbUrl}" alt="${safeAlt}" loading="lazy" onerror="this.onerror=null; this.src='./icons/sakura.svg'; this.classList.add('img-fallback');" />
             <div class="c-memory-overlay">
               <span class="c-memory-title">${safeDisplayTitle}</span>
               <span class="c-memory-meta"><i class="bi bi-clock"></i> ${safeDate} &bull; ${safeMeta}</span>

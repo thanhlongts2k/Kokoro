@@ -286,6 +286,12 @@ const ZenAudio = {
           panel.classList.remove('active');
         }
       });
+      // Close on Escape key
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && panel.classList.contains('active')) {
+          panel.classList.remove('active');
+        }
+      });
     }
 
     // Volume Slider input

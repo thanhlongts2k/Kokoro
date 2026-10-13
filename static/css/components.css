@@ -928,6 +928,15 @@
   display: block;
 }
 
+.gallery-item img.img-fallback,
+.c-memory-item img.img-fallback {
+  object-fit: contain !important;
+  padding: 24px !important;
+  background: var(--surface-glass-subtle) !important;
+  opacity: 0.65;
+  filter: drop-shadow(0 2px 8px rgba(244, 114, 182, 0.2));
+}
+
 .c-memory-overlay {
   position: absolute;
   inset: 0;

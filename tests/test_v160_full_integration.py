@@ -54,7 +54,7 @@ class TestKokoroV160FullIntegration(unittest.TestCase):
 
     def test_01_version_alignment(self):
         """Verify Config, Auth config API, and Service Worker versions match."""
-        self.assertIn(Config.APP_VERSION, ("v1.6.0", "v1.6.1", "v1.6.2", "v1.6.3", "v1.6.4", "v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2"))
+        self.assertIn(Config.APP_VERSION, ("v1.6.0", "v1.6.1", "v1.6.2", "v1.6.3", "v1.6.4", "v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3"))
 
         resp = self.client.get("/api/auth/config")
         self.assertEqual(resp.status_code, 200)

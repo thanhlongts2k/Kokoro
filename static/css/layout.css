@@ -535,10 +535,20 @@
   margin-top: 2px;
 }
 
-/* Desktop View Switcher Tabs (Hidden by default, ONLY shown on Desktop > 1024px) */
+/* Desktop & Tablet View Switcher Tabs (Shown on screens >= 769px) */
 .desktop-view-tabs,
 #desktop-view-tabs {
   display: none !important;
+}
+
+@media (min-width: 769px) {
+  .desktop-view-tabs,
+  #desktop-view-tabs {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1166,15 +1176,20 @@ body.modal-scroll-locked {
     gap: 6px !important;
   }
 
-  /* Compact Zen Audio: Hide track name & chevron text, show only mini button */
+  /* Compact Zen Audio: Show icon & chevron dropdown on mobile, hide track name text */
   .zen-expand-btn {
+    display: inline-flex !important;
+    padding: 0 4px !important;
+  }
+
+  .zen-expand-btn span {
     display: none !important;
   }
 
   .zen-player-container {
-    padding: 2px !important;
+    padding: 2px 6px !important;
     border-radius: var(--radius-pill) !important;
-    gap: 0 !important;
+    gap: 2px !important;
   }
 
   /* Hide PWA Install Button from mobile top bar */
@@ -1980,6 +1995,19 @@ body.modal-scroll-locked {
 
 .zen-player-panel.active {
   display: flex;
+}
+
+@media (max-width: 768px) {
+  .zen-player-panel {
+    position: fixed !important;
+    top: calc(64px + env(safe-area-inset-top, 0px)) !important;
+    right: 12px !important;
+    left: 12px !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
+    z-index: 250 !important;
+  }
 }
 
 .zen-track-chips-grid {

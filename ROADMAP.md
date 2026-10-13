@@ -393,3 +393,27 @@
   - [x] Cập nhật `static/js/auth.js`: Khi `MOCK_AUTH=False` hoặc danh sách mock users rỗng, frontend ẩn hoàn toàn `#mock-account-switcher`, `#mock-account-divider`, `#login-divider`, và `#login-quick-dev-section`, chuyển giao diện về trạng thái Production chuẩn chỉ hiển thị nút Google Sign-In chính thức.
   - [x] Tối ưu hóa Database Seeding cho Unit Tests: Chuyển mock seeding từ `init_db()` sang các hàm kiểm thử chuyên biệt `seed_mock_users_for_testing()` và `clean_mock_users_after_testing()`, đảm bảo toàn bộ 81/81 unit test PASS 100% trong khi CSDL production giữ sạch tuyệt đối.
   - [x] Nâng cấp phiên bản toàn hệ thống lên `v1.7.2` (`app/config.py`, `static/sw.js`, `static/index.html`, `README.md`, `CHANGELOG.md`).
+
+### 🔹 Giai đoạn 18: Bản Phát Hành v1.7.3 — Hoàn Thiện Tương Tác Mobile/PWA & Khép Kín Hệ Thống Kiểm Thử Trình Duyệt E2E
+- [x] **Khắc Phục Lỗi Đổi Nhạc Nền Zen Audio Trên Mobile/PWA & Desktop (`static/css/layout.css`, `static/js/zen-audio.js`):**
+  - [x] Cho phép nút `.zen-expand-btn` hiển thị dạng compact button tròn (`inline-flex`, ẩn text label) trên mobile thay vì `display: none !important;` giúp người dùng PWA có thể mở panel đổi nhạc.
+  - [x] Thiết lập `.zen-player-panel` co giãn linh hoạt trên mobile với `max-width: calc(100vw - 24px)`.
+  - [x] Bổ sung phím tắt `Escape` tự động đóng bảng phát nhạc.
+- [x] **Khắc Phục Sự Kiện Thiết Lập & Đổi Mã PIN Passcode (`static/js/passcode.js`, `static/js/auth.js`, `static/js/profile-stats.js`):**
+  - [x] Gắn kết đầy đủ sự kiện DOM cho `#passcode-change-btn`, `#passcode-toggle-switch`, `#passcode-timeout-select`, `#passcode-close-settings-btn`.
+  - [x] Thêm hàm `isPasscodeSetForUser()` và hàm vòng đời `onUserChanged(userId)` cách ly cấu hình mã PIN độc lập theo từng tài khoản.
+  - [x] Đồng bộ badge trạng thái `#profile-action-pin-badge` ("Đang bật" / "Chưa bật") tức thì sau khi người dùng tạo hoặc xóa PIN.
+- [x] **Khắc Phục Thanh Lọc Cảm Xúc Kho Kỷ Niệm (`static/index.html`, `static/js/app.js`):**
+  - [x] Đồng bộ ID container `#memories-mood-filters` với CSS class `.memories-mood-scroll`, tương thích hoàn hảo giữa frontend component và test contracts.
+- [x] **Khắc Phục Lỗi Dính Cụm Thẻ & Xử Lý Ảnh 404 Fallback (`static/js/timeline-feed.js`, `static/js/memories-view.js`, `static/css/components.css`):**
+  - [x] Bổ sung bộ xử lý lỗi ảnh `onerror` nạp ảnh hoa anh đào dự phòng (`./icons/sakura.svg`) kèm hiệu ứng `.img-fallback` mờ thủy tinh.
+  - [x] Đảm bảo không làm vỡ tỉ lệ lưới ảnh mosaic hoặc dính cụm khi ảnh tải thất bại.
+- [x] **Khắc Phục Điều Hướng Tablet & Nút Đóng Login Modal (`static/css/layout.css`, `static/index.html`, `static/js/auth.js`):**
+  - [x] Bổ sung media query `@media (min-width: 769px)` trong `layout.css` đảm bảo cụm tab `.desktop-view-tabs` luôn hiển thị trên tablet.
+  - [x] Thêm nút đóng `#login-modal-close-btn` và xử lý click backdrop cho modal đăng nhập.
+- [x] **Bộ Kiểm Thử Tự Động Toàn Hệ Thống (E2E & Unit Test Suites):**
+  - [x] `tests/test_full_system_e2e.py`: Kiểm thử tích hợp 6 kịch bản bao phủ toàn diện 13 module cốt lõi (Auth, Entries, Editor, Weather, Categories, Tags, JSON Export v1.1, 31 Static Assets) ➔ PASS 6/6 (100%).
+  - [x] `tests/test_interactive_browser_e2e.py`: Kiểm thử tương tác Playwright trực tiếp trên trình duyệt thật (Zen Audio, Passcode PIN flow, Memories mood chips, Calendar navigation, Card Export Modal) ➔ PASS 100% với 0 lỗi console JavaScript.
+  - [x] Toàn bộ 87/87 unit tests trong `tests/` PASS 100%.
+  - [x] Nâng cấp phiên bản toàn hệ thống lên `v1.7.3` (`app/config.py`, `sw.js`, `index.html`).
+
