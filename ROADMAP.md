@@ -272,3 +272,21 @@
   - [x] Đảm bảo thẻ script `zen-prompts.js` được nạp trước `editor.js` và `app.js` trong `index.html`.
 - [x] **Bộ Kiểm Thử Tự Động Toàn Diện (`tests/test_v162_zen_prompts.py`):**
   - [x] 100% PASS bộ kiểm thử tính nhất quán của seed ngày cục bộ, 36 câu hỏi, draft safety và hợp đồng UI.
+
+### 🔹 Giai đoạn 11: Bản Phát Hành v1.6.3 — Xuất Thẻ Ảnh Kỷ Niệm (Daily Card Export)
+- [x] **Công Cụ Render Canvas Chuẩn 1080p (`static/js/card-export.js`):**
+  - [x] Khóa cứng kích thước bộ đệm vật lý 1080p (Vuông 1080x1080 & Story 1080x1920), triệt tiêu bẫy quá tải bộ nhớ và crash Safari trên iOS.
+  - [x] Cổng chặn tải font async `document.fonts.ready` đảm bảo 100% font chữ tiếng Việt và emoji hiển thị chuẩn xác.
+  - [x] Thuật toán bẻ dòng thông minh `wrapAndFitText()` bảo toàn dấu ngắt đoạn của người dùng, tự động cắt tỉa an toàn kèm dấu ba chấm "..." tránh tràn đè nội dung.
+  - [x] Bố cục thích ứng (Adaptive Layout): Chế độ Thuần chữ dạng Zen Quote nghệ thuật và Chế độ Có ảnh kèm khung bo góc & badge "+X ảnh".
+  - [x] Tiền tạo sẵn Blob/File (`currentExportFile`) để gọi Web Share API tức thì trong User Gesture, phòng chống lỗi `NotAllowedError` trên iOS Safari.
+  - [x] Dọn dẹp bộ nhớ nghiêm ngặt qua `URL.revokeObjectURL()` và reset kích thước canvas khi đóng modal.
+- [x] **Giao Diện Modal Xuất Thẻ & Nút Thao Tác Timeline (`static/index.html`, `static/css/components.css`, `static/js/app.js`):**
+  - [x] Thêm nút icon `[ 🖼️ Xuất ảnh ]` trên thanh công cụ mỗi thẻ bài viết Dòng thời gian.
+  - [x] Hộp thoại `#card-export-modal` phong cách Soft Sakura Glass với bộ gạt chọn tỷ lệ [ Vuông 1:1 ] / [ Story 9:16 ], preview canvas responsive mượt mà và nút Tải về / Chia sẻ.
+- [x] **Nâng Cấp Service Worker & Cache PWA (`static/sw.js`, `app/config.py`, `static/index.html`):**
+  - [x] Tăng phiên bản chính thức lên `v1.6.3` trong `Config.APP_VERSION`.
+  - [x] Nâng cấp bộ nhớ đệm Service Worker lên `kokoro-v1.6.3` và thêm `card-export.js?v=1.6.3` vào danh sách pre-cache.
+- [x] **Bộ Kiểm Thử Tự Động Toàn Diện (`tests/test_v163_card_export.py`):**
+  - [x] 100% PASS bộ kiểm thử cho độ phân giải buffer cố định 1080p, thuật toán bẻ dòng, layout modes, share flow và dọn dẹp bộ nhớ.
+

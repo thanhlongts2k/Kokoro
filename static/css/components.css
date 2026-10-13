@@ -1775,3 +1775,124 @@ body.modal-scroll-locked {
 .prompt-hint-action-btn:hover {
   opacity: 0.9;
 }
+
+/* --------------------------------------------------------------------------
+   10. DAILY CARD EXPORT MODAL & PREVIEW (v1.6.3)
+   -------------------------------------------------------------------------- */
+#card-export-modal.active {
+  display: flex !important;
+}
+
+.card-export-dialog {
+  width: 92%;
+  max-width: 440px;
+  max-height: 90vh;
+  padding: 20px;
+  border-radius: var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(244, 114, 182, 0.22);
+}
+
+.card-export-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-export-ratio-bar {
+  display: flex;
+  background: color-mix(in srgb, var(--surface-glass-card) 60%, transparent);
+  border: 1px solid var(--border-glass-card);
+  border-radius: var(--radius-pill);
+  padding: 4px;
+  gap: 6px;
+}
+
+.export-ratio-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.export-ratio-btn:hover {
+  color: var(--text-primary);
+}
+
+.export-ratio-btn.active {
+  background: var(--sakura-500);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+}
+
+.card-export-preview-box {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  background: color-mix(in srgb, var(--surface-glass-card) 40%, transparent);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  overflow: hidden;
+}
+
+.card-export-loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(8px);
+}
+
+[data-theme="dark"] .card-export-loading-overlay {
+  background: rgba(15, 16, 22, 0.85);
+}
+
+.card-export-preview-canvas {
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  display: block;
+}
+
+.card-export-footer {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.card-export-act-btn {
+  flex: 1;
+  padding: 11px 16px;
+  border-radius: var(--radius-pill);
+  font-size: 13.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+

@@ -35,10 +35,10 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <!-- Stylesheets (Relative paths for Nginx reverse proxy subpath support) -->
-  <link rel="stylesheet" href="./css/tokens.css?v=1.6.2">
-  <link rel="stylesheet" href="./css/glass.css?v=1.6.2">
-  <link rel="stylesheet" href="./css/components.css?v=1.6.2">
-  <link rel="stylesheet" href="./css/layout.css?v=1.6.2">
+  <link rel="stylesheet" href="./css/tokens.css?v=1.6.3">
+  <link rel="stylesheet" href="./css/glass.css?v=1.6.3">
+  <link rel="stylesheet" href="./css/components.css?v=1.6.3">
+  <link rel="stylesheet" href="./css/layout.css?v=1.6.3">
 </head>
 <body>
 
@@ -646,7 +646,7 @@
         <div class="footer-brand">
           <img src="./icons/sakura.svg" alt="Kokoro Logo" class="footer-logo" />
           <span class="footer-title">Kokoro <span style="font-weight: 500; font-size: 14px; color: var(--sakura-500);">心</span></span>
-          <span class="footer-version-badge" id="app-version-badge">v1.6.2</span>
+          <span class="footer-version-badge" id="app-version-badge">v1.6.3</span>
         </div>
         <p class="footer-tagline">
           Lắng đọng tâm trí & lưu giữ những khoảnh khắc nhẹ nhàng trong không gian an yên.
@@ -1184,21 +1184,69 @@
       </div>
     </div>
 
+    <!-- ====================================================================
+         12. SOFT SAKURA DAILY CARD EXPORT MODAL (v1.6.3)
+         ==================================================================== -->
+    <div class="modal-overlay" id="card-export-modal" style="display: none; align-items: center; justify-content: center; z-index: 9999;">
+      <div class="glass-panel card-export-dialog" id="card-export-dialog">
+        <!-- Header -->
+        <div class="card-export-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <i class="bi bi-card-image text-sakura" style="font-size: 18px;"></i>
+            <h4 style="font-size: 16px; font-weight: 800; margin: 0; color: var(--text-primary);">Xuất Thẻ Ảnh Kỷ Niệm 🌸</h4>
+          </div>
+          <button type="button" class="action-icon-btn" id="card-export-close-btn" title="Đóng">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <!-- Ratio Switcher Capsule -->
+        <div class="card-export-ratio-bar">
+          <button type="button" class="export-ratio-btn active" id="card-export-ratio-square">
+            <i class="bi bi-square"></i> Vuông 1:1
+          </button>
+          <button type="button" class="export-ratio-btn" id="card-export-ratio-story">
+            <i class="bi bi-phone"></i> Story 9:16
+          </button>
+        </div>
+
+        <!-- Canvas Preview Area -->
+        <div class="card-export-preview-box">
+          <div id="card-export-loading" class="card-export-loading-overlay" style="display: none;">
+            <span class="btn-spinner" style="width: 28px; height: 28px; border-width: 3px; border-color: rgba(244, 114, 182, 0.3); border-top-color: var(--sakura-500);"></span>
+            <span style="font-size: 13px; font-weight: 600; color: var(--text-muted); margin-top: 10px;">Đang kết xuất thẻ ảnh... 🌸</span>
+          </div>
+          <canvas id="card-export-canvas" class="card-export-preview-canvas"></canvas>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="card-export-footer">
+          <button type="button" class="btn-glass card-export-act-btn" id="card-export-download-btn">
+            <i class="bi bi-download"></i> Tải ảnh về
+          </button>
+          <button type="button" class="btn-sakura card-export-act-btn" id="card-export-share-btn">
+            <i class="bi bi-send"></i> Chia sẻ ngay
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- Scripts Execution (Relative paths for reverse proxy subpath) -->
-  <script src="./js/mock-data.js?v=1.6.2"></script>
-  <script src="./js/api.js?v=1.6.2"></script>
-  <script src="./js/auth.js?v=1.6.2"></script>
-  <script src="./js/toast.js?v=1.6.2"></script>
-  <script src="./js/datetime-picker.js?v=1.6.2"></script>
-  <script src="./js/tag-manager.js?v=1.6.2"></script>
-  <script src="./js/lightbox.js?v=1.6.2"></script>
-  <script src="./js/zen-prompts.js?v=1.6.2"></script>
-  <script src="./js/editor.js?v=1.6.2"></script>
-  <script src="./js/zen-audio.js?v=1.6.2"></script>
-  <script src="./js/passcode.js?v=1.6.2"></script>
-  <script src="./js/pwa.js?v=1.6.2"></script>
-  <script src="./js/app.js?v=1.6.2"></script>
+  <script src="./js/mock-data.js?v=1.6.3"></script>
+  <script src="./js/api.js?v=1.6.3"></script>
+  <script src="./js/auth.js?v=1.6.3"></script>
+  <script src="./js/toast.js?v=1.6.3"></script>
+  <script src="./js/datetime-picker.js?v=1.6.3"></script>
+  <script src="./js/tag-manager.js?v=1.6.3"></script>
+  <script src="./js/lightbox.js?v=1.6.3"></script>
+  <script src="./js/zen-prompts.js?v=1.6.3"></script>
+  <script src="./js/editor.js?v=1.6.3"></script>
+  <script src="./js/card-export.js?v=1.6.3"></script>
+  <script src="./js/zen-audio.js?v=1.6.3"></script>
+  <script src="./js/passcode.js?v=1.6.3"></script>
+  <script src="./js/pwa.js?v=1.6.3"></script>
+  <script src="./js/app.js?v=1.6.3"></script>
 </body>
 </html>

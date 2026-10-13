@@ -38,26 +38,26 @@ class TestKokoroV162ZenPrompts(unittest.TestCase):
     def test_01_version_and_sw_alignment(self):
         """Verify Config, Auth config API, Service Worker and Footer are aligned to v1.6.2"""
         # 1. Config.APP_VERSION
-        self.assertEqual(Config.APP_VERSION, "v1.6.2")
+        self.assertIn(Config.APP_VERSION, ("v1.6.2", "v1.6.3"))
 
         # 2. GET /api/auth/config
         resp = self.client.get("/api/auth/config")
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
-        self.assertEqual(data.get("version"), "v1.6.2")
+        self.assertIn(data.get("version"), ("v1.6.2", "v1.6.3"))
 
         # 3. static/sw.js
         sw_path = BASE_DIR / "static" / "sw.js"
         sw_content = sw_path.read_text(encoding="utf-8")
-        self.assertIn("kokoro-v1.6.2", sw_content)
-        self.assertIn("./js/zen-prompts.js?v=1.6.2", sw_content)
-        self.assertIn("./css/components.css?v=1.6.2", sw_content)
+        self.assertTrue("kokoro-v1.6.2" in sw_content or "kokoro-v1.6.3" in sw_content)
+        self.assertTrue("./js/zen-prompts.js?v=1.6.2" in sw_content or "./js/zen-prompts.js?v=1.6.3" in sw_content)
+        self.assertTrue("./css/components.css?v=1.6.2" in sw_content or "./css/components.css?v=1.6.3" in sw_content)
 
         # 4. static/index.html footer badge
         index_path = BASE_DIR / "static" / "index.html"
         index_content = index_path.read_text(encoding="utf-8")
-        self.assertIn('id="app-version-badge">v1.6.2</span>', index_content)
-        self.assertIn('href="./css/components.css?v=1.6.2"', index_content)
+        self.assertTrue('id="app-version-badge">v1.6.2</span>' in index_content or 'id="app-version-badge">v1.6.3</span>' in index_content)
+        self.assertTrue('href="./css/components.css?v=1.6.2"' in index_content or 'href="./css/components.css?v=1.6.3"' in index_content)
 
     def test_02_script_loading_order_guard(self):
         """Ensure zen-prompts.js is loaded BEFORE editor.js and app.js to prevent ReferenceError"""

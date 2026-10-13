@@ -207,3 +207,23 @@ Cơ sở dữ liệu cục bộ: **`kokoro_db`** (Port `5432`).
    - Tự động map và kích hoạt danh mục cảm xúc đề xuất (`suggestedMood`).
 4. **Bộ nhớ trạng thái & Thu gọn thẻ:**
    - Hỗ trợ đóng/thu gọn thẻ hôm nay với khóa lưu trữ `kokoro_zen_dismissed_${today}`, tự động hiển thị lại khi sang ngày mới.
+
+---
+
+## 8. XUẤT THẺ ẢNH KỶ NIỆM CANVAS (DAILY CARD EXPORT ENGINE - v1.6.3)
+
+1. **Khóa cứng bộ đệm 1080p (Fixed 1080p Canvas Buffer):**
+   - Tỷ lệ Vuông (1:1): `1080 × 1080 px` (Instagram/Facebook Feed).
+   - Tỷ lệ Dọc (9:16): `1080 × 1920 px` (Instagram/TikTok/Facebook Story).
+   - Tuyệt đối không nhân `devicePixelRatio` vào buffer vật lý để phòng ngừa vượt giới hạn 16.7 triệu pixel gây crash Safari trên iOS.
+   - Preview trên giao diện điều tiết mượt mà qua CSS responsive (`max-width: 340px`).
+2. **Cổng chặn font async & Bẻ dòng thông minh (`wrapAndFitText`):**
+   - Đảm bảo `await document.fonts.ready` trước khi kết xuất để chữ tiếng Việt và emoji không bị vỡ layout hay lỗi ô vuông.
+   - Thuật toán bẻ dòng tách đoạn văn `\r?\n` trước khi chia từ, bảo toàn nhịp điệu bài viết và ngắt dòng thơ; tự động cắt tỉa và chèn `"..."` an toàn khi vượt quá chiều cao khả dụng.
+3. **Bố cục thích ứng (Adaptive Layout):**
+   - Thẻ thuần chữ: Bố cục Zen Quote thanh thoát, font lớn, biểu tượng đóa hoa anh đào chìm nghệ thuật.
+   - Thẻ có ảnh: Khung ảnh bo tròn tinh tế (hỗ trợ badge `+X ảnh` nếu có nhiều ảnh) kết hợp tiêu đề & trích đoạn hài hòa.
+4. **Instant Web Share API & Quản trị Bộ nhớ RAM:**
+   - Tiền tạo sẵn Blob/File (`currentExportFile`) ngay sau khi render xong preview để gọi `navigator.share({ files })` ngay trong User Gesture (tránh `NotAllowedError` trên iOS Safari).
+   - Thu hồi tài nguyên tức thì `URL.revokeObjectURL(activeBlobUrl)` và reset kích thước canvas khi đóng modal.
+

@@ -143,6 +143,11 @@ const KokoroApp = {
     // Daily Zen Prompt Handlers (v1.6.2)
     this.initZenPromptHandlers();
 
+    // Daily Card Export Handler (v1.6.3)
+    if (window.KokoroCardExport && window.KokoroCardExport.init) {
+      window.KokoroCardExport.init();
+    }
+
     // FAB Open Editor
     const fabBtn = document.getElementById('fab-create-btn');
     if (fabBtn) {
@@ -1225,6 +1230,16 @@ const KokoroApp = {
       });
     });
 
+    container.querySelectorAll('[data-action="export-card"]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const id = Number(e.currentTarget.dataset.id);
+        const entry = this.entries.find((item) => item.id === id);
+        if (entry && window.KokoroCardExport) {
+          window.KokoroCardExport.open(entry);
+        }
+      });
+    });
+
     container.querySelectorAll('.tag-pill').forEach((tagBtn) => {
       tagBtn.addEventListener('click', (e) => {
         const tag = e.currentTarget.dataset.tag;
@@ -1348,6 +1363,9 @@ const KokoroApp = {
             ${entry.isPinned ? `<span style="color: var(--sakura-500); margin-left: 4px;" title="Đã ghim"><i class="bi bi-pin-angle-fill"></i></span>` : ''}
           </div>
           <div class="card-actions">
+            <button class="action-icon-btn" data-action="export-card" data-id="${entry.id}" title="Xuất thẻ ảnh kỷ niệm ✨">
+              <i class="bi bi-card-image"></i>
+            </button>
             <button class="action-icon-btn" data-action="pin" data-id="${entry.id}" title="${entry.isPinned ? 'Bỏ ghim' : 'Ghim bài'}">
               <i class="bi ${entry.isPinned ? 'bi-pin-fill text-sakura' : 'bi-pin'}"></i>
             </button>

@@ -4,6 +4,28 @@ Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal 
 
 ---
 
+## [1.6.3] - 2026-10-13
+### Added & Visual (Daily Card Export — Xuất Thẻ Ảnh Kỷ Niệm Canvas)
+- **Công Cụ Render Canvas Chuẩn 1080p Chống Crash Safari (`static/js/card-export.js`):**
+  * Khóa cứng kích thước bộ đệm vật lý của Canvas đúng chuẩn Full HD: Vuông 1:1 (`1080 × 1080 px`) và Story 9:16 (`1080 × 1920 px`). Tuyệt đối không nhân DPR vào kích thước buffer vật lý, triệt tiêu hoàn toàn nguy cơ vượt ngưỡng 16.7 triệu pixel gây crash WebKit/Safari trên iOS.
+  * Cổng chặn tải font async (`document.fonts.ready`): Đảm bảo 100% font chữ Google Fonts (`Outfit`, `Plus Jakarta Sans`) và hệ thống emoji đã sẵn sàng trước khi vẽ, chống lệch dòng hoặc lỗi ô vuông tofu (`[]`).
+  * Thuật toán bẻ dòng thông minh & bảo toàn đoạn văn (`wrapAndFitText`): Tách đoạn theo `\r?\n` trước khi bẻ dòng theo từ, tự động cắt tỉa và gắn dấu ba chấm `"..."` tinh tế khi vượt quá chiều cao khả dụng, không bao giờ tràn đè lên footer, thời tiết hoặc watermark.
+  * Bố cục thích ứng (Adaptive Layout):
+    - Chế độ Thuần chữ: Bố cục Zen Quote thanh thoát, font lớn, biểu tượng đóa hoa anh đào chìm nghệ thuật.
+    - Chế độ Có ảnh: Khung ảnh bo tròn tinh tế (hỗ trợ badge `+X ảnh` nếu có nhiều ảnh) kết hợp tiêu đề & trích đoạn hài hòa.
+  * Web Share API tức thì & Chống lỗi `NotAllowedError`: Tiền tạo sẵn Blob/File (`currentExportFile`) ngay sau khi render xong preview để gọi trực tiếp `navigator.share({ files })` trong User Gesture. Tự động fallback sang tải về trực tiếp trên Desktop.
+  * Dọn dẹp bộ nhớ nghiêm ngặt: Tự động thu hồi `URL.revokeObjectURL(activeBlobUrl)` và reset kích thước canvas về 0 khi đóng modal hoặc đổi tỷ lệ.
+- **Giao Diện Modal Xuất Thẻ & Tích Hợp Timeline (`static/index.html`, `static/css/components.css`, `static/js/app.js`):**
+  * Hộp thoại `#card-export-modal` phong cách Soft Sakura Glass với bộ gạt chọn tỷ lệ [ Vuông 1:1 ] / [ Story 9:16 ], preview canvas responsive mượt mà và 2 nút hành động [ Tải ảnh về ] và [ Chia sẻ ngay ].
+  * Bổ sung nút icon `[ 🖼️ Xuất ảnh ]` trên thanh công cụ mỗi thẻ bài viết ngoài Timeline.
+- **Nâng Cấp Service Worker & Cache PWA (`static/sw.js`, `app/config.py`, `static/index.html`):**
+  * Nâng cấp phiên bản bộ nhớ đệm lên `kokoro-v1.6.3`.
+  * Thêm `card-export.js?v=1.6.3` vào danh sách tài nguyên ngoại tuyến (Offline-First 100%).
+  * Đặt thẻ script `card-export.js` trước `app.js` đảm bảo thứ tự nạp DOM an toàn.
+  * Cập nhật `Config.APP_VERSION = "v1.6.3"` và version badge footer.
+- **Bộ Kiểm Thử Tự Động Toàn Diện (`tests/test_v163_card_export.py`):**
+  * Đạt 100% PASS bộ kiểm thử mới kiểm tra kích thước buffer 1080p, thuật toán bẻ dòng ngắt đoạn tiếng Việt, layout modes, share flow và dọn dẹp bộ nhớ.
+
 ## [1.6.2] - 2026-10-13
 ### Added & Mindful (Daily Zen Prompt — Gợi Ý Suy Ngẫm Chánh Niệm Mỗi Ngày)
 - **Kho 36 Câu Hỏi Gợi Ý Chánh Niệm Kokoro (`static/js/zen-prompts.js`):**

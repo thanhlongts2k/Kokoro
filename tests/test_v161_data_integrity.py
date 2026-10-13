@@ -48,22 +48,22 @@ class TestV161DataIntegrity(unittest.TestCase):
 
     def test_01_version_alignment(self):
         """Verify Config, Auth config API, and Service Worker versions are aligned with v1.6.1 or later"""
-        self.assertIn(Config.APP_VERSION, ("v1.6.1", "v1.6.2"))
+        self.assertIn(Config.APP_VERSION, ("v1.6.1", "v1.6.2", "v1.6.3"))
 
         resp = self.client.get("/api/auth/config")
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
-        self.assertIn(data.get("version"), ("v1.6.1", "v1.6.2"))
+        self.assertIn(data.get("version"), ("v1.6.1", "v1.6.2", "v1.6.3"))
 
         sw_path = Config.BASE_DIR / "static" / "sw.js"
         sw_content = sw_path.read_text(encoding="utf-8")
-        self.assertTrue("kokoro-v1.6.1" in sw_content or "kokoro-v1.6.2" in sw_content)
-        self.assertTrue("?v=1.6.1" in sw_content or "?v=1.6.2" in sw_content)
+        self.assertTrue("kokoro-v1.6.1" in sw_content or "kokoro-v1.6.2" in sw_content or "kokoro-v1.6.3" in sw_content)
+        self.assertTrue("?v=1.6.1" in sw_content or "?v=1.6.2" in sw_content or "?v=1.6.3" in sw_content)
 
         index_path = Config.BASE_DIR / "static" / "index.html"
         index_content = index_path.read_text(encoding="utf-8")
-        self.assertTrue("tokens.css?v=1.6.1" in index_content or "tokens.css?v=1.6.2" in index_content)
-        self.assertTrue("app.js?v=1.6.1" in index_content or "app.js?v=1.6.2" in index_content)
+        self.assertTrue("tokens.css?v=1.6.1" in index_content or "tokens.css?v=1.6.2" in index_content or "tokens.css?v=1.6.3" in index_content)
+        self.assertTrue("app.js?v=1.6.1" in index_content or "app.js?v=1.6.2" in index_content or "app.js?v=1.6.3" in index_content)
 
     def test_02_weather_lifecycle(self):
         """Test creating and updating entries with weather (PUT /api/entries/{id} weather = %s)"""
