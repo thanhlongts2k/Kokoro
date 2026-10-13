@@ -445,5 +445,18 @@
   - [x] Toàn bộ 90/90 unit tests trong hệ thống PASS 100%.
   - [x] Nâng cấp phiên bản toàn hệ thống lên `v1.7.5` (`app/config.py`, `sw.js`, `index.html`, test suites).
 
+### 🔹 Giai đoạn 21: Bản Phát Hành v1.7.6 — Bao Phủ Toàn Diện Responsive PWA & Bảo Vệ Màn Hình Siêu Nhỏ (Responsive PWA Coverage)
+- [x] **Tối Ưu Giao Diện Thanh Tiêu Đề Màn Hình Siêu Nhỏ (< 360px) (`static/css/layout.css`):**
+  - [x] Bổ sung media query `@media (max-width: 360px)` tinh chỉnh padding thanh điều hướng (`10px`), giảm kích thước logo và tiêu đề `Kokoro` (`18px`), co giãn các nút công cụ Zen Audio và Theme Toggle (`38px`) giúp thanh header không bị tràn viền trên các thiết bị di động bề ngang hẹp.
+- [x] **Khắc Phục Vị Trí Thông Báo Toast Tránh Che Khuất Header (`static/css/glass.css`):**
+  - [x] Điều chỉnh tọa độ hiển thị `.toast-container` trên thiết bị di động thành `top: calc(var(--header-height) + env(safe-area-inset-top, 0px) + 12px)`, không che lấp logo hay các nút hành động của header.
+- [x] **Bảo Toàn Khoảng Cách An Toàn Đáy Màn Hình (Safe Inset Clearance) (`static/css/layout.css`):**
+  - [x] Khóa cứng khoảng đệm đáy cho `.main-wrapper` với `calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 24px)`, đảm bảo thẻ nhật ký cuối cùng không bị che khuất bởi thanh điều hướng đáy và nút tạo bài viết nổi (FAB).
+- [x] **Bộ Kiểm Thử Tự Động:**
+  - [x] Xây dựng `tests/test_pwa_responsive_coverage.py` ➔ PASS 4/4 (100%).
+  - [x] Toàn bộ 94/94 unit tests trong hệ thống PASS 100%.
+  - [x] Nâng cấp phiên bản toàn hệ thống lên `v1.7.6` (`app/config.py`, `sw.js`, `index.html`, test suites).
+
+
 
 

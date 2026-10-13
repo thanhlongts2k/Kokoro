@@ -1233,6 +1233,31 @@ body.modal-scroll-locked {
     inset: -4px;
   }
 
+  /* Ultra-compact Narrow Mobile (< 360px) Header & Spacing Protection */
+  @media (max-width: 360px) {
+    .app-header {
+      padding-left: 10px !important;
+      padding-right: 10px !important;
+    }
+    .brand-title {
+      font-size: 18px !important;
+    }
+    .brand-logo {
+      width: 28px !important;
+      height: 28px !important;
+    }
+    #theme-toggle-btn,
+    #zen-toggle-btn {
+      width: 38px !important;
+      height: 38px !important;
+      min-width: 38px !important;
+      min-height: 38px !important;
+    }
+    .zen-player-container {
+      padding: 2px 4px !important;
+    }
+  }
+
   /* Main Wrapper Single Column Spacing */
   .main-wrapper {
     padding: 14px 12px calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 24px) 12px;

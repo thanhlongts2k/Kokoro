@@ -2,6 +2,19 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal Diary & Photo Journal PWA** được ghi nhận chi tiết tại tệp này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) và tuân thủ [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.7.6] - 2026-10-13
+### Fixed & PWA Polish (Bao Phủ Toàn Diện Responsive PWA & Bảo Vệ Màn Hình Siêu Nhỏ)
+- **Tối Ưu Giao Diện Thanh Tiêu Đề Màn Hình Siêu Nhỏ (< 360px) (`static/css/layout.css`):**
+  * Bổ sung media query `@media (max-width: 360px)` tinh chỉnh padding thanh điều hướng (`10px`), giảm kích thước logo và tiêu đề `Kokoro` (`18px`), co giãn các nút công cụ Zen Audio và Theme Toggle (`38px`) giúp thanh header không bị tràn viền hay vỡ layout trên các thiết bị di động bề ngang hẹp (iPhone SE, Galaxy Z Flip cover screen).
+- **Khắc Phục Vị Trí Thông Báo Toast Tránh Che Khuất Header (`static/css/glass.css`):**
+  * Điều chỉnh tọa độ hiển thị `.toast-container` trên thiết bị di động thành `top: calc(var(--header-height) + env(safe-area-inset-top, 0px) + 12px)`, đảm bảo các thông báo toast nhẹ nhàng xuất hiện ngay dưới thanh điều hướng, tuyệt đối không che lấp logo hay các nút hành động của header.
+- **Bảo Toàn Khoảng Cách An Toàn Đáy Màn Hình (Safe Inset Clearance) (`static/css/layout.css`):**
+  * Khóa cứng khoảng đệm đáy cho `.main-wrapper` với `calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 24px)`, đảm bảo thẻ nhật ký cuối cùng trong dòng thời gian và các trang Lịch, Kỷ Niệm, Cá Nhân luôn có không gian cuộn thoáng đãng, không bị che khuất bởi thanh điều hướng đáy và nút tạo bài viết nổi (FAB).
+- **Bộ Kiểm Thử Tự Động:**
+  * Xây dựng `tests/test_pwa_responsive_coverage.py` kiểm thử 4 kịch bản quy chuẩn ➔ PASS 4/4 (100%).
+  * Toàn bộ 94/94 unit tests trong hệ thống PASS 100%.
+  * Nâng cấp phiên bản toàn hệ thống lên `v1.7.6` (`app/config.py`, `sw.js`, `index.html`, test suites).
+
 ## [1.7.5] - 2026-10-13
 ### Fixed & UI Polish (Khắc Phục Chip Cảm Xúc Kho Kỷ Niệm, Xóa Bỏ Lỗi Trùng Dấu Thẻ & Tối Ưu Lưới Ảnh Mobile)
 - **Chuẩn Hóa Chip Cảm Xúc Kho Kỷ Niệm Dạng Capsule Pill (`static/css/components.css`):**

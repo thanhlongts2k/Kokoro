@@ -246,7 +246,7 @@ html, body {
 
 @media (max-width: 768px) {
   .toast-container {
-    top: max(16px, env(safe-area-inset-top, 16px));
+    top: calc(var(--header-height) + env(safe-area-inset-top, 0px) + 12px);
     bottom: auto;
     right: 16px;
     left: 16px;
