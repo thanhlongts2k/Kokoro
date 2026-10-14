@@ -466,3 +466,137 @@
   - [x] Kiểm thử hợp đồng đồng bộ phiên bản `v1.7.7` trên toàn bộ các tầng: `Config.APP_VERSION`, Auth API, Health API, Service Worker cache (`kokoro-v1.7.7`), Footer badge `v1.7.7` và query cache-busting `?v=1.7.7`.
   - [x] Bảo vệ tính bất biến của DOM contracts và responsive media queries.
   - [x] Toàn bộ 102/102 unit tests trong hệ thống đạt 100% PASS.
+
+---
+
+---
+
+---
+
+## 🚀 PHẦN III: LỘ TRÌNH TRIỂN KHAI CHI TIẾT THEO 12 PHIÊN BẢN (v1.8.0 – v3.0.0+)
+
+Lộ trình được thiết kế bài bản theo từng cột mốc rõ ràng, đảm bảo nguyên tắc Zero Regression:
+
+```
+  v1.7.7 (Hiện tại: PWA Hoàn Thiện & Mobile-First Liquid Glass)
+     │
+     ├── 🎙️ SPRINT A: SOẠN THẢO SÁNG TẠO & CẢM XÚC
+     │    ├── Giai đoạn 23 (v1.8.0): Voice Journaling & Floating Markdown Toolbar
+     │    └── Giai đoạn 24 (v1.8.5): Diary Templates Studio & Scrapbook Stickers
+     │
+     ├── 🔐 SPRINT B: BẢO MẬT TUYỆT ĐỐI & HIỆU NĂNG LÕI
+     │    ├── Giai đoạn 25 (v1.9.0): WebAuthn Biometrics & E2EE Privacy Vault
+     │    └── Giai đoạn 26 (v2.0.0): Async Psycopg3 Engine & Vietnamese Full-Text Search
+     │
+     ├── 🗺️ SPRINT C: KHÔNG GIAN, THÓI QUEN & CHIÊM NGHIỆM
+     │    ├── Giai đoạn 27 (v2.1.0): Auto Weather/Moon Phase & Interactive Memory Map
+     │    ├── Giai đoạn 28 (v2.2.0): Habit Tracker Tích Hợp & Mood Circumplex Model
+     │    └── Giai đoạn 29 (v2.3.0): Time Capsule (Thư tương lai), Gratitude Jar & Box Breathing
+     │
+     ├── 🍵 SPRINT D: TRÍ TUỆ NHÂN TẠO & ĐỒNG BỘ ĐA NỀN TẢNG
+     │    ├── Giai đoạn 30 (v2.4.0): AI Zen Companion & Emotional Journey Analytics
+     │    └── Giai đoạn 31 (v2.5.0): Bi-directional Multi-device Sync & Conflict Resolver
+     │
+     └── 📦 SPRINT E: XUẤT BẢN KỶ YẾU, ĐA VĂN HÓA & NỀN TẢNG TOÀN NĂNG
+          ├── Giai đoạn 32 (v2.6.0): Print-Ready Photobook PDF & Kokoro Wrapped
+          ├── Giai đoạn 33 (v2.7.0): Couple/Circle Shared Memories & Secret QR Capsules
+          ├── Giai đoạn 34 (v2.8.0): i18n Multi-Language (VI, JA, EN) & Theme Studio 2.0
+          └── Giai đoạn 35 (v3.0.0): Tauri Desktop Apps & Personal Cloud Auto-Backup
+```
+
+---
+
+### 🔹 GIAI ĐOẠN 23 (v1.8.0) — VOICE JOURNALING & TRÌNH SOẠN THẢO THÔNG MINH
+1. **Voice Journal Recorder:** Thu âm Web Audio API, visualizer sóng nước Soft Sakura trong Bottom Sheet, nén file `.m4a` / `.opus` < 500KB đính kèm bài viết, player mini ngoài feed.
+2. **Speech-to-Text (STT):** Nhận diện giọng nói tiếng Việt thời gian thực (Web Speech API) và backend Whisper fallback cho bản ghi âm dài.
+3. **Floating Markdown Toolbar:** In đậm, In nghiêng, Trích dẫn, Danh sách gạch đầu dòng, Hộp kiểm checkbox; Widget đếm từ & thời gian đọc.
+
+### 🔹 GIAI ĐOẠN 24 (v1.8.5) — MẪU NHẬT KÝ THEO NGỮ CẢNH & NHÃN DÁN SCRAPBOOK
+1. **Kho Mẫu Nhật Ký (Template Studio):** Mẫu 5-Minute Morning Journal, Evening Stoic Reflection, Travel Log, Cafe Review, Book & Movie Journal.
+2. **Liệu Pháp "Hóa Tro Muộn Phiền" (Catharsis Venting Burn Mode):** Ô viết xả van tâm lý kèm hiệu ứng tro tàn tan biến và tự hủy bài viết an toàn.
+3. **Digital Scrapbook Stickers:** Bộ sticker phong cách Nhật Bản gắn trang trí lên góc thẻ bài viết và ảnh.
+
+### 🔹 GIAI ĐOẠN 25 (v1.9.0) — SINH TRẮC HỌC WEBAUTHN & KÉT SẮT E2EE
+1. **WebAuthn FIDO2 Biometrics:** Mở khóa 1 chạm bằng Face ID / Touch ID (iOS/Mac) và Vân tay / Mở khóa khuôn mặt (Android / Windows Hello).
+2. **Mã Hóa Đầu Cuối (Client-side E2EE):** Mã hóa AES-256-GCM cho bài viết bí mật ngay tại máy client; CSDL PostgreSQL chỉ lưu bản mã.
+3. **Thùng Rác Tạm Thời (Soft-delete Trash Bin):** Giữ bài viết đã xóa trong 30 ngày trước khi xóa vĩnh viễn.
+
+### 🔹 GIAI ĐOẠN 26 (v2.0.0) — ĐẠI PHẪU BACKEND ASYNC PSYCOPG3 & FULL-TEXT SEARCH
+1. **Async Psycopg3 Engine:** Chuyển đổi 6 Repositories sang `psycopg` v3 native `AsyncConnectionPool`, non-blocking I/O 100%, tăng 500% throughput.
+2. **Full-Text Search Tiếng Việt:** Kích hoạt PostgreSQL `unaccent` và `pg_trgm`, tìm kiếm không dấu ("mua dong" -> "mùa đông") và tìm kiếm gần đúng khi gõ nhầm chính tả.
+3. **Cursor-based Pagination:** Tải dòng thời gian mượt mà với hàng chục nghìn bài viết mà không suy giảm hiệu năng.
+
+### 🔹 GIAI ĐOẠN 27 (v2.1.0) — THỜI TIẾT TỰ ĐỘNG, TUẦN TRĂNG & BẢN ĐỒ KÝ ỨC
+1. **Tự Động Lấy Thời Tiết & Tuần Trăng:** Lấy nhiệt độ, độ ẩm thời gian thực qua tọa độ IP/GPS; hiển thị chu kỳ tuần trăng (Moon Phases 🌑 🌓 🌕).
+2. **Bản Đồ Ký Ức (Interactive Memory Map):** Tích hợp Leaflet.js pastel, các cụm ghim hoa anh đào theo địa danh/thành phố đã đi qua.
+3. **Chuyến Đi & Album Du Lịch:** Gom các bài viết cùng hành trình thành dòng thời gian du lịch liền mạch.
+
+### 🔹 GIAI ĐOẠN 28 (v2.2.0) — THEO DÕI THÓI QUEN & MA TRẬN TÂM TRẠNG CIRCUMPLEX
+1. **Habit Tracker Tích Hợp:** Theo dõi 3-5 thói quen mỗi ngày (Uống nước, Ngủ đủ, Đọc sách, Đi bộ, Thiền định) ngay dưới bài viết.
+2. **Russell's Mood Circumplex Model:** Nâng cấp chọn tâm trạng theo ma trận 2 trục: Dễ chịu $\times$ Năng lượng.
+3. **Đếm Ngày Kỷ Niệm & D-Day:** Huy hiệu đếm ngày yêu nhau, ngày bắt đầu lối sống mới, đếm ngược sự kiện quan trọng.
+
+### 🔹 GIAI ĐOẠN 29 (v2.3.0) — THƯ GỬI TƯƠNG LAI, LỌ BIẾT ƠN & THIỀN HÍT THỞ
+1. **Hộp Thư Gửi Tương Lai (Time Capsule):** Niêm phong thư gửi chính mình sau 1 tháng, 6 tháng, 1 năm hoặc sinh nhật tiếp theo.
+2. **Chiếc Lọ Biết Ơn (Gratitude Jar):** Mỗi ngày thả 3 mẩu giấy may mắn; cuối năm mở nắp đọc lại toàn bộ điều kỳ diệu.
+3. **Bài Tập Thở Box Breathing & Chuông Thiền:** Đồ họa cánh hoa nở/khép nhịp 4-4-4-4 kèm âm thanh chuông xoay Tây Tạng giúp tĩnh tâm trước khi viết.
+4. **Cỗ Máy Thời Gian "Ngày Này Năm Xưa":** Tự động gợi nhắc kỷ niệm đúng ngày này của các năm trước.
+
+### 🔹 GIAI ĐOẠN 30 (v2.4.0) — BẠN ĐỒNG HÀNH AI ZEN & PHÂN TÍCH CẢM XÚC
+1. **Kokoro AI Zen Companion:** Kết nối Local Ollama (Offline 100%) hoặc Cloud LLM; chế độ trò chuyện lắng nghe, phản hồi dịu dàng theo triết lý Chánh niệm.
+2. **Emotional Journey Charts:** Biểu đồ sóng cảm xúc biến thiên theo tuần/tháng/năm; nhận diện quy luật tâm trạng.
+3. **Bản Tin Suy Ngẫm Tuần (Mindfulness Digest):** Tổng kết tự động tối Chủ Nhật về những khoảnh khắc và bài học quý giá trong tuần.
+
+### 🔹 GIAI ĐOẠN 31 (v2.5.0) — ĐỒNG BỘ ĐA THIẾT BỊ NÂNG CAO & GIẢI QUYẾT XUNG ĐỘT
+1. **Đồng Bộ Hai Chiều & Vector Clock:** Đồng bộ dữ liệu liền mạch giữa điện thoại và máy tính; PWA Background Sync gửi bài ngầm.
+2. **Conflict Resolution UI:** Modal so sánh song song 2 phiên bản (Side-by-side Diff) khi có chỉnh sửa offline xung đột giữa 2 thiết bị.
+
+### 🔹 GIAI ĐOẠN 32 (v2.6.0) — XUẤT BẢN SÁCH ẢNH KỶ YẾU & KOKORO WRAPPED
+1. **Xuất Sách Ảnh Photobook PDF In Ấn:** Dàn trang tự động toàn bộ bài viết và ảnh thành file PDF khổ A5/A4 hoàn chỉnh (Bìa hoa anh đào, mục lục, số trang) sẵn sàng mang ra tiệm in thành sách thật.
+2. **Kokoro Wrapped (Tổng Kết Năm):** Slide tương tác dạng Story đúc kết 1 năm hành trình cảm xúc và xuất thẻ chia sẻ mạng xã hội.
+
+### 🔹 GIAI ĐOẠN 33 (v2.7.0) — SỔ KỶ NIỆM GHÉP ĐÔI & THẺ KỶ NIỆM MÃ QR
+1. **Sổ Kỷ Niệm Ghép Đôi / Nhóm Kín:** Nhật ký viết chung cho 2 người (Người yêu / Vợ chồng / Bạn thân) với bài viết chung và bài viết riêng biệt.
+2. **Thẻ Kỷ Niệm Bí Mật Mã QR:** Tạo liên kết ẩn danh hoặc mã QR có mật khẩu chia sẻ 1 khoảnh khắc kỷ niệm duy nhất (tự hủy sau 24h hoặc sau 1 lần xem).
+
+### 🔹 GIAI ĐOẠN 34 (v2.8.0) — QUỐC TẾ HÓA I18N & THEME STUDIO 2.0
+1. **Đa Ngôn Ngữ i18n:** Hỗ trợ 3 ngôn ngữ: Tiếng Việt, Tiếng Nhật (日本語), Tiếng Anh (English).
+2. **Bộ Giao Diện Thiên Nhiên Mở Rộng:** Thêm 3 giao diện chữa lành: *Matcha Serenity* (Xanh trà), *Autumn Maple* (Lá phong), *Lavender Mist* (Oải hương).
+3. **Âm Thanh Zen 2.0:** Bổ sung âm thanh gõ bàn phím gỗ mộc, lật trang sách giấy thô, lửa trại tí tách trong đêm.
+
+### 🔹 GIAI ĐOẠN 35 (v3.0.0) — ĐÓNG GÓI ĐA NỀN TẢNG & TỰ ĐỘNG SAO LƯU ĐÁM MÂY
+1. **Đóng Gói Desktop Native Tauri v2:** Ứng dụng chạy mượt mà trên Windows (.exe), macOS (.dmg), Linux (.AppImage) với dung lượng < 15MB, RAM < 50MB.
+2. **Tự Động Sao Lưu Đám Mây Cá Nhân:** Tự động đẩy file nén `.kokoro.zip` lên Google Drive cá nhân, WebDAV hoặc Nextcloud hàng tuần.
+3. **Nhập Dữ Liệu Từ Các Ứng Dụng Khác:** Nhập 1-click từ Day One, Journey, Apple Notes, Google Keep, Notion.
+4. **Tích Hợp Phím Tắt Tự Động Hóa:** iOS Shortcuts ("Hey Siri, viết nhật ký Kokoro") & Android Quick Settings Tile.
+
+---
+
+## 📊 PHẦN IV: BẢNG SO SÁNH NĂNG LỰC KOKORO VỚI CÁC ỨNG DỤNG HÀNG ĐẦU
+
+| Tiêu chí / Tính năng | Day One ($35/năm) | Apple Journal | Notion | **Kokoro (心) Lộ Trình Mới** |
+|:---|:---:|:---:|:---:|:---:|
+| **Giao diện Liquid Glass Chữa Lành** | ❌ (Chuẩn phẳng) | ❌ (Chuẩn iOS) | ❌ (Cơ sở dữ liệu) | ✅ **Soft Sakura / Frosted Glass Độc bản** |
+| **Ghi âm giọng nói & Phiên âm STT** | ✅ | ✅ | ❌ | ✅ **Voice Journaling + Visualizer sóng nước** |
+| **Gợi ý chánh niệm & Triết lý sống** | ⚠️ (Nhắc nhở cơ bản) | ⚠️ (Gợi ý máy tính) | ❌ | ✅ **Daily Zen 36 câu + AI Stoic/Zen Companion** |
+| **Âm thanh thư giãn Zen Ambient** | ❌ | ❌ | ❌ | ✅ **Tích hợp sẵn 4+ cảnh âm tự nhiên & Lofi** |
+| **Mẫu nhật ký & "Hóa tro muộn phiền"** | ⚠️ (Templates đơn giản) | ❌ | ✅ (Templates) | ✅ **Đa dạng templates + Liệu pháp xả stress** |
+| **Habit Tracker & Tuần trăng / Thời tiết** | ❌ | ⚠️ (Thời tiết) | ⚠️ (Tự dựng DB) | ✅ **Tự động thời tiết, trăng sao & Habit check-in** |
+| **Bản đồ ký ức (Memory Map)** | ✅ | ⚠️ (Cơ bản) | ❌ | ✅ **Bản đồ Leaflet Pastel + Cụm ghim hoa anh đào** |
+| **Thư gửi tương lai & Chiếc lọ biết ơn** | ❌ | ❌ | ❌ | ✅ **Time Capsule phong bì sáp & Gratitude Jar** |
+| **Bài tập thở & Chuông xoay Tây Tạng** | ❌ | ❌ | ❌ | ✅ **Box Breathing 4-4-4-4 + Singing Bowl** |
+| **Xuất thẻ ảnh nghệ thuật Canvas 1080p** | ❌ | ❌ | ❌ | ✅ **Memory Studio 5 themes (Scrapbook, Music..)** |
+| **Xuất sách ảnh PDF in ấn (Photobook)** | ✅ (Trả phí in cao) | ❌ | ❌ | ✅ **Xuất PDF chuẩn in ấn A5/A4 miễn phí** |
+| **Bảo mật sinh trắc học & E2EE** | ✅ (FaceID) | ✅ (FaceID) | ❌ (Không E2EE) | ✅ **WebAuthn FaceID + Két sắt E2EE AES-256** |
+| **Tự chủ dữ liệu & Lưu trữ máy chủ riêng** | ❌ (Lưu cloud hãng) | ❌ (Lưu iCloud) | ❌ (Lưu cloud hãng) | ✅ **100% Tự chủ dữ liệu (Self-hosted/Drive/WebDAV)** |
+| **Hỗ trợ Offline & PWA Đa nền tảng** | ⚠️ (Native App) | ⚠️ (Chỉ iOS) | ⚠️ (Yêu cầu mạng) | ✅ **Offline-First PWA + Tauri Desktop siêu nhẹ** |
+
+---
+
+## 🎯 PHẦN V: KẾ HOẠCH BẮT ĐẦU THỰC HIỆN NGAY
+
+Để biến đại lộ trình này thành hiện thực mà không bị quá tải, em đề xuất triển khai theo **Sprint A (Giai đoạn 23 - v1.8.0)** ngay:
+1. **Xây dựng Voice Journaling:** Bộ thu âm Web Audio API với visualizer sóng nước Soft Sakura trong Bottom Sheet, lưu file audio nhẹ vào `/uploads/audio/`.
+2. **Tích hợp Web Speech API:** Nói tiếng Việt tới đâu chữ tự động chạy vào khung soạn thảo tới đó.
+3. **Thanh công cụ Markdown nổi:** Cung cấp đầy đủ công cụ format chữ in đậm, in nghiêng, trích dẫn, checklist công việc.
+
