@@ -9,8 +9,12 @@ Supports:
 import time
 from typing import Optional, Dict, Any
 import jwt
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
+try:
+    from google.oauth2 import id_token
+    from google.auth.transport import requests as google_requests
+except ImportError:
+    id_token = None
+    google_requests = None
 from starlette.requests import Request
 
 from app.config import Config
@@ -47,6 +51,8 @@ def verify_google_id_token(credential: str) -> Dict[str, Any]:
     Verify Google ID Token using google-auth library against Google's public certs.
     Returns decoded token dictionary containing 'sub', 'email', 'name', 'picture'.
     """
+    if not id_token or not google_requests:
+        raise RuntimeError("Thư viện google-auth chưa được cài đặt trong môi trường.")
     req = google_requests.Request()
     if not Config.GOOGLE_CLIENT_ID:
         raise ValueError("GOOGLE_CLIENT_ID chưa được cấu hình trong .env.")

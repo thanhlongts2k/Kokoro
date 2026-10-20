@@ -467,9 +467,41 @@
   - [x] Bảo vệ tính bất biến của DOM contracts và responsive media queries.
   - [x] Toàn bộ 102/102 unit tests trong hệ thống đạt 100% PASS.
 
----
+### 🔹 Giai đoạn 23: Bản Phát Hành v1.8.0 — Khắc Phục Kéo Chéo iOS, Offline Resilience & CRUD Danh Mục / Thẻ (PWA Offline Resilience & Category Management)
+- [x] **Khắc Phục Triệt Để Bug Kéo Chéo Dải Danh Mục Trên iOS WebKit PWA (`static/css/layout.css`, `static/css/components.css`):**
+  - [x] Khóa cứng trục Y, chỉ cho phép cuộn thuần túy theo trục X trên WebKit iOS (`overflow-x: auto !important; overflow-y: hidden !important; touch-action: pan-x !important; overscroll-behavior-x: contain !important; overscroll-behavior-y: none !important; -webkit-overflow-scrolling: touch !important;`).
+  - [x] Rà soát và khóa trục cuộn ngoài (`.main-wrapper`, `.timeline-view`) triệt tiêu hiện tượng vuốt chéo (diagonal rubber-band drag) làm trôi banner chào mừng.
+- [x] **Tái Cấu Trúc Kiến Trúc Offline PWA Tier 2 Dual-Layer Resilience (`static/js/auth.js`, `static/js/api.js`, `static/js/app.js`, `static/sw.js`):**
+  - [x] Lưu trữ `kokoro_last_auth_user` vào `localStorage`, khôi phục session và tự động kích hoạt offline mode khi mất kết nối mà không gọi login modal.
+  - [x] Bộ nhớ đệm Client API cache theo `user_id` trả về payload lưu tạm kèm cờ `_isOffline: true` khi mất mạng.
+  - [x] Banner kính mờ Soft Sakura `#offline-status-banner` dịu nhẹ, triệt tiêu toast lỗi đỏ, tự động đẩy bài viết IndexedDB lên server qua `KokoroAPI.syncOfflineQueue()` khi có mạng trở lại.
+  - [x] Service Worker Network-First cho GET `/api/`, duy trì bypass cho POST/PUT/DELETE.
+- [x] **Hệ Thống CSDL PostgreSQL Danh Mục & Thẻ Chủ Đề (`app/database.py`):**
+  - [x] Bảng `categories` độc lập với `UNIQUE (user_id, name)` và `ON DELETE CASCADE`.
+  - [x] Khóa ngoại `entries.category_id REFERENCES categories(id) ON DELETE SET NULL` bảo toàn toàn vẹn dữ liệu bài viết khi xóa danh mục.
+  - [x] Chỉ mục kép tối ưu hóa hiệu năng truy vấn: `idx_categories_user`, `idx_entries_user_cat`, `idx_entry_tags_tag_id`.
+  - [x] Tự động khởi tạo 5 danh mục mặc định: Đời thường 🌸, Công việc 💼, Tình cảm 💌, Du lịch ✈️, Học tập 📚.
+- [x] **Backend REST APIs (`app/routes/category_routes.py`, `app/routes/tag_routes.py`, `app/routes/entry_routes.py`):**
+  - [x] CRUD Categories đầy đủ: GET kèm `usage_count`, POST kiểm tra trùng tên, PUT, DELETE an toàn.
+  - [x] POST `/api/tags`: Tạo thẻ chủ đề chủ động, chuẩn hóa ký tự `#`.
+  - [x] Nâng cấp API Entries lưu và nạp `category_id`, trả về thông tin tên, icon, màu sắc danh mục.
+- [x] **Giao Diện Quản Lý Danh Mục / Thẻ, Editor & Dòng Thời Gian:**
+  - [x] Tái cấu trúc `#category-tag-manager-modal` với Tab 1 Categories (popover emoji, 6 màu pastel) và Tab 2 Hashtags.
+  - [x] Bộ chọn Danh mục động trong Editor và lưu trữ IndexedDB khi offline.
+  - [x] Huy hiệu `.category-badge-pill` trên thẻ bài viết và bộ lọc danh mục trên timeline feed.
+- [x] **Đồng Bộ Hóa Phiên Bản & Kiểm Thử Tự Động Toàn Diện (`v1.8.0`):**
+  - [x] Nâng phiên bản `v1.8.0` trên toàn bộ SSoT (`VERSION`, `app/config.py`, `static/sw.js`, `static/index.html`).
+  - [x] Bộ kiểm thử `tests/test_v180_offline_pwa_resilience.py` (9 test cases PASS 100%).
+  - [x] 100% test suite tự động hệ thống đạt kết quả PASS.
 
 ---
+
+### 🔹 GIAI ĐOẠN TIẾP THEO (v1.8.5) — PERSONALIZATION HUB & HỒ SƠ TÀI KHOẢN (NEXT FOCUS)
+1. **Personalization Hub & Hồ Sơ Người Dùng Nâng Cao:**
+   - [ ] Tùy chỉnh Avatar cá nhân: Tải ảnh đại diện tùy ý, cắt cúp vuông và tự động nén tối ưu định dạng WebP (200x200px) lưu tại `/uploads/avatars/`.
+   - [ ] Bio Châm Ngôn & Triết Lý Sống: Cho phép người dùng lưu trữ câu nói tâm đắc, phương châm sống yêu thích hiển thị trang trọng trên Profile Card.
+   - [ ] Tùy chọn nguồn đồng bộ hồ sơ: Cho phép chuyển đổi linh hoạt giữa ảnh/tên từ Google Account và Hồ sơ tùy chỉnh cục bộ (Custom Local Profile).
+   - [ ] REST API cập nhật hồ sơ người dùng: `PUT /api/users/profile` hỗ trợ cập nhật `name`, `bio`, `avatar_file`.
 
 ---
 
@@ -478,11 +510,14 @@
 Lộ trình được thiết kế bài bản theo từng cột mốc rõ ràng, đảm bảo nguyên tắc Zero Regression:
 
 ```
-  v1.7.7 (Hiện tại: PWA Hoàn Thiện & Mobile-First Liquid Glass)
+  v1.8.0 (Hiện tại: PWA Hoàn Thiện, Offline Resilience & CRUD Danh Mục/Thẻ)
+     │
+     ├── 👤 SPRINT 0: CÁ NHÂN HÓA HỒ SƠ TÀI KHOẢN
+     │    └── Giai đoạn tiếp theo (v1.8.5): Personalization Hub (Avatar WebP, Bio châm ngôn, Google Sync Switcher)
      │
      ├── 🎙️ SPRINT A: SOẠN THẢO SÁNG TẠO & CẢM XÚC
-     │    ├── Giai đoạn 23 (v1.8.0): Voice Journaling & Floating Markdown Toolbar
-     │    └── Giai đoạn 24 (v1.8.5): Diary Templates Studio & Scrapbook Stickers
+     │    ├── Giai đoạn 24 (v1.9.0): Voice Journaling & Floating Markdown Toolbar
+     │    └── Giai đoạn 25 (v1.9.5): Diary Templates Studio & Scrapbook Stickers
      │
      ├── 🔐 SPRINT B: BẢO MẬT TUYỆT ĐỐI & HIỆU NĂNG LÕI
      │    ├── Giai đoạn 25 (v1.9.0): WebAuthn Biometrics & E2EE Privacy Vault

@@ -66,11 +66,11 @@ def check_db_connection() -> tuple[bool, str]:
         return False, str(e)
 
 DEFAULT_CATEGORIES = [
-    {"name": "Bình yên", "icon": "🌸", "color": "#ec4899", "sort_order": 0},
-    {"name": "Ấm áp", "icon": "☕", "color": "#f59e0b", "sort_order": 1},
-    {"name": "Chiêm nghiệm", "icon": "🌙", "color": "#8b5cf6", "sort_order": 2},
-    {"name": "Biết ơn", "icon": "🍵", "color": "#10b981", "sort_order": 3},
-    {"name": "Năng lượng", "icon": "⚡", "color": "#3b82f6", "sort_order": 4},
+    {"name": "Đời thường", "icon": "🌸", "color": "#ec4899", "sort_order": 0},
+    {"name": "Công việc", "icon": "💼", "color": "#3b82f6", "sort_order": 1},
+    {"name": "Tình cảm", "icon": "💌", "color": "#f43f5e", "sort_order": 2},
+    {"name": "Du lịch", "icon": "✈️", "color": "#10b981", "sort_order": 3},
+    {"name": "Học tập", "icon": "📚", "color": "#8b5cf6", "sort_order": 4},
 ]
 
 def seed_default_categories(user_id: int, cur=None):
@@ -201,15 +201,7 @@ def init_db():
             cur.execute(schema_sql)
 
 
-            # Clean legacy dummy categories ('Đời thường', 'Công việc', 'Tình cảm', 'Du lịch', 'Học tập') that have no entries
-            legacy_names = ('Đời thường', 'Công việc', 'Tình cảm', 'Du lịch', 'Học tập')
-            cur.execute("""
-                DELETE FROM categories 
-                WHERE name IN %s 
-                  AND id NOT IN (SELECT category_id FROM entries WHERE category_id IS NOT NULL);
-            """, (legacy_names,))
-
-            # Seed default 5 moods for all users if missing
+            # Seed default 5 categories for all users if missing
             cur.execute("SELECT id FROM users;")
             user_rows = cur.fetchall()
             for u in user_rows:

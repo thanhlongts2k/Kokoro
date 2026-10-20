@@ -2,6 +2,29 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal Diary & Photo Journal PWA** được ghi nhận chi tiết tại tệp này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) và tuân thủ [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.8.0] - 2026-10-20
+### Feature, Fix & PWA Offline Resilience (Fix Kéo Chéo iOS, Offline Resilience & CRUD Danh Mục/Thẻ)
+- **Khắc Phục Triệt Để Bug Kéo Chéo Dải Danh Mục / Mood Trên iOS WebKit PWA (`static/css/layout.css`, `static/css/components.css`):**
+  * Khóa cứng trục cuộn ngang thuần túy cho `.mobile-mood-scroll`, `#mobile-mood-chips` với `overflow-x: auto !important; overflow-y: hidden !important; touch-action: pan-x !important; overscroll-behavior-x: contain !important; overscroll-behavior-y: none !important; -webkit-overflow-scrolling: touch !important;`.
+  * Khóa trục cuộn ngoài cho `.main-wrapper` và `.timeline-view` (`overflow-x: hidden; touch-action: pan-y pinch-zoom;`), ngăn chặn triệt để hiện tượng vuốt chéo (diagonal rubber-band drag) làm trôi xô lệch banner chào mừng.
+- **Tái Cấu Trúc Kiến Trúc Offline PWA Tier 2 Dual-Layer Resilience (`static/js/auth.js`, `static/js/api.js`, `static/js/app.js`, `static/sw.js`, `static/index.html`, `static/css/components.css`):**
+  * *Lớp 1 - Auth Session Offline Caching:* Lưu trữ `kokoro_last_auth_user` vào `localStorage` khi đăng nhập thành công. Khi mất mạng (`!navigator.onLine` hoặc fetch ném `Failed to fetch`), tự động khôi phục phiên từ cache và kích hoạt chế độ offline; tuyệt đối không bật login modal làm phiền người dùng.
+  * *Lớp 2 - Cache Fallback Tại Client API:* Tích hợp `CacheManager` gắn thẻ theo `user_id` cho các lệnh GET (`getEntries`, `getCategories`, `getStats`, `getTags`). Khi offline, tự động trả về payload lưu tạm trên máy kèm cờ `_isOffline: true`, không ném lỗi làm crash ứng dụng.
+  * *Trải Nghiệm Êm Dịu Soft Sakura:* Bổ sung banner kính mờ `#offline-status-banner` ngay dưới Header bar: *"🌸 Đang ở chế độ ngoại tuyến — Hiển thị nhật ký đã lưu trên máy"*. Lắng nghe sự kiện `offline`/`online`, tự động ẩn/hiện banner, triệt tiêu toast lỗi đỏ, tự động kích hoạt `KokoroAPI.syncOfflineQueue()` đẩy bài viết IndexedDB lên PostgreSQL khi có mạng trở lại.
+  * *Service Worker:* Áp dụng Network-First có cache fallback cho GET `/api/`, duy trì bypass hoàn toàn cho các lệnh thay đổi dữ liệu (POST, PUT, DELETE).
+- **Hệ Thống Quản Lý Danh Mục (Categories) & Thẻ Chủ Đề (Tags) Độc Lập:**
+  * *PostgreSQL Migration:* Khởi tạo bảng `categories` độc lập với `UNIQUE (user_id, name)` và `ON DELETE CASCADE`. Bổ sung cột khóa ngoại `entries.category_id REFERENCES categories(id) ON DELETE SET NULL` kèm chỉ mục kép tối ưu truy vấn.
+  * *Seeding Tự Động:* Thiết lập sẵn 5 danh mục ban đầu cho người dùng mới (Đời thường 🌸, Công việc 💼, Tình cảm 💌, Du lịch ✈️, Học tập 📚).
+  * *REST API Đầy Đủ:* Xây dựng các endpoint `/api/categories` (GET, POST, PUT, DELETE) với `usage_count`, `/api/tags` (POST tạo thẻ chủ động), nâng cấp `/api/entries` hỗ trợ `category_id` và trả về chi tiết tên, icon, màu danh mục.
+- **Giao Diện Modal Quản Lý Danh Mục / Thẻ, Trình Soạn Thảo & Dòng Thời Gian:**
+  * Tái cấu trúc `#category-tag-manager-modal`: Tab 1 Danh mục (bảng màu pastel, popover emoji, tạo/sửa/xóa) & Tab 2 Thẻ chủ đề (tạo thẻ chủ động, đổi tên, dọn dẹp thẻ mồ côi).
+  * Trình soạn thảo `editor.js`: Bổ sung bộ chọn Danh mục động tải từ API, lưu trữ an toàn trong IndexedDB khi offline.
+  * Dòng thời gian `app.js` & `timeline-feed.js`: Hiển thị huy hiệu danh mục `.category-badge-pill` và hỗ trợ lọc bài viết theo danh mục.
+- **Kiểm Thử Toàn Diện & Đồng Bộ Hóa SSoT (`v1.8.0`):**
+  * Xây dựng bộ test `tests/test_v180_offline_pwa_resilience.py` (9 test cases PASS 100%).
+  * Nâng phiên bản toàn hệ thống lên `v1.8.0` (`VERSION`, `app/config.py`, `static/sw.js`, `static/index.html`).
+  * Toàn bộ test suite tự động (65 tests) đạt kết quả 100% PASS.
+
 ## [1.7.7] - 2026-10-14
 ### Verified & Mobile-First Production Polish (Kiểm Thử Toàn Diện Mobile PWA & Đóng Gói Sản Phẩm)
 - **Khắc Phục Cốt Lõi Lỗi Xóa Bài Viết & Xóa Ảnh Đã Lưu (`static/js/app.js`, `static/index.html`):**

@@ -10,7 +10,7 @@
  */
 
 const KokoroApp = {
-  entries: [], allEntries: [], categories: [], stats: null, isLoading: false, pendingDeleteId: null,
+  entries: [], allEntries: [], categories: [], stats: null, isLoading: false, pendingDeleteId: null, isOffline: !navigator.onLine,
   activeMoodFilter: null, activeCategoryId: null, activeTagFilter: null, activeDateFilter: null, searchQuery: '',
   timelineState: { mood: null, categoryId: null, tag: null, search: '' },
   memoriesState: { mood: 'all', categoryId: null, tag: null },
@@ -19,42 +19,61 @@ const KokoroApp = {
   selectedCalDate: new Date().toISOString().split('T')[0],
   activeMemoriesMood: 'all', activeMemoriesTag: null, activeZenPrompt: null,
   timelinePagination: {
-    pageSize: (window.KokoroConstants ? window.KokoroConstants.PAGINATION.DEFAULT_PAGE_SIZE : 15), // pageSize: 15
-    visibleLimit: (window.KokoroConstants ? window.KokoroConstants.PAGINATION.INITIAL_VISIBLE_LIMIT : 15) // visibleLimit: 15
+    pageSize: (window.KokoroConstants ? window.KokoroConstants.PAGINATION.DEFAULT_PAGE_SIZE : 15),
+    visibleLimit: (window.KokoroConstants ? window.KokoroConstants.PAGINATION.INITIAL_VISIBLE_LIMIT : 15)
   },
 
   async init() {
     this.initTheme();
-    if (window.KokoroDateTimePicker) window.KokoroDateTimePicker.init();
-    if (window.KokoroTagManager && window.KokoroTagManager.initModal) window.KokoroTagManager.initModal();
-    if (window.Lightbox) window.Lightbox.init();
-    if (window.Editor) window.Editor.init();
-    if (window.ZenAudio) window.ZenAudio.init();
+    [window.KokoroDateTimePicker, window.Lightbox, window.Editor, window.ZenAudio, window.PasscodeLock, window.PWA].forEach(m => m?.init?.());
     if (window.KokoroCardExport) window.KokoroCardExport.init();
-    if (window.PasscodeLock) window.PasscodeLock.init();
-    if (window.PWA) window.PWA.init();
-    this.setupEventListeners();
+    if (window.KokoroTagManager?.initModal) window.KokoroTagManager.initModal();
+    this.setupEventListeners(); this.setupNetworkListeners();
 
     const initialHash = location.hash ? location.hash.replace('#', '') : 'timeline';
     if (['timeline', 'calendar', 'memories', 'profile'].includes(initialHash) && initialHash !== 'timeline') {
       this.switchView(initialHash, false);
-      try { history.replaceState({ view: initialHash }, '', '#' + initialHash); } catch (err) { console.warn('[KokoroApp] Failed to update initial history state:', err); }
+      try { history.replaceState({ view: initialHash }, '', '#' + initialHash); } catch (err) {}
     } else {
-      try { history.replaceState({ view: 'timeline' }, '', '#timeline'); } catch (err) { console.warn('[KokoroApp] Failed to update default history state:', err); }
+      try { history.replaceState({ view: 'timeline' }, '', '#timeline'); } catch (err) {}
     }
 
-    if (window.KokoroCardExport && window.KokoroCardExport.init) window.KokoroCardExport.init();
     if (window.KokoroAuth) await window.KokoroAuth.init();
-    await this.loadCategories();
-    await this.loadEntries();
-    await this.loadStats();
-    await this.loadPopularTags();
+    await this.loadCategories(); await this.loadEntries(); await this.loadStats(); await this.loadPopularTags();
     this.initZenPromptHandlers();
   },
 
   async onUserChanged(user) {
     await this.loadCategories(); await this.loadEntries(); await this.loadStats(); await this.loadPopularTags();
     if (this.currentView === 'profile') this.renderProfileView();
+  },
+
+  async updateOfflineBanner(show) {
+    this.isOffline = Boolean(show);
+    const banner = document.getElementById('offline-status-banner'), badge = document.getElementById('offline-queue-badge'), countEl = document.getElementById('offline-queue-count');
+    if (show) {
+      if (banner) banner.classList.add('active');
+      if (window.KokoroAPI?.getOfflineEntries) {
+        window.KokoroAPI.getOfflineEntries().then(p => {
+          if (badge && countEl) { const c = p?.length || 0; countEl.textContent = c; badge.style.display = c > 0 ? 'inline-flex' : 'none'; }
+        }).catch(() => {});
+      }
+    } else if (banner) banner.classList.remove('active');
+  },
+  setupNetworkListeners() {
+    window.addEventListener('offline', () => { this.updateOfflineBanner(true); });
+    window.addEventListener('online', async () => {
+      this.updateOfflineBanner(false);
+      this.showToast('Đã khôi phục kết nối mạng 🌸 Đang đồng bộ...', 'info');
+      if (window.KokoroAPI?.syncOfflineQueue) {
+        try {
+          const synced = await window.KokoroAPI.syncOfflineQueue();
+          if (synced > 0) this.showToast(`Đã đồng bộ thành công ${synced} bài viết ngoại tuyến! ✨`);
+        } catch (e) { console.warn('[KokoroApp] Sync error:', e); }
+      }
+      await this.loadCategories(); await this.loadEntries(); await this.loadStats(); await this.loadPopularTags();
+    });
+    if (!navigator.onLine) this.updateOfflineBanner(true);
   },
 
   setupEventListeners() {
@@ -83,7 +102,7 @@ const KokoroApp = {
     });
 
     const bind = (ids, fn) => ids.forEach((id) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); });
-    bind(['header-add-entry-btn', 'fab-create-btn'], () => { if (window.Editor) window.Editor.open(); });
+    bind(['header-add-entry-btn', 'fab-create-btn', 'header-new-entry-btn', 'mobile-fab-btn'], () => { if (window.Editor) window.Editor.open(); });
     bind(['lock-screen-now-btn', 'profile-action-lock-now'], (e) => { e.preventDefault(); if (window.PasscodeLock) window.PasscodeLock.lockNow(); });
     bind(['passcode-settings-btn', 'profile-action-pin'], (e) => { e.preventDefault(); if (window.PasscodeLock) window.PasscodeLock.openSetupModal(); });
     bind(['passcode-close-settings-btn'], () => { if (window.PasscodeLock) window.PasscodeLock.closeSetupModal(); });
@@ -96,31 +115,19 @@ const KokoroApp = {
     bind(['import-backup-btn', 'profile-action-import'], (e) => { e.preventDefault(); if (backupInput) { backupInput.value = ''; backupInput.click(); } });
     if (backupInput) backupInput.addEventListener('change', async (e) => { const f = e.target.files && e.target.files[0]; if (f) await this.importBackup(f); });
 
-    window.addEventListener('hashchange', () => {
-      const hash = location.hash.replace('#', '') || 'timeline';
-      if (['timeline', 'calendar', 'memories', 'profile'].includes(hash) && hash !== this.currentView) this.switchView(hash, false);
-    });
-    window.addEventListener('popstate', (e) => {
-      const view = (e.state && e.state.view) || (location.hash ? location.hash.replace('#', '') : 'timeline');
-      if (['timeline', 'calendar', 'memories', 'profile'].includes(view) && view !== this.currentView) this.switchView(view, false);
-    });
-    [document.getElementById('header-new-entry-btn'), document.getElementById('mobile-fab-btn')].forEach((btn) => {
-      if (btn) btn.addEventListener('click', () => { if (window.Editor) window.Editor.open(); });
-    });
+    const handleRoute = () => { const h = (location.hash || '#timeline').replace('#', ''); if (['timeline', 'calendar', 'memories', 'profile'].includes(h) && h !== this.currentView) this.switchView(h, false); };
+    window.addEventListener('hashchange', handleRoute); window.addEventListener('popstate', handleRoute);
 
     const searchInput = document.getElementById('search-input'), searchClearBtn = document.getElementById('search-clear-btn');
     let searchDebounceTimer = null;
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
-        const val = e.target.value;
-        if (searchClearBtn) searchClearBtn.style.display = val.length > 0 ? 'inline-flex' : 'none';
+        const val = e.target.value; if (searchClearBtn) searchClearBtn.style.display = val.length > 0 ? 'inline-flex' : 'none';
         clearTimeout(searchDebounceTimer);
         searchDebounceTimer = setTimeout(() => { this.searchQuery = val.trim(); this.timelineState.search = this.searchQuery; this.loadEntries(); }, (window.KokoroConstants ? window.KokoroConstants.TIMEOUTS.SEARCH_DEBOUNCE_MS : 300));
       });
     }
-    if (searchClearBtn && searchInput) {
-      searchClearBtn.addEventListener('click', () => { searchInput.value = ''; searchClearBtn.style.display = 'none'; this.searchQuery = ''; this.timelineState.search = ''; this.loadEntries(); });
-    }
+    if (searchClearBtn && searchInput) searchClearBtn.addEventListener('click', () => { searchInput.value = ''; searchClearBtn.style.display = 'none'; this.searchQuery = ''; this.timelineState.search = ''; this.loadEntries(); });
 
     const prevMonthBtn = document.getElementById('full-cal-prev-btn'), nextMonthBtn = document.getElementById('full-cal-next-btn');
     if (prevMonthBtn) prevMonthBtn.addEventListener('click', () => { this.calMonth--; if (this.calMonth < 0) { this.calMonth = 11; this.calYear--; } this.renderFullCalendar(); });
@@ -144,25 +151,26 @@ const KokoroApp = {
   },
 
   async loadEntries() {
-    this.isLoading = true;
-    this.renderTimeline();
+    this.isLoading = true; this.renderTimeline();
     try {
       const res = await window.KokoroAPI.getEntries({
         mood: this.timelineState.mood, category_id: this.timelineState.categoryId,
         tag: this.timelineState.tag, search: this.timelineState.search
       });
-      const items = (res && (res.entries || res.data)) ? (res.entries || res.data) : [];
-      this.entries = items;
+      this.entries = (res?.entries || res?.data) || [];
       if (!this.timelineState.mood && !this.timelineState.categoryId && !this.timelineState.tag && !this.timelineState.search) {
         this.allEntries = this.entries;
       }
+      if (res?._isOffline) this.updateOfflineBanner(true);
     } catch (err) {
       console.error('[KokoroApp] Failed to load entries:', err);
-      this.showToast('Không thể tải danh sách nhật ký: ' + err.message, 'error');
+      if (!navigator.onLine || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+        this.updateOfflineBanner(true);
+      } else {
+        this.showToast('Không thể tải danh sách nhật ký: ' + err.message, 'error');
+      }
     } finally {
-      this.isLoading = false;
-      this.renderTimeline();
-      this.renderCalendar();
+      this.isLoading = false; this.renderTimeline(); this.renderCalendar();
       if (this.currentView === 'calendar') this.renderFullCalendar();
       if (this.currentView === 'memories') this.renderMemoriesGallery();
       if (this.currentView === 'profile') this.renderProfileView();
@@ -331,18 +339,13 @@ const KokoroApp = {
 
   async exportBackup() {
     try {
-      this.showToast('Đang trích xuất bản sao lưu nhật ký... 🌸');
-      await window.KokoroAPI.exportEntries();
-      this.showToast('Đã tải bản sao lưu JSON thành công! ✨');
+      this.showToast('Đang trích xuất bản sao lưu nhật ký... 🌸'); await window.KokoroAPI.exportEntries(); this.showToast('Đã tải bản sao lưu JSON thành công! ✨');
     } catch (err) { this.showToast('Lỗi tải bản sao lưu: ' + err.message, 'error'); }
   },
-
   async importBackup(file) {
     try {
-      this.showToast('Đang khôi phục dữ liệu từ file... 🌸');
-      const res = await window.KokoroAPI.importEntries(file);
-      this.showToast(res.message || 'Khôi phục dữ liệu thành công! ✨');
-      await this.loadCategories(); await this.loadEntries(); await this.loadStats();
+      this.showToast('Đang khôi phục dữ liệu từ file... 🌸'); const res = await window.KokoroAPI.importEntries(file);
+      this.showToast(res.message || 'Khôi phục dữ liệu thành công! ✨'); await this.loadCategories(); await this.loadEntries(); await this.loadStats();
     } catch (err) { this.showToast('Lỗi khôi phục: ' + err.message, 'error'); }
   },
 
@@ -360,9 +363,7 @@ const KokoroApp = {
     const prompt = window.KokoroZenPrompt.getDailyPrompt();
     if (!prompt) { if (cardEl) cardEl.style.display = 'none'; return; }
     this.activeZenPrompt = prompt;
-    const iconEl = document.getElementById('zen-prompt-icon') || document.getElementById('daily-zen-icon');
-    const textEl = document.getElementById('zen-prompt-text') || document.getElementById('daily-zen-text');
-    const moodEl = document.getElementById('zen-prompt-pillar') || document.getElementById('daily-zen-mood');
+    const iconEl = document.getElementById('zen-prompt-icon') || document.getElementById('daily-zen-icon'), textEl = document.getElementById('zen-prompt-text') || document.getElementById('daily-zen-text'), moodEl = document.getElementById('zen-prompt-pillar') || document.getElementById('daily-zen-mood');
     if (iconEl) iconEl.textContent = prompt.icon || '🌸';
     if (textEl) textEl.textContent = prompt.text;
     if (moodEl) moodEl.textContent = prompt.pillarName || `Gợi ý: ${prompt.suggestedMoodLabel || prompt.suggestedMood || 'Bình yên'}`;
@@ -374,8 +375,7 @@ const KokoroApp = {
     if (!cardEl) return;
     const writeBtn = document.getElementById('zen-prompt-write-btn') || document.getElementById('daily-zen-write-btn');
     if (writeBtn) writeBtn.addEventListener('click', () => { if (this.activeZenPrompt && window.Editor) window.Editor.open(null, { prompt: this.activeZenPrompt, autoInsert: true }); });
-    const shuffleBtn = document.getElementById('zen-prompt-shuffle-btn') || document.getElementById('daily-zen-shuffle-btn');
-    const diceIcon = document.getElementById('zen-dice-icon') || (shuffleBtn ? shuffleBtn.querySelector('i') : null);
+    const shuffleBtn = document.getElementById('zen-prompt-shuffle-btn') || document.getElementById('daily-zen-shuffle-btn'), diceIcon = document.getElementById('zen-dice-icon') || (shuffleBtn?.querySelector('i'));
     if (shuffleBtn && window.KokoroZenPrompt) shuffleBtn.addEventListener('click', () => {
       if (diceIcon) { diceIcon.classList.remove('anim-spinning'); void diceIcon.offsetWidth; diceIcon.classList.add('anim-spinning'); }
       this.activeZenPrompt = window.KokoroZenPrompt.shufflePrompt(); this.renderDailyZenCard(); this.showToast('Đã đổi gợi ý suy ngẫm mới ✨', 'info');
@@ -387,9 +387,7 @@ const KokoroApp = {
     });
   },
 
-  showToast(message, type = 'success') {
-    if (window.KokoroToast) window.KokoroToast.show(message, type);
-  }
+  showToast(message, type = 'success') { if (window.KokoroToast) window.KokoroToast.show(message, type); }
 };
 
 window.KokoroApp = KokoroApp;

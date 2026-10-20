@@ -173,6 +173,8 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: 24px;
+  overflow-x: hidden;
+  touch-action: pan-y pinch-zoom;
 }
 
 /* Mobile Quick Mood Horizontal Capsule Scroll Bar - Strict iOS WebKit Pan-X Lock */

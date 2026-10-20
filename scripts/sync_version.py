@@ -10,6 +10,9 @@ import sys
 import re
 from pathlib import Path
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 VERSION_FILE = BASE_DIR / "VERSION"
 CONFIG_FILE = BASE_DIR / "app" / "config.py"

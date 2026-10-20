@@ -131,11 +131,38 @@ const KokoroAuth = {
     }
   },
 
+  saveLastAuthUser(user) {
+    try {
+      if (user) {
+        localStorage.setItem('kokoro_last_auth_user', JSON.stringify(user));
+      }
+    } catch (e) {
+      console.warn('[KokoroAuth] Failed to cache user session:', e);
+    }
+  },
+
+  getLastAuthUser() {
+    try {
+      const raw = localStorage.getItem('kokoro_last_auth_user');
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  },
+
+  clearLastAuthUser() {
+    try {
+      localStorage.removeItem('kokoro_last_auth_user');
+    } catch (e) {}
+  },
+
   async checkSession() {
+    let isNetworkError = false;
     try {
       const res = await window.KokoroAPI.getCurrentUser();
       if (res && res.authenticated && res.user) {
         this.currentUser = res.user;
+        this.saveLastAuthUser(res.user);
         this.updateHeaderUI(res.user);
         this.hideLoginModal();
         if (window.PasscodeLock && res.user.id) {
@@ -145,9 +172,27 @@ const KokoroAuth = {
       }
     } catch (e) {
       console.warn('[KokoroAuth] Session check failed:', e);
+      if (!navigator.onLine || (e && (e.message?.includes('Failed to fetch') || e.message?.includes('NetworkError') || e.message?.includes('ERR_')))) {
+        isNetworkError = true;
+      }
     }
 
-    // Unauthenticated
+    // Offline Resilience: If disconnected or fetch failed, recover cached user session
+    if (isNetworkError || !navigator.onLine) {
+      const cachedUser = this.getLastAuthUser();
+      if (cachedUser) {
+        console.log('[KokoroAuth] Khôi phục phiên làm việc ngoại tuyến từ cache:', cachedUser.name);
+        this.currentUser = cachedUser;
+        this.updateHeaderUI(cachedUser);
+        this.hideLoginModal();
+        if (window.PasscodeLock && cachedUser.id) {
+          window.PasscodeLock.onUserChanged(cachedUser.id);
+        }
+        return cachedUser;
+      }
+    }
+
+    // Truly unauthenticated (online and returned 401, or no cached session)
     this.currentUser = null;
     this.updateHeaderUI(null);
     this.showLoginModal();
@@ -262,6 +307,7 @@ const KokoroAuth = {
 
   async handleLoginSuccess(user) {
     this.currentUser = user;
+    this.saveLastAuthUser(user);
     this.updateHeaderUI(user);
     this.hideLoginModal();
     if (window.PasscodeLock && user && user.id) {
@@ -286,6 +332,7 @@ const KokoroAuth = {
       console.warn('[KokoroAuth] Logout error:', e);
     }
 
+    this.clearLastAuthUser();
     this.currentUser = null;
     this.updateHeaderUI(null);
     const dropdown = document.getElementById('profile-dropdown-menu');

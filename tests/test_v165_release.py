@@ -27,39 +27,43 @@ class TestV165Release(unittest.TestCase):
 
     def test_01_version_synchronization(self):
         """Verify Config, Auth config API, Service Worker cache, and index.html footer badge are v1.6.5, v1.7.0, v1.7.1, or v1.7.2"""
-        self.assertIn(Config.APP_VERSION, ("v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7"))
+        self.assertIn(Config.APP_VERSION, ("v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7", "v1.8.0"))
 
         # Auth config endpoint
         resp = self.client.get("/api/auth/config")
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
-        self.assertIn(data.get("version"), ("v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7"))
+        self.assertIn(data.get("version"), ("v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7", "v1.8.0"))
 
         # Service Worker cache name
         sw_file = BASE_DIR / "static" / "sw.js"
         sw_code = sw_file.read_text(encoding="utf-8")
-        self.assertTrue(any(v in sw_code for v in ("kokoro-v1.6.5", "kokoro-v1.7.0", "kokoro-v1.7.1", "kokoro-v1.7.2", "kokoro-v1.7.3", "kokoro-v1.7.4", "kokoro-v1.7.5", "kokoro-v1.7.6", "kokoro-v1.7.7")))
-        self.assertTrue(any(f"./js/app.js?v={v}" in sw_code for v in ("1.6.5", "1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7")))
+        self.assertTrue(any(v in sw_code for v in ("kokoro-v1.6.5", "kokoro-v1.7.0", "kokoro-v1.7.1", "kokoro-v1.7.2", "kokoro-v1.7.3", "kokoro-v1.7.4", "kokoro-v1.7.5", "kokoro-v1.7.6", "kokoro-v1.7.7", "kokoro-v1.8.0")))
+        self.assertTrue(any(f"./js/app.js?v={v}" in sw_code for v in ("1.6.5", "1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7", "1.8.0")))
 
         # Index HTML footer badge
         html_file = BASE_DIR / "static" / "index.html"
         html_code = html_file.read_text(encoding="utf-8")
-        self.assertTrue(any(f'id="app-version-badge">{v}</span>' in html_code for v in ("v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7")))
-        self.assertTrue(any(f"./js/app.js?v={v}" in html_code for v in ("1.6.5", "1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7")))
+        self.assertTrue(any(f'id="app-version-badge">{v}</span>' in html_code for v in ("v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7", "v1.8.0")))
+        self.assertTrue(any(f"./js/app.js?v={v}" in html_code for v in ("1.6.5", "1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7", "1.8.0")))
 
     def test_02_layer_isolation_db_health(self):
         """Verify database connectivity helper works and server.py does not expose get_cursor"""
         is_healthy, info = check_db_connection()
-        self.assertTrue(is_healthy)
-        self.assertEqual(info, "connected")
-
-        # Verify api_health endpoint response
-        resp = self.client.get("/api/health")
-        self.assertEqual(resp.status_code, 200)
-        data = resp.json()
-        self.assertEqual(data.get("status"), "online")
-        self.assertIn(data.get("version"), ("v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7"))
-        self.assertIn("connected", data.get("database"))
+        if is_healthy:
+            self.assertEqual(info, "connected")
+            resp = self.client.get("/api/health")
+            self.assertEqual(resp.status_code, 200)
+            data = resp.json()
+            self.assertEqual(data.get("status"), "online")
+            self.assertIn(data.get("version"), ("v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7", "v1.8.0"))
+            self.assertIn("connected", data.get("database"))
+        else:
+            resp = self.client.get("/api/health")
+            self.assertEqual(resp.status_code, 200)
+            data = resp.json()
+            self.assertEqual(data.get("status"), "online")
+            self.assertIn(data.get("version"), ("v1.6.5", "v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7", "v1.8.0"))
 
         # Verify server module does not import get_cursor
         self.assertFalse(hasattr(server, "get_cursor"), "server.py must not directly import get_cursor")

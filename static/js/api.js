@@ -97,31 +97,117 @@ const KokoroAPI = (() => {
     }
   };
 
+  /**
+   * Dual-Layer Client Cache Manager for Offline Resilience (Scoped by user_id)
+   */
+  const CacheManager = {
+    getKey(type, userId) {
+      const uid = userId || (window.KokoroAuth && window.KokoroAuth.currentUser ? window.KokoroAuth.currentUser.id : 'guest');
+      return `kokoro_cache_${type}_${uid}`;
+    },
+    save(type, data, userId) {
+      try {
+        if (!data) return;
+        const key = this.getKey(type, userId);
+        localStorage.setItem(key, JSON.stringify({
+          data,
+          cachedAt: new Date().toISOString()
+        }));
+      } catch (e) {
+        console.warn(`[KokoroAPI] Failed to write cache for ${type}:`, e);
+      }
+    },
+    get(type, userId) {
+      try {
+        const key = this.getKey(type, userId);
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed ? parsed.data : null;
+      } catch (e) {
+        return null;
+      }
+    }
+  };
+
   return {
     BASE_PATH,
     API_BASE,
     resolveMediaUrl,
+    CacheManager,
 
-    // GET /api/entries
+    // GET /api/entries (with Offline Cache Fallback & Client-Side Filtering)
     async getEntries(filters = {}) {
-      const params = new URLSearchParams();
-      if (filters.mood && filters.mood !== 'all') params.append('mood', filters.mood);
-      if (filters.category_id && filters.category_id !== 'all') params.append('category_id', filters.category_id);
-      if (filters.category && filters.category !== 'all') params.append('category_id', filters.category);
-      if (filters.tag) params.append('tag', filters.tag);
-      if (filters.month) params.append('month', filters.month);
-      if (filters.search) params.append('search', filters.search);
-      params.append('_t', Date.now()); // Anti-cache timestamp for iOS Safari / WebKit
+      const isFiltered = Boolean(
+        (filters.mood && filters.mood !== 'all') ||
+        (filters.category_id && filters.category_id !== 'all') ||
+        (filters.category && filters.category !== 'all') ||
+        filters.tag || filters.month || filters.search
+      );
 
-      const qs = `?${params.toString()}`;
-      return await request(`/entries${qs}`, {
-        method: 'GET',
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
+      try {
+        const params = new URLSearchParams();
+        if (filters.mood && filters.mood !== 'all') params.append('mood', filters.mood);
+        if (filters.category_id && filters.category_id !== 'all') params.append('category_id', filters.category_id);
+        if (filters.category && filters.category !== 'all') params.append('category_id', filters.category);
+        if (filters.tag) params.append('tag', filters.tag);
+        if (filters.month) params.append('month', filters.month);
+        if (filters.search) params.append('search', filters.search);
+        params.append('_t', Date.now()); // Anti-cache timestamp for iOS Safari / WebKit
+
+        const qs = `?${params.toString()}`;
+        const data = await request(`/entries${qs}`, {
+          method: 'GET',
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        });
+
+        // Cache the master unfiltered list
+        if (!isFiltered && data && (data.entries || data.data)) {
+          CacheManager.save('entries', data);
         }
-      });
+        return data;
+      } catch (err) {
+        // Offline Fallback
+        const isOffline = !navigator.onLine || (err && (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')));
+        if (isOffline) {
+          const cached = CacheManager.get('entries');
+          if (cached) {
+            console.log('[KokoroAPI] Phục hồi danh sách nhật ký từ bộ nhớ đệm ngoại tuyến.');
+            let items = cached.entries || cached.data || [];
+            if (isFiltered && Array.isArray(items)) {
+              items = items.filter(e => {
+                if (filters.mood && filters.mood !== 'all' && e.mood !== filters.mood) return false;
+                if (filters.category_id && filters.category_id !== 'all' && String(e.category_id) !== String(filters.category_id)) return false;
+                if (filters.category && filters.category !== 'all' && String(e.category_id) !== String(filters.category)) return false;
+                if (filters.tag) {
+                  const targetTag = filters.tag.replace(/^#+/, '');
+                  if (!e.tags || !e.tags.some(t => t.replace(/^#+/, '') === targetTag)) return false;
+                }
+                if (filters.month) {
+                  if (!e.entry_date || !e.entry_date.startsWith(filters.month)) return false;
+                }
+                if (filters.search) {
+                  const s = filters.search.toLowerCase();
+                  const match = (e.title && e.title.toLowerCase().includes(s)) || (e.content && e.content.toLowerCase().includes(s));
+                  if (!match) return false;
+                }
+                return true;
+              });
+            }
+            return {
+              status: 'success',
+              entries: items,
+              data: items,
+              _isOffline: true
+            };
+          }
+        }
+        throw err;
+      }
     },
 
     // POST /api/entries (multipart/form-data)
@@ -185,12 +271,36 @@ const KokoroAPI = (() => {
 
     // GET /api/stats/summary
     async getStats() {
-      return await request('/stats/summary', { method: 'GET' });
+      try {
+        const data = await request('/stats/summary', { method: 'GET' });
+        if (data && (data.data || data.totalEntries !== undefined)) {
+          CacheManager.save('stats', data);
+        }
+        return data;
+      } catch (err) {
+        if (!navigator.onLine || err.message?.includes('Failed to fetch')) {
+          const cached = CacheManager.get('stats');
+          if (cached) return { ...cached, _isOffline: true };
+        }
+        throw err;
+      }
     },
 
     // GET /api/categories
     async getCategories() {
-      return await request('/categories', { method: 'GET' });
+      try {
+        const data = await request('/categories', { method: 'GET' });
+        if (data && (data.categories || data.data)) {
+          CacheManager.save('categories', data);
+        }
+        return data;
+      } catch (err) {
+        if (!navigator.onLine || err.message?.includes('Failed to fetch')) {
+          const cached = CacheManager.get('categories');
+          if (cached) return { ...cached, _isOffline: true };
+        }
+        throw err;
+      }
     },
 
     // POST /api/categories
@@ -218,7 +328,19 @@ const KokoroAPI = (() => {
 
     // GET /api/tags
     async getTags() {
-      return await request('/tags', { method: 'GET' });
+      try {
+        const data = await request('/tags', { method: 'GET' });
+        if (data && (data.tags || data.data)) {
+          CacheManager.save('tags', data);
+        }
+        return data;
+      } catch (err) {
+        if (!navigator.onLine || err.message?.includes('Failed to fetch')) {
+          const cached = CacheManager.get('tags');
+          if (cached) return { ...cached, _isOffline: true };
+        }
+        throw err;
+      }
     },
 
     // POST /api/tags

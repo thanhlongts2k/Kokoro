@@ -33,6 +33,12 @@ from app.database import get_db
 class KokoroFullSystemTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        try:
+            with get_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT 1;")
+        except Exception as e:
+            raise unittest.SkipTest(f"Database not accessible in this environment: {e}")
         cls.client = TestClient(app)
         # Test against real user 38 (thanhlongts2k@gmail.com)
         cls.user_id = 38

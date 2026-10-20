@@ -8,8 +8,10 @@ import asyncio
 import os
 import sys
 sys.stdout.reconfigure(encoding='utf-8')
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from playwright.async_api import async_playwright
+try:
+    from playwright.async_api import async_playwright
+except ImportError:
+    async_playwright = None
 from app.auth import create_session_token, SESSION_COOKIE_NAME
 
 async def main():

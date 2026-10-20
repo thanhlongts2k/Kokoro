@@ -2120,4 +2120,71 @@ body.modal-scroll-locked {
   letter-spacing: 0.5px;
 }
 
+/* --------------------------------------------------------------------------
+   OFFLINE STATUS BANNER & PWA RESILIENCE INDICATOR
+   -------------------------------------------------------------------------- */
+.offline-status-banner {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto 14px auto;
+  padding: 10px 16px;
+  border-radius: var(--radius-lg, 16px);
+  background: rgba(254, 242, 244, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(244, 114, 182, 0.35);
+  box-shadow: 0 4px 20px rgba(244, 114, 182, 0.12);
+  color: var(--text-secondary, #475569);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  box-sizing: border-box;
+  animation: fadeInDown 0.3s ease-out;
+  z-index: 90;
+}
+
+.offline-status-banner.active {
+  display: flex !important;
+}
+
+.offline-status-banner .offline-icon {
+  font-size: 15px;
+  color: var(--sakura-500, #ec4899);
+  animation: softPulse 2.5s infinite ease-in-out;
+}
+
+.offline-status-banner .offline-sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(244, 114, 182, 0.18);
+  color: var(--sakura-600, #db2777);
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
+@keyframes softPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.08); }
+}
+
+/* Strict iOS WebKit Pan-X Lock */
+.mobile-mood-scroll,
+#mobile-mood-chips {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  touch-action: pan-x !important;
+  overscroll-behavior-x: contain !important;
+  overscroll-behavior-y: none !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+
 
