@@ -3,6 +3,17 @@
 Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal Diary & Photo Journal PWA** được ghi nhận chi tiết tại tệp này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) và tuân thủ [Semantic Versioning (SemVer)](https://semver.org/).
 
 ## [1.8.6] - 2026-10-21
+### Hotfix: Emotion Journey Widget Data Binding & Server Stats SSoT (`app/repositories/stats_repository.py`, `static/js/profile-stats.js`, `tests/test_v185_stats_widget_contracts.py`)
+- **Khắc Phục Lệch Pha Định Danh Cảm Xúc (Mood Mapping):**
+  * Bổ sung bảng ánh xạ hai chiều `MOOD_MAP` giữa tên tiếng Việt và slug cảm xúc chuẩn (`bình yên` ➔ `serene`, `ấm áp` ➔ `cozy`, `chiêm nghiệm` ➔ `reflective`, `biết ơn` ➔ `grateful`, `năng lượng` ➔ `energetic`).
+  * `StatsRepository.get_stats_summary` chuẩn hóa mọi giá trị `mood` và tên danh mục từ CSDL, triệt tiêu lỗi phân bổ tâm trạng hiển thị 0%.
+- **Liên Kết DOM & Server Stats SSoT (Single Source of Truth):**
+  * Tái cấu trúc `ProfileStats.renderStats` ưu tiên đọc dữ liệu tập trung từ Server Stats Object (`totalEntries`, `totalPhotos`, `streakDays`, `moodBreakdown`).
+  * Kết nối và cập nhật chính xác các phần tử DOM từng bị bỏ quên: `#stat-writing-streak` (chuỗi ngày viết thực tế thay vì mock 7 ngày) và `#stat-photos-count` (số lượng ảnh thực tế thay vì mock 0 ảnh).
+  * Khắc phục triệt để nguy cơ sai lệch số liệu khi danh sách nhật ký được phân trang server-side (`limit=15`).
+- **Bộ Kiểm Thử Tự Động & Hợp Đồng SSoT (`tests/test_v185_stats_widget_contracts.py`):**
+  * Kiểm thử ánh xạ mood hai chiều, thuật toán tính streak, hợp đồng endpoint `/api/stats/summary` và kiểm thử thực thi hành vi DOM trong môi trường Node.js (148 tests đạt 100% PASS).
+
 ### Milestone v1.8.6: Hybrid Multi-Photo Card Export (Thumbnail Selector & Adaptive Collage Canvas Engine)
 - **Giao Diện & Tương Tác Modal Xuất Thẻ (`static/index.html`, `static/css/components.css`, `static/js/card-export.js`):**
   * *Thanh Chọn Ảnh Đa Ảnh (`#card-export-photo-bar`):* Bổ sung container capsule chọn ảnh nằm ngay dưới `.card-export-theme-bar` và phía trên `.card-export-preview-box`.

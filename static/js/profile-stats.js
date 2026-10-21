@@ -98,31 +98,73 @@ const ProfileStats = {
     multiBar.innerHTML = html || `<div class="mood-segment segment-serene" style="width: 100%;"></div>`;
   },
 
+  MOOD_MAP: {
+    'serene': 'serene', 'bình yên': 'serene',
+    'cozy': 'cozy', 'ấm áp': 'cozy',
+    'reflective': 'reflective', 'chiêm nghiệm': 'reflective',
+    'grateful': 'grateful', 'biết ơn': 'grateful',
+    'energetic': 'energetic', 'năng lượng': 'energetic'
+  },
+
   /**
    * Render sidebar stats widget
    */
   renderStats(options) {
-    const { entries, stats } = options;
+    const { entries, stats } = options || {};
+
+    // 1. Total entries count (SSoT from Server Stats, fallback to local entries length)
     const countEl = document.getElementById('stat-total-entries');
-    if (countEl) countEl.textContent = entries ? entries.length : 0;
+    const totalEntries = (stats && stats.totalEntries !== undefined)
+      ? Number(stats.totalEntries)
+      : (entries ? entries.length : 0);
+    if (countEl) countEl.textContent = totalEntries;
 
-    const total = entries ? entries.length : 0;
-    const moodCounts = { serene: 0, cozy: 0, reflective: 0, grateful: 0, energetic: 0 };
-    (entries || []).forEach((e) => {
-      if (e.mood && moodCounts.hasOwnProperty(e.mood)) {
-        moodCounts[e.mood]++;
-      }
-    });
-
-    const breakdown = {};
-    for (const [m, count] of Object.entries(moodCounts)) {
-      breakdown[m] = {
-        count,
-        percent: total > 0 ? (count / total) * 100 : 0
-      };
+    // 2. Writing streak (SSoT from Server Stats, fallback to client calculation)
+    const streakEl = document.getElementById('stat-writing-streak');
+    if (streakEl) {
+      const streakDays = (stats && stats.streakDays !== undefined)
+        ? Number(stats.streakDays)
+        : this.calculateStreak(entries);
+      streakEl.textContent = `${streakDays || 0} ngày`;
     }
 
-    this.renderMoodBreakdown(breakdown, total);
+    // 3. Photos count (SSoT from Server Stats, fallback to client entries count)
+    const photosEl = document.getElementById('stat-photos-count');
+    if (photosEl) {
+      let totalPhotos = 0;
+      if (stats && stats.totalPhotos !== undefined) {
+        totalPhotos = Number(stats.totalPhotos);
+      } else if (entries && entries.length) {
+        entries.forEach((e) => {
+          if (e.photos && Array.isArray(e.photos)) totalPhotos += e.photos.length;
+        });
+      }
+      photosEl.innerHTML = `<i class="bi bi-camera text-sakura"></i> ${totalPhotos || 0} ảnh`;
+    }
+
+    // 4. Mood breakdown (SSoT from Server Stats, fallback to client normalization)
+    let breakdown = null;
+    if (stats && stats.moodBreakdown) {
+      breakdown = stats.moodBreakdown;
+    } else {
+      const moodCounts = { serene: 0, cozy: 0, reflective: 0, grateful: 0, energetic: 0 };
+      (entries || []).forEach((e) => {
+        const rawMood = (e.mood || e.categoryName || e.category_name || '').trim().toLowerCase();
+        const mapped = this.MOOD_MAP[rawMood];
+        if (mapped && moodCounts.hasOwnProperty(mapped)) {
+          moodCounts[mapped]++;
+        }
+      });
+      breakdown = {};
+      for (const [m, count] of Object.entries(moodCounts)) {
+        breakdown[m] = {
+          count,
+          percent: totalEntries > 0 ? (count / totalEntries) * 100 : 0
+        };
+      }
+    }
+
+    this.renderMoodBreakdown(breakdown, totalEntries);
   },
 
   /**
@@ -171,11 +213,15 @@ const ProfileStats = {
     const photosCountEl = document.getElementById('profile-stat-photos');
 
     let totalPhotos = 0;
-    (entries || []).forEach((e) => {
-      if (e.photos) totalPhotos += e.photos.length;
-    });
+    if (stats && stats.totalPhotos !== undefined) {
+      totalPhotos = Number(stats.totalPhotos);
+    } else {
+      (entries || []).forEach((e) => {
+        if (e.photos) totalPhotos += e.photos.length;
+      });
+    }
 
-    if (entriesCountEl) entriesCountEl.textContent = entries ? entries.length : 0;
+    if (entriesCountEl) entriesCountEl.textContent = (stats && stats.totalEntries !== undefined) ? stats.totalEntries : (entries ? entries.length : 0);
     if (streakEl) streakEl.textContent = `${stats ? stats.streakDays || 0 : 0} ngày`;
     if (photosCountEl) photosCountEl.textContent = totalPhotos;
 
