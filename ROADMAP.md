@@ -494,7 +494,10 @@
   - [x] Bộ kiểm thử `tests/test_v180_offline_pwa_resilience.py` (9 test cases PASS 100%).
   - [x] 100% test suite tự động hệ thống đạt kết quả PASS.
 
-### 🔹 Giai đoạn 23.1: Sprint Trả Nợ Kỹ Thuật (Tech Debt Sprint v1.8.1) — UI Dọn Rác Ảnh Mồ Côi, Safe Query Bounds & 100% Test Coverage (Zero Skipped)
+### 🔹 Giai đoạn 23.1: Sprint Trả Nợ Kỹ Thuật (Tech Debt Sprint v1.8.1) — Fix Runtime Console, UI Dọn Rác Ảnh, Safe Query Bounds & 100% Test Coverage (Zero Skipped)
+- [x] **Khắc Phục Triệt Để 2 Lỗi Runtime Console (`static/js/app.js`, `static/js/tag-manager.js`, `static/js/zen-prompts.js`):**
+  - [x] Sửa dứt điểm lỗi 401 Cascade khi đăng xuất: trong `app.js` (`onUserChanged`, `loadCategories`, `loadEntries`, `loadStats`, `loadPopularTags`), kiểm tra nghiêm ngặt `if (!user)` xóa sạch feed hiển thị và return ngay lập tức mà không gọi API cá nhân; chặn tương tự trong `tag-manager.js`.
+  - [x] Sửa lỗi TypeError nút "Gợi ý khác" trên banner Zen Prompt: bổ sung hàm `shufflePrompt()` và `renderNewPrompt()` vào `window.KokoroZenPrompt`, kèm logic phòng thủ đa tầng trong `app.js`.
 - [x] **Frontend UI Dọn Rác Ảnh Mồ Côi & Tối Ưu Bộ Nhớ (`static/index.html`, `static/js/api.js`, `static/js/app.js`):**
   - [x] Thêm action card kính mờ Soft Sakura `#profile-action-cleanup-media` trong khu vực Cài đặt hồ sơ cá nhân (`#view-profile`): `[ 🧹 Dọn dẹp ảnh rác & Tối ưu bộ nhớ ]`.
   - [x] Popup xác nhận dịu dàng Soft Sakura qua `KokoroDialog.confirm` giải thích rõ cơ chế quét và xóa ảnh mồ côi trong `/uploads/`.
@@ -506,7 +509,7 @@
 - [x] **Thiết Lập SQLite Mock DB Fixture & Kích Hoạt 100% Test Coverage Không Bị Skip (`app/mock_database.py`, `app/database.py`, `tests/`):**
   - [x] Xây dựng MockPool SQLite giả lập tương thích PostgreSQL với các hàm tổng hợp `json_agg`, `array_agg`, `json_build_object`, `TO_CHAR`, `NOW`, và view `pg_indexes`.
   - [x] Kích hoạt toàn bộ 9 integration test cases trước đây bị skip khi thiếu PostgreSQL cục bộ.
-  - [x] Đạt chuẩn 100% PASS trên toàn bộ bộ test (118+ tests, 0 skipped, 0 failures, 0 errors).
+  - [x] Đạt chuẩn 100% PASS trên toàn bộ bộ test (119 tests, 0 skipped, 0 failures, 0 errors).
 - [x] **Đồng Bộ Hóa Phiên Bản Toàn Bộ SSoT (`v1.8.1`):**
   - [x] Cập nhật `VERSION`, `app/config.py`, `static/sw.js`, `static/index.html` lên `v1.8.1`.
 

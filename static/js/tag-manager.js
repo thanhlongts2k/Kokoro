@@ -277,6 +277,10 @@ const KokoroTagManager = (() => {
    */
   const loadSuggestedChips = async (containerEl, inputEl, onTagChangedCallback) => {
     if (!containerEl) return;
+    if (window.KokoroAuth && !window.KokoroAuth.currentUser) {
+      containerEl.innerHTML = '';
+      return;
+    }
     try {
       if (!window.KokoroAPI) return;
       const res = await window.KokoroAPI.getTags();
@@ -338,6 +342,10 @@ const KokoroTagManager = (() => {
    */
   const loadPopularTags = async (containerEl, activeFilter, onSelectTagCallback) => {
     if (!containerEl) return;
+    if (window.KokoroAuth && !window.KokoroAuth.currentUser) {
+      containerEl.innerHTML = '';
+      return;
+    }
     try {
       if (!window.KokoroAPI) return;
       const res = await window.KokoroAPI.getTags();
@@ -758,6 +766,10 @@ const KokoroTagManager = (() => {
 
   const renderTagsTab = async () => {
     if (!tagsListContainer) return;
+    if (window.KokoroAuth && !window.KokoroAuth.currentUser) {
+      tagsListContainer.innerHTML = '';
+      return;
+    }
     try {
       tagsListContainer.innerHTML = `<div style="text-align: center; padding: 20px; font-size: 12px; color: var(--text-muted);">Đang tải danh sách thẻ... ✨</div>`;
       const res = await window.KokoroAPI.getTags();

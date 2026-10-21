@@ -198,6 +198,28 @@ class TestV180OfflinePWAResilience(unittest.TestCase):
         self.assertIn("c.name AS category_name", repo_code)
         self.assertIn("LEFT JOIN categories c ON e.category_id = c.id", repo_code)
 
+    def test_10_logout_cascade_and_zen_prompt_shuffle_contracts(self):
+        """Verify app.js, tag-manager.js, and zen-prompts.js fix 401 cascade and TypeError."""
+        app_js = (BASE_DIR / "static" / "js" / "app.js").read_text(encoding="utf-8")
+        tag_manager_js = (BASE_DIR / "static" / "js" / "tag-manager.js").read_text(encoding="utf-8")
+        zen_prompts_js = (BASE_DIR / "static" / "js" / "zen-prompts.js").read_text(encoding="utf-8")
+
+        # 1. app.js guards onUserChanged against null user
+        self.assertIn("if (!user) {", app_js)
+        self.assertIn("this.entries = [];", app_js)
+        self.assertIn("window.KokoroTimelineFeed.render([])", app_js)
+
+        # 2. app.js defensive zen prompt shuffle handler
+        self.assertIn("typeof p.shufflePrompt === 'function'", app_js)
+        self.assertIn("typeof p.getRandomPrompt === 'function'", app_js)
+
+        # 3. zen-prompts.js exports shufflePrompt and renderNewPrompt
+        self.assertIn("shufflePrompt(currentId = null)", zen_prompts_js)
+        self.assertIn("renderNewPrompt(currentId = null)", zen_prompts_js)
+
+        # 4. tag-manager.js guards getTags against unauthenticated user
+        self.assertIn("window.KokoroAuth && !window.KokoroAuth.currentUser", tag_manager_js)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

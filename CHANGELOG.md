@@ -3,7 +3,10 @@
 Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal Diary & Photo Journal PWA** được ghi nhận chi tiết tại tệp này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) và tuân thủ [Semantic Versioning (SemVer)](https://semver.org/).
 
 ## [1.8.1] - 2026-10-21
-### Tech Debt Sprint, Query Optimization & 100% Automated Test Coverage (Zero Skipped)
+### Tech Debt Sprint, Query Optimization, Runtime Console Fixes & 100% Automated Test Coverage (Zero Skipped)
+- **Khắc Phục Triệt Để 2 Lỗi Runtime Console (`static/js/app.js`, `static/js/tag-manager.js`, `static/js/zen-prompts.js`, `static/js/timeline-feed.js`):**
+  * *Lỗi 401 Cascade Khi Đăng Xuất:* Trong `app.js` (`onUserChanged`, `loadCategories`, `loadEntries`, `loadStats`, `loadPopularTags`), bổ sung kiểm tra nghiêm ngặt `if (!user)`. Khi đăng xuất, xóa sạch dữ liệu đệm hiển thị (`entries`, `allEntries`, `stats`, `categories`), reset sidebar tags, render timeline rỗng (`window.KokoroTimelineFeed.render([])`) và return ngay mà không gọi các API cá nhân; chặn tương tự trong `tag-manager.js` không gọi `getTags()` khi không có user đăng nhập.
+  * *Lỗi TypeError Nút "Gợi Ý Khác" Trên Banner Zen Prompt:* Khắc phục lỗi `Uncaught TypeError: window.KokoroZenPrompt.shufflePrompt is not a function`. Bổ sung alias chuẩn hóa `shufflePrompt()` và `renderNewPrompt()` vào `window.KokoroZenPrompt` (`static/js/zen-prompts.js`), đồng thời bổ sung logic kiểm tra phòng thủ linh hoạt trong `static/js/app.js` trước khi kích hoạt.
 - **Tích Hợp Giao Diện Dọn Rác Ảnh Mồ Côi & Tối Ưu Bộ Nhớ (`static/index.html`, `static/js/api.js`, `static/js/app.js`):**
   * *Frontend API:* Bổ sung hàm `cleanupOrphanedMedia(gracePeriodHours = 2.0)` trong `static/js/api.js` gọi endpoint `POST /api/maintenance/cleanup-orphaned-media`.
   * *UI Quản Trị & Cài Đặt Hồ Sơ:* Thêm nút bấm / action card kính mờ Soft Sakura `#profile-action-cleanup-media` trong `#view-profile`: `[ 🧹 Dọn dẹp ảnh rác & Tối ưu bộ nhớ ]`.
@@ -15,7 +18,7 @@ Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal 
 - **Kích Hoạt Toàn Bộ 9 Integration Tests & Xây Dựng SQLite Mock DB Test Fixture (`app/mock_database.py`, `app/database.py`, `tests/`):**
   * *Điều Tra & Khắc Phục Test Bị Bỏ Qua:* Rà soát các integration test suite (`test_api_upload.py`, `test_v160_backend_api.py`, `test_v164_orphaned_media_cleanup.py`, `test_v165_release.py`, `test_v170_frontend_contracts.py`) từng bị skip ngầm khi chạy trong môi trường không có sẵn dịch vụ PostgreSQL.
   * *SQLite In-Memory Mock Pool:* Xây dựng mô phỏng CSDL SQLite trong `app/mock_database.py` hỗ trợ đầy đủ các hàm PostgreSQL đặc thù (`json_agg`, `array_agg`, `json_build_object`, `TO_CHAR`, `NOW`, và view ánh xạ `pg_indexes`).
-  * *100% Test Coverage (Zero Skipped):* Kích hoạt lại và chạy thành công toàn bộ 118 unit & integration tests mà không còn bất kỳ test nào bị skip (`skipped=0, failures=0, errors=0`).
+  * *100% Test Coverage (Zero Skipped):* Kích hoạt lại và chạy thành công toàn bộ 119 unit & integration tests mà không còn bất kỳ test nào bị skip (`skipped=0, failures=0, errors=0`).
 - **Đồng Bộ Hóa SSoT Toàn Dự Án (`v1.8.1`):**
   * Nâng phiên bản toàn hệ thống lên `v1.8.1` đồng bộ tại `VERSION`, `app/config.py`, `static/sw.js`, `static/index.html` và toàn bộ test suites.
 

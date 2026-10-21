@@ -393,6 +393,20 @@
     },
 
     /**
+     * Alias for shuffling / generating a new prompt
+     */
+    shufflePrompt(currentId = null) {
+      return this.getRandomPrompt(currentId);
+    },
+
+    /**
+     * Secondary alias for rendering/generating new prompt
+     */
+    renderNewPrompt(currentId = null) {
+      return this.getRandomPrompt(currentId);
+    },
+
+    /**
      * Check if prompt card is dismissed today
      */
     isDismissed(dateStr = null) {

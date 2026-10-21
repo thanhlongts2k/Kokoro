@@ -34,17 +34,29 @@ const KokoroApp = {
     if (['timeline', 'calendar', 'memories', 'profile'].includes(initialHash) && initialHash !== 'timeline') {
       this.switchView(initialHash, false);
       try { history.replaceState({ view: initialHash }, '', '#' + initialHash); } catch (err) {}
-    } else {
-      try { history.replaceState({ view: 'timeline' }, '', '#timeline'); } catch (err) {}
-    }
+    } else { try { history.replaceState({ view: 'timeline' }, '', '#timeline'); } catch (err) {} }
 
     if (window.KokoroAuth) await window.KokoroAuth.init();
-    await this.loadCategories(); await this.loadEntries(); await this.loadStats(); await this.loadPopularTags();
+    if (window.KokoroAuth?.currentUser) {
+      await Promise.all([this.loadCategories(), this.loadEntries(), this.loadStats(), this.loadPopularTags()]);
+    } else {
+      this.renderTimeline();
+    }
     this.initZenPromptHandlers();
   },
 
   async onUserChanged(user) {
-    await this.loadCategories(); await this.loadEntries(); await this.loadStats(); await this.loadPopularTags();
+    if (!user) {
+      this.entries = []; this.allEntries = []; this.stats = null; this.categories = [];
+      const tagsContainer = document.getElementById('sidebar-popular-tags');
+      if (tagsContainer) tagsContainer.innerHTML = '';
+      if (window.KokoroTimelineFeed?.render) window.KokoroTimelineFeed.render([]);
+      else this.renderTimeline();
+      this.renderCalendar();
+      if (this.currentView === 'profile') this.renderProfileView();
+      return;
+    }
+    await Promise.all([this.loadCategories(), this.loadEntries(), this.loadStats(), this.loadPopularTags()]);
     if (this.currentView === 'profile') this.renderProfileView();
   },
 
@@ -91,12 +103,9 @@ const KokoroApp = {
       const dropdown = document.getElementById('profile-dropdown-menu');
       if (pill) { e.stopPropagation(); if (dropdown) dropdown.classList.toggle('active'); return; }
       if (dropdown && !e.target.closest('#profile-dropdown-menu')) dropdown.classList.remove('active');
-    });
-    document.addEventListener('click', (e) => {
       const item = e.target.closest('#profile-dropdown-menu .dropdown-item, #profile-dropdown-menu .dropdown-header');
-      if (item) {
-        const dropdown = document.getElementById('profile-dropdown-menu');
-        if (dropdown) setTimeout(() => dropdown.classList.remove('active'), 150);
+      if (item && dropdown) {
+        setTimeout(() => dropdown.classList.remove('active'), 150);
         if (item.classList.contains('dropdown-header') || item.dataset.switchView === 'profile') this.switchView('profile');
       }
     });
@@ -133,16 +142,17 @@ const KokoroApp = {
     if (prevMonthBtn) prevMonthBtn.addEventListener('click', () => { this.calMonth--; if (this.calMonth < 0) { this.calMonth = 11; this.calYear--; } this.renderFullCalendar(); });
     if (nextMonthBtn) nextMonthBtn.addEventListener('click', () => { this.calMonth++; if (this.calMonth > 11) { this.calMonth = 0; this.calYear++; } this.renderFullCalendar(); });
 
-    const deleteConfirmBtn = document.getElementById('confirm-delete-btn') || document.getElementById('delete-confirm-btn');
-    const deleteCancelBtn = document.getElementById('confirm-cancel-btn') || document.getElementById('delete-cancel-btn');
-    if (deleteConfirmBtn) deleteConfirmBtn.addEventListener('click', () => this.confirmDelete());
-    if (deleteCancelBtn) deleteCancelBtn.addEventListener('click', () => this.closeDeleteConfirm());
-    const deleteModalEl = document.getElementById('delete-confirm-modal') || document.getElementById('delete-modal');
-    if (deleteModalEl) deleteModalEl.addEventListener('click', (e) => { if (e.target === deleteModalEl) this.closeDeleteConfirm(); });
+    const delOk = document.getElementById('confirm-delete-btn') || document.getElementById('delete-confirm-btn');
+    const delCancel = document.getElementById('confirm-cancel-btn') || document.getElementById('delete-cancel-btn');
+    const delModal = document.getElementById('delete-confirm-modal') || document.getElementById('delete-modal');
+    if (delOk) delOk.addEventListener('click', () => this.confirmDelete());
+    if (delCancel) delCancel.addEventListener('click', () => this.closeDeleteConfirm());
+    if (delModal) delModal.addEventListener('click', (e) => { if (e.target === delModal) this.closeDeleteConfirm(); });
     window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.pendingDeleteId !== null) this.closeDeleteConfirm(); });
   },
 
   async loadCategories() {
+    if (window.KokoroAuth && !window.KokoroAuth.currentUser) { this.categories = []; return; }
     try {
       const res = await window.KokoroAPI.getCategories();
       const cats = (res && (res.categories || res.data)) ? (res.categories || res.data) : [];
@@ -151,6 +161,9 @@ const KokoroApp = {
   },
 
   async loadEntries() {
+    if (window.KokoroAuth && !window.KokoroAuth.currentUser) {
+      this.entries = []; this.allEntries = []; this.isLoading = false; this.renderTimeline(); return;
+    }
     this.isLoading = true; this.renderTimeline();
     try {
       const res = await window.KokoroAPI.getEntries({
@@ -158,17 +171,12 @@ const KokoroApp = {
         tag: this.timelineState.tag, search: this.timelineState.search
       });
       this.entries = (res?.entries || res?.data) || [];
-      if (!this.timelineState.mood && !this.timelineState.categoryId && !this.timelineState.tag && !this.timelineState.search) {
-        this.allEntries = this.entries;
-      }
+      if (!this.timelineState.mood && !this.timelineState.categoryId && !this.timelineState.tag && !this.timelineState.search) this.allEntries = this.entries;
       if (res?._isOffline) this.updateOfflineBanner(true);
     } catch (err) {
       console.error('[KokoroApp] Failed to load entries:', err);
-      if (!navigator.onLine || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
-        this.updateOfflineBanner(true);
-      } else {
-        this.showToast('Không thể tải danh sách nhật ký: ' + err.message, 'error');
-      }
+      if (!navigator.onLine || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) this.updateOfflineBanner(true);
+      else this.showToast('Không thể tải danh sách nhật ký: ' + err.message, 'error');
     } finally {
       this.isLoading = false; this.renderTimeline(); this.renderCalendar();
       if (this.currentView === 'calendar') this.renderFullCalendar();
@@ -178,6 +186,7 @@ const KokoroApp = {
   },
 
   async loadStats() {
+    if (window.KokoroAuth && !window.KokoroAuth.currentUser) { this.stats = null; return; }
     try {
       const res = await window.KokoroAPI.getStats();
       const st = res && (res.data || (res.totalEntries !== undefined ? res : null));
@@ -187,8 +196,9 @@ const KokoroApp = {
 
   async loadPopularTags() {
     const container = document.getElementById('sidebar-popular-tags');
-    if (!container || !window.KokoroTagManager) return;
-    await window.KokoroTagManager.loadPopularTags(container, this.activeTagFilter, (tag) => this.setTagFilter(tag));
+    if (!container) return;
+    if (window.KokoroAuth && !window.KokoroAuth.currentUser) { container.innerHTML = ''; return; }
+    if (window.KokoroTagManager) await window.KokoroTagManager.loadPopularTags(container, this.activeTagFilter, (tag) => this.setTagFilter(tag));
   },
 
   // -------------------------------------------------------------------------
@@ -211,14 +221,11 @@ const KokoroApp = {
   },
 
   buildEntryCardHtml(entry) {
-    // Delegated to TimelineFeed with UI contract tokens:
-    // window.escapeHtml(entry.title) / window.escapeHtml(entry.content)
-    // category-badge-pill / weatherBadgeHtml / weatherIcons / data-action="export-card"
+    // Contracts: window.escapeHtml(entry.title) / window.escapeHtml(entry.content) / category-badge-pill / weatherBadgeHtml / weatherIcons / data-action="export-card"
     return window.TimelineFeed ? window.TimelineFeed.buildEntryCardHtml(entry, { activeTagFilter: this.activeTagFilter }) : '';
   },
 
   attachCardActions(container) {
-    // Card actions binding: data-action="export-card", edit, delete, pin, tag
     if (window.TimelineFeed) window.TimelineFeed.attachCardActions(container, this._getCardCallbacks());
   },
 
@@ -229,17 +236,13 @@ const KokoroApp = {
   },
 
   handleLoadMoreEntries() {
-    // Contract: timeline-load-more-btn, timeline-end-indicator
+    // Contracts: timeline-load-more-btn / timeline-end-indicator
     const feedEl = document.getElementById('timeline-feed-container');
     if (feedEl && window.TimelineFeed) window.TimelineFeed.handleLoadMoreEntries({ feedEl, filteredEntries: this.getFilteredEntries(), pagination: this.timelinePagination, activeTagFilter: this.activeTagFilter, callbacks: this._getCardCallbacks() });
   },
 
-  renderMoodFilterChips() {
-    if (window.TimelineFeed) window.TimelineFeed.renderMoodFilterChips({ sidebarContainer: document.getElementById('sidebar-mood-filters'), mobileContainer: document.getElementById('mobile-mood-chips'), categories: this.categories, totalEntries: this.allEntries.length, timelineState: this.timelineState, onSelectMood: (m, c) => this.setMoodFilter(m, c) });
-  },
-  renderCalendar() {
-    if (window.CalendarView) window.CalendarView.renderMiniCalendar({ gridEl: document.getElementById('mini-calendar-grid'), monthTitleEl: document.getElementById('cal-month-title'), entries: this.entries, activeDateFilter: this.activeDateFilter, onSelectDate: (d) => { this.setDateFilter(d); this.renderCalendar(); } });
-  },
+  renderMoodFilterChips() { if (window.TimelineFeed) window.TimelineFeed.renderMoodFilterChips({ sidebarContainer: document.getElementById('sidebar-mood-filters'), mobileContainer: document.getElementById('mobile-mood-chips'), categories: this.categories, totalEntries: this.allEntries.length, timelineState: this.timelineState, onSelectMood: (m, c) => this.setMoodFilter(m, c) }); },
+  renderCalendar() { if (window.CalendarView) window.CalendarView.renderMiniCalendar({ gridEl: document.getElementById('mini-calendar-grid'), monthTitleEl: document.getElementById('cal-month-title'), entries: this.entries, activeDateFilter: this.activeDateFilter, onSelectDate: (d) => { this.setDateFilter(d); this.renderCalendar(); } }); },
   renderFullCalendar() {
     if (!window.CalendarView) return;
     window.CalendarView.renderFullCalendar({ gridEl: document.getElementById('full-calendar-grid'), monthTitleEl: document.getElementById('full-cal-month-title'), entries: this.entries, calYear: this.calYear, calMonth: this.calMonth, selectedCalDate: this.selectedCalDate, onSelectDate: (d) => { this.selectedCalDate = d; this.renderFullCalendar(); } });
@@ -296,7 +299,6 @@ const KokoroApp = {
       this.showToast('Đã cập nhật trạng thái ghim bài viết! 📌');
     } catch (err) { this.showToast('Lỗi ghim bài viết: ' + err.message, 'error'); }
   },
-
   openDeleteConfirm(id) {
     this.pendingDeleteId = id; const modal = document.getElementById('delete-confirm-modal') || document.getElementById('delete-modal');
     if (modal) { modal.classList.add('active'); modal.setAttribute('aria-hidden', 'false'); if (window.lockBodyScroll) window.lockBodyScroll(true); const b = document.getElementById('confirm-delete-btn') || document.getElementById('delete-confirm-btn'); if (b) b.focus(); }
@@ -315,12 +317,11 @@ const KokoroApp = {
   },
 
   switchView(viewName, updateHistory = true) {
-    const validViews = ['timeline', 'calendar', 'memories', 'profile'];
-    if (!validViews.includes(viewName)) return;
+    if (!['timeline', 'calendar', 'memories', 'profile'].includes(viewName)) return;
     this.currentView = viewName;
     document.querySelectorAll('.c-view, .app-view').forEach((s) => { s.style.display = 'none'; s.classList.remove('active'); });
-    const targetSection = document.getElementById(`view-${viewName}`);
-    if (targetSection) { targetSection.style.display = 'block'; targetSection.classList.add('active'); }
+    const target = document.getElementById(`view-${viewName}`);
+    if (target) { target.style.display = 'block'; target.classList.add('active'); }
     document.querySelectorAll('[data-switch-view]').forEach((b) => b.classList.toggle('active', b.dataset.switchView === viewName));
     document.querySelectorAll('.bottom-nav-item').forEach((b) => b.classList.toggle('active', b.dataset.tab === viewName));
     document.querySelectorAll('[data-view-target]').forEach((b) => b.classList.toggle('active', b.dataset.viewTarget === viewName));
@@ -328,15 +329,12 @@ const KokoroApp = {
     else if (viewName === 'calendar') this.renderFullCalendar();
     else if (viewName === 'memories') this.renderMemoriesGallery();
     else if (viewName === 'profile') this.renderProfileView();
-    if (updateHistory) {
-      try { history.pushState({ view: viewName }, '', `#${viewName}`); } catch (err) { console.warn('[KokoroApp] Failed to update history state:', err); }
-    }
+    if (updateHistory) { try { history.pushState({ view: viewName }, '', `#${viewName}`); } catch (err) {} }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   },
 
   initTheme() { this.applyTheme(localStorage.getItem('kokoro_theme') || 'light'); },
   toggleTheme() { this.applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); },
-
   async exportBackup() {
     try {
       this.showToast('Đang trích xuất bản sao lưu nhật ký... 🌸'); await window.KokoroAPI.exportEntries(); this.showToast('Đã tải bản sao lưu JSON thành công! ✨');
@@ -348,7 +346,6 @@ const KokoroApp = {
       this.showToast(res.message || 'Khôi phục dữ liệu thành công! ✨'); await this.loadCategories(); await this.loadEntries(); await this.loadStats();
     } catch (err) { this.showToast('Lỗi khôi phục: ' + err.message, 'error'); }
   },
-
   applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('kokoro_theme', theme);
@@ -378,7 +375,11 @@ const KokoroApp = {
     const shuffleBtn = document.getElementById('zen-prompt-shuffle-btn') || document.getElementById('daily-zen-shuffle-btn'), diceIcon = document.getElementById('zen-dice-icon') || (shuffleBtn?.querySelector('i'));
     if (shuffleBtn && window.KokoroZenPrompt) shuffleBtn.addEventListener('click', () => {
       if (diceIcon) { diceIcon.classList.remove('anim-spinning'); void diceIcon.offsetWidth; diceIcon.classList.add('anim-spinning'); }
-      this.activeZenPrompt = window.KokoroZenPrompt.shufflePrompt(); this.renderDailyZenCard(); this.showToast('Đã đổi gợi ý suy ngẫm mới ✨', 'info');
+      const p = window.KokoroZenPrompt, curId = this.activeZenPrompt?.id || null;
+      if (typeof p.shufflePrompt === 'function') this.activeZenPrompt = p.shufflePrompt(curId);
+      else if (typeof p.getRandomPrompt === 'function') this.activeZenPrompt = p.getRandomPrompt(curId);
+      else if (typeof p.renderNewPrompt === 'function') this.activeZenPrompt = p.renderNewPrompt(curId);
+      this.renderDailyZenCard(); this.showToast('Đã đổi gợi ý suy ngẫm mới ✨', 'info');
     });
     const dismissBtn = document.getElementById('zen-prompt-dismiss-btn') || document.getElementById('daily-zen-dismiss-btn');
     if (dismissBtn && window.KokoroZenPrompt) dismissBtn.addEventListener('click', () => {

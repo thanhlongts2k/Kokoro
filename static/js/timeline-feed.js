@@ -432,10 +432,28 @@ const TimelineFeed = {
       endIndicator.innerHTML = `<span>🌸 Bạn đã xem hết tất cả ${filteredEntries.length} khoảnh khắc 🌸</span>`;
       feedEl.appendChild(endIndicator);
     }
+  },
+
+  /**
+   * Convenience render method for empty states or list updates
+   */
+  render(entries = []) {
+    const feedEl = document.getElementById('timeline-feed');
+    if (feedEl) {
+      this.renderTimeline({
+        feedEl,
+        filteredEntries: entries,
+        isLoading: false,
+        pagination: { visibleLimit: 50 },
+        activeTagFilter: null,
+        callbacks: {}
+      });
+    }
   }
 };
 
 window.TimelineFeed = TimelineFeed;
+window.KokoroTimelineFeed = TimelineFeed;
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { TimelineFeed };
