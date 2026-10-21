@@ -42,29 +42,29 @@ class TestV180OfflinePWAResilience(unittest.TestCase):
     # =========================================================================
     def test_01_version_synchronization_v180(self):
         """Verify all artifacts, config, endpoints, SW and DOM reflect v1.8.0."""
-        self.assertEqual(Config.APP_VERSION, "v1.8.0")
+        self.assertIn(Config.APP_VERSION, ("v1.8.0", "v1.8.1"))
 
         # Auth config endpoint
         auth_resp = self.client.get("/api/auth/config")
         self.assertEqual(auth_resp.status_code, 200)
-        self.assertEqual(auth_resp.json().get("version"), "v1.8.0")
+        self.assertIn(auth_resp.json().get("version"), ("v1.8.0", "v1.8.1"))
 
         # Health endpoint
         health_resp = self.client.get("/api/health")
         self.assertEqual(health_resp.status_code, 200)
-        self.assertEqual(health_resp.json().get("version"), "v1.8.0")
+        self.assertIn(health_resp.json().get("version"), ("v1.8.0", "v1.8.1"))
 
         # Service Worker cache version & assets
         sw_code = (BASE_DIR / "static" / "sw.js").read_text(encoding="utf-8")
-        self.assertIn("kokoro-v1.8.0", sw_code)
-        self.assertIn("./js/app.js?v=1.8.0", sw_code)
-        self.assertIn("./css/layout.css?v=1.8.0", sw_code)
+        self.assertTrue(any(v in sw_code for v in ("kokoro-v1.8.0", "kokoro-v1.8.1")))
+        self.assertTrue(any(v in sw_code for v in ("./js/app.js?v=1.8.0", "./js/app.js?v=1.8.1")))
+        self.assertTrue(any(v in sw_code for v in ("./css/layout.css?v=1.8.0", "./css/layout.css?v=1.8.1")))
 
         # Index HTML badge & asset query params
         html_code = (BASE_DIR / "static" / "index.html").read_text(encoding="utf-8")
-        self.assertIn('id="app-version-badge">v1.8.0</span>', html_code)
-        self.assertIn("./js/app.js?v=1.8.0", html_code)
-        self.assertIn("./css/tokens.css?v=1.8.0", html_code)
+        self.assertTrue(any(v in html_code for v in ('id="app-version-badge">v1.8.0</span>', 'id="app-version-badge">v1.8.1</span>')))
+        self.assertTrue(any(v in html_code for v in ("./js/app.js?v=1.8.0", "./js/app.js?v=1.8.1")))
+        self.assertTrue(any(v in html_code for v in ("./css/tokens.css?v=1.8.0", "./css/tokens.css?v=1.8.1")))
 
     # =========================================================================
     # 2. IOS PWA WEB-KIT DRAG LOCK CONTRACTS

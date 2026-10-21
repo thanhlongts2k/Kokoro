@@ -494,6 +494,22 @@
   - [x] Bộ kiểm thử `tests/test_v180_offline_pwa_resilience.py` (9 test cases PASS 100%).
   - [x] 100% test suite tự động hệ thống đạt kết quả PASS.
 
+### 🔹 Giai đoạn 23.1: Sprint Trả Nợ Kỹ Thuật (Tech Debt Sprint v1.8.1) — UI Dọn Rác Ảnh Mồ Côi, Safe Query Bounds & 100% Test Coverage (Zero Skipped)
+- [x] **Frontend UI Dọn Rác Ảnh Mồ Côi & Tối Ưu Bộ Nhớ (`static/index.html`, `static/js/api.js`, `static/js/app.js`):**
+  - [x] Thêm action card kính mờ Soft Sakura `#profile-action-cleanup-media` trong khu vực Cài đặt hồ sơ cá nhân (`#view-profile`): `[ 🧹 Dọn dẹp ảnh rác & Tối ưu bộ nhớ ]`.
+  - [x] Popup xác nhận dịu dàng Soft Sakura qua `KokoroDialog.confirm` giải thích rõ cơ chế quét và xóa ảnh mồ côi trong `/uploads/`.
+  - [x] Gọi endpoint `POST /api/maintenance/cleanup-orphaned-media` và hiển thị Toast thông báo chi tiết số lượng file và dung lượng đĩa giải phóng.
+- [x] **Tối Ưu Truy Vấn CSDL & Safe Query Bounds (`app/repositories/entry_repository.py`, `app/routes/entry_routes.py`, `static/js/api.js`):**
+  - [x] Thiết lập ràng buộc an toàn `limit` (mặc định 100, trần an toàn 500) và `offset` (mặc định 0) chặn đứng nguy cơ truy vấn không giới hạn (unbounded query) khi dữ liệu lớn.
+  - [x] Xây dựng endpoint siêu nhẹ `GET /api/entries/calendar-summary` chỉ trả về `id`, `entry_date`, `mood`, `is_pinned` phục vụ vẽ chấm lịch và tính streak mà không tải payload nặng.
+  - [x] Giữ nguyên tính tương thích ngược cho client `KokoroAPI.getEntries()`.
+- [x] **Thiết Lập SQLite Mock DB Fixture & Kích Hoạt 100% Test Coverage Không Bị Skip (`app/mock_database.py`, `app/database.py`, `tests/`):**
+  - [x] Xây dựng MockPool SQLite giả lập tương thích PostgreSQL với các hàm tổng hợp `json_agg`, `array_agg`, `json_build_object`, `TO_CHAR`, `NOW`, và view `pg_indexes`.
+  - [x] Kích hoạt toàn bộ 9 integration test cases trước đây bị skip khi thiếu PostgreSQL cục bộ.
+  - [x] Đạt chuẩn 100% PASS trên toàn bộ bộ test (118+ tests, 0 skipped, 0 failures, 0 errors).
+- [x] **Đồng Bộ Hóa Phiên Bản Toàn Bộ SSoT (`v1.8.1`):**
+  - [x] Cập nhật `VERSION`, `app/config.py`, `static/sw.js`, `static/index.html` lên `v1.8.1`.
+
 ---
 
 ### 🔹 GIAI ĐOẠN TIẾP THEO (v1.8.5) — PERSONALIZATION HUB & HỒ SƠ TÀI KHOẢN (NEXT FOCUS)

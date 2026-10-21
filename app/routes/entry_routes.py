@@ -112,10 +112,23 @@ async def get_entries(request: Request) -> JSONResponse:
         return err
 
     qp = request.query_params
+    limit_val = None
+    if "limit" in qp:
+        try:
+            limit_val = max(1, min(int(qp["limit"]), 500))
+        except (ValueError, TypeError):
+            limit_val = 100
+    offset_val = None
+    if "offset" in qp:
+        try:
+            offset_val = max(0, int(qp["offset"]))
+        except (ValueError, TypeError):
+            offset_val = 0
+
     filters = EntryFilterDTO(
         mood=qp.get("mood"), category_param=qp.get("category_id") or qp.get("category"),
         tag=qp.get("tag"), month=qp.get("month"), search=qp.get("search"),
-        limit=qp.get("limit"), offset=qp.get("offset")
+        limit=limit_val, offset=offset_val
     )
     try:
         return JSONResponse({"status": "success", "entries": EntryRepository.get_entries(user["id"], filters)}, headers=NO_CACHE_HEADERS)
@@ -127,6 +140,26 @@ async def get_entries(request: Request) -> JSONResponse:
     except Exception as e:
         logger.exception("[entry_routes.get_entries] Lỗi hệ thống khi tải nhật ký: %s", e)
         return JSONResponse({"status": "error", "message": "Lỗi hệ thống khi tải danh sách nhật ký", "entries": []}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
+
+
+async def get_calendar_summary(request: Request) -> JSONResponse:
+    """Ultra-lightweight endpoint returning minimal entry summary for calendar and profile streak."""
+    user, err = require_auth(request)
+    if err:
+        return err
+
+    month = request.query_params.get("month")
+    try:
+        summary = EntryRepository.get_calendar_summary(user["id"], month=month)
+        return JSONResponse({"status": "success", "entries": summary}, headers=NO_CACHE_HEADERS)
+    except KokoroDomainError as e:
+        return JSONResponse({"status": "error", "message": e.message, "entries": []}, status_code=e.status_code, headers=NO_CACHE_HEADERS)
+    except psycopg2.Error as e:
+        logger.error("[entry_routes.get_calendar_summary] Lỗi cơ sở dữ liệu: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi cơ sở dữ liệu khi tải tóm tắt lịch", "entries": []}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
+    except Exception as e:
+        logger.exception("[entry_routes.get_calendar_summary] Lỗi hệ thống: %s", e)
+        return JSONResponse({"status": "error", "message": "Lỗi hệ thống khi tải tóm tắt lịch", "entries": []}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, headers=NO_CACHE_HEADERS)
 
 
 async def get_entry_by_id(request: Request) -> JSONResponse:
@@ -410,6 +443,7 @@ async def import_entries(request: Request) -> JSONResponse:
 entry_routes = [
     Route("/api/entries", get_entries, methods=["GET"]),
     Route("/api/entries", create_entry, methods=["POST"]),
+    Route("/api/entries/calendar-summary", get_calendar_summary, methods=["GET"]),
     Route("/api/entries/export", export_entries, methods=["GET"]),
     Route("/api/entries/import", import_entries, methods=["POST"]),
     Route("/api/entries/{id:int}", get_entry_by_id, methods=["GET"]),

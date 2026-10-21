@@ -153,6 +153,8 @@ const KokoroAPI = (() => {
         if (filters.tag) params.append('tag', filters.tag);
         if (filters.month) params.append('month', filters.month);
         if (filters.search) params.append('search', filters.search);
+        if (filters.limit !== undefined && filters.limit !== null) params.append('limit', filters.limit);
+        if (filters.offset !== undefined && filters.offset !== null) params.append('offset', filters.offset);
         params.append('_t', Date.now()); // Anti-cache timestamp for iOS Safari / WebKit
 
         const qs = `?${params.toString()}`;
@@ -208,6 +210,36 @@ const KokoroAPI = (() => {
         }
         throw err;
       }
+    },
+
+    // GET /api/entries/calendar-summary (Ultra-lightweight for Calendar & Streak)
+    async getCalendarSummary(month = null) {
+      try {
+        const params = new URLSearchParams();
+        if (month) params.append('month', month);
+        params.append('_t', Date.now());
+        const qs = `?${params.toString()}`;
+        return await request(`/entries/calendar-summary${qs}`, {
+          method: 'GET',
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        });
+      } catch (err) {
+        console.error('[KokoroAPI] Lỗi tải tóm tắt lịch:', err);
+        throw err;
+      }
+    },
+
+    // POST /api/maintenance/cleanup-orphaned-media
+    async cleanupOrphanedMedia(gracePeriodHours = 2.0) {
+      return await request('/maintenance/cleanup-orphaned-media', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ grace_period_hours: gracePeriodHours })
+      });
     },
 
     // POST /api/entries (multipart/form-data)

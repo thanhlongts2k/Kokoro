@@ -111,8 +111,8 @@ const KokoroApp = {
     bind(['profile-action-logout'], () => { if (window.KokoroAuth) window.KokoroAuth.logout(); });
     bind(['profile-action-pwa', 'pwa-install-menu-item'], () => { const p = document.getElementById('pwa-install-btn'); if (p) p.click(); });
     bind(['export-backup-btn', 'profile-action-export'], (e) => { e.preventDefault(); this.exportBackup(); });
-    const backupInput = document.getElementById('backup-file-input');
     bind(['import-backup-btn', 'profile-action-import'], (e) => { e.preventDefault(); if (backupInput) { backupInput.value = ''; backupInput.click(); } });
+    bind(['profile-action-cleanup-media'], async (e) => { e.preventDefault(); if (window.ProfileStats) await window.ProfileStats.cleanupOrphanedMedia(this); });
     if (backupInput) backupInput.addEventListener('change', async (e) => { const f = e.target.files && e.target.files[0]; if (f) await this.importBackup(f); });
 
     const handleRoute = () => { const h = (location.hash || '#timeline').replace('#', ''); if (['timeline', 'calendar', 'memories', 'profile'].includes(h) && h !== this.currentView) this.switchView(h, false); };

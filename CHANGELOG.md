@@ -2,6 +2,23 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal Diary & Photo Journal PWA** được ghi nhận chi tiết tại tệp này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) và tuân thủ [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.8.1] - 2026-10-21
+### Tech Debt Sprint, Query Optimization & 100% Automated Test Coverage (Zero Skipped)
+- **Tích Hợp Giao Diện Dọn Rác Ảnh Mồ Côi & Tối Ưu Bộ Nhớ (`static/index.html`, `static/js/api.js`, `static/js/app.js`):**
+  * *Frontend API:* Bổ sung hàm `cleanupOrphanedMedia(gracePeriodHours = 2.0)` trong `static/js/api.js` gọi endpoint `POST /api/maintenance/cleanup-orphaned-media`.
+  * *UI Quản Trị & Cài Đặt Hồ Sơ:* Thêm nút bấm / action card kính mờ Soft Sakura `#profile-action-cleanup-media` trong `#view-profile`: `[ 🧹 Dọn dẹp ảnh rác & Tối ưu bộ nhớ ]`.
+  * *Xử Lý Tương Tác & Phản Hồi:* Hiển thị hộp thoại xác nhận Soft Sakura qua `KokoroDialog.confirm` cảnh báo rõ cơ chế quét dọn; sau khi thực hiện hiển thị Toast thông báo chi tiết: *"✨ Đã dọn dẹp sạch sẽ: Xóa thành công X tệp ảnh rác, giải phóng Y MB dung lượng đĩa"*.
+- **Tối Ưu Truy Vấn CSDL & Server-Side Pagination / Calendar Summary (`app/repositories/entry_repository.py`, `app/routes/entry_routes.py`, `static/js/api.js`):**
+  * *Safe Query Bounds:* Áp dụng giới hạn an toàn `limit` (mặc định 100, trần an toàn 500) và `offset` (mặc định 0) cho `GET /api/entries`, triệt tiêu rủi ro unbounded queries gây cạn kiệt tài nguyên khi tài khoản có hàng ngàn bài viết.
+  * *Endpoint Tóm Tắt Lịch Siêu Nhẹ (`GET /api/entries/calendar-summary`):* Xây dựng endpoint chuyên biệt chỉ trả về metadata tối giản (`id`, `entry_date`, `mood`, `is_pinned`), hỗ trợ vẽ chấm màu trên Lịch và tính chuỗi ngày viết nhật ký (Streak) với độ trễ cực thấp và tiết kiệm băng thông.
+  * *Tương Thích Ngược Tuyệt Đối:* Duy trì hợp đồng của `KokoroAPI.getEntries()` cho phép truyền linh hoạt bộ lọc và pagination mà không làm gãy luồng nạp timeline hiện hữu.
+- **Kích Hoạt Toàn Bộ 9 Integration Tests & Xây Dựng SQLite Mock DB Test Fixture (`app/mock_database.py`, `app/database.py`, `tests/`):**
+  * *Điều Tra & Khắc Phục Test Bị Bỏ Qua:* Rà soát các integration test suite (`test_api_upload.py`, `test_v160_backend_api.py`, `test_v164_orphaned_media_cleanup.py`, `test_v165_release.py`, `test_v170_frontend_contracts.py`) từng bị skip ngầm khi chạy trong môi trường không có sẵn dịch vụ PostgreSQL.
+  * *SQLite In-Memory Mock Pool:* Xây dựng mô phỏng CSDL SQLite trong `app/mock_database.py` hỗ trợ đầy đủ các hàm PostgreSQL đặc thù (`json_agg`, `array_agg`, `json_build_object`, `TO_CHAR`, `NOW`, và view ánh xạ `pg_indexes`).
+  * *100% Test Coverage (Zero Skipped):* Kích hoạt lại và chạy thành công toàn bộ 118 unit & integration tests mà không còn bất kỳ test nào bị skip (`skipped=0, failures=0, errors=0`).
+- **Đồng Bộ Hóa SSoT Toàn Dự Án (`v1.8.1`):**
+  * Nâng phiên bản toàn hệ thống lên `v1.8.1` đồng bộ tại `VERSION`, `app/config.py`, `static/sw.js`, `static/index.html` và toàn bộ test suites.
+
 ## [1.8.0] - 2026-10-20
 ### Feature, Fix & PWA Offline Resilience (Fix Kéo Chéo iOS, Offline Resilience, CRUD & Xuất Thẻ Ảnh)
 - **Vá Lỗi & Hoàn Thiện Phân Hệ Xuất Thẻ Ảnh Kỷ Niệm (Daily Card Export) (`static/js/card-canvas-engine.js`, `static/js/card-export.js`):**

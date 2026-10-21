@@ -35,10 +35,10 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <!-- Stylesheets (Relative paths for Nginx reverse proxy subpath support) -->
-  <link rel="stylesheet" href="./css/tokens.css?v=1.8.0">
-  <link rel="stylesheet" href="./css/glass.css?v=1.8.0">
-  <link rel="stylesheet" href="./css/components.css?v=1.8.0">
-  <link rel="stylesheet" href="./css/layout.css?v=1.8.0">
+  <link rel="stylesheet" href="./css/tokens.css?v=1.8.1">
+  <link rel="stylesheet" href="./css/glass.css?v=1.8.1">
+  <link rel="stylesheet" href="./css/components.css?v=1.8.1">
+  <link rel="stylesheet" href="./css/layout.css?v=1.8.1">
 </head>
 <body>
 
@@ -578,6 +578,18 @@
               <i class="bi bi-upload" style="font-size: 12px; color: var(--text-muted);"></i>
             </button>
 
+            <!-- 5.1. Cleanup Orphaned Media & Disk Optimization -->
+            <button class="c-profile-menu-item" id="profile-action-cleanup-media">
+              <div class="c-profile-menu-left">
+                <i class="bi bi-trash3 c-profile-menu-icon text-sakura"></i>
+                <div>
+                  <div style="color: var(--text-primary); font-weight: 700;">🧹 Dọn dẹp ảnh rác & Tối ưu bộ nhớ</div>
+                  <div style="font-size: 11.5px; color: var(--text-muted);">Quét và giải phóng ảnh mồ côi không thuộc bài viết nào</div>
+                </div>
+              </div>
+              <i class="bi bi-stars text-sakura" style="font-size: 13px;"></i>
+            </button>
+
             <!-- 6. Install PWA App -->
             <button class="c-profile-menu-item" id="profile-action-pwa" style="display: none;">
               <div class="c-profile-menu-left">
@@ -657,7 +669,7 @@
         <div class="footer-brand">
           <img src="./icons/sakura.svg" alt="Kokoro Logo" class="footer-logo" />
           <span class="footer-title">Kokoro <span style="font-weight: 500; font-size: 14px; color: var(--sakura-500);">心</span></span>
-          <span class="footer-version-badge" id="app-version-badge">v1.8.0</span>
+          <span class="footer-version-badge" id="app-version-badge">v1.8.1</span>
         </div>
         <p class="footer-tagline">
           Lắng đọng tâm trí & lưu giữ những khoảnh khắc nhẹ nhàng trong không gian an yên.
@@ -1315,25 +1327,25 @@
   </div>
 
   <!-- Scripts Execution (Relative paths for reverse proxy subpath) -->
-  <script src="./js/constants.js?v=1.8.0"></script>
-  <script src="./js/api.js?v=1.8.0"></script>
-  <script src="./js/auth.js?v=1.8.0"></script>
-  <script src="./js/toast.js?v=1.8.0"></script>
-  <script src="./js/datetime-picker.js?v=1.8.0"></script>
-  <script src="./js/tag-manager.js?v=1.8.0"></script>
-  <script src="./js/lightbox.js?v=1.8.0"></script>
-  <script src="./js/zen-prompts.js?v=1.8.0"></script>
-  <script src="./js/editor.js?v=1.8.0"></script>
-  <script src="./js/card-themes.js?v=1.8.0"></script>
-  <script src="./js/card-canvas-engine.js?v=1.8.0"></script>
-  <script src="./js/card-export.js?v=1.8.0"></script>
-  <script src="./js/zen-audio.js?v=1.8.0"></script>
-  <script src="./js/passcode.js?v=1.8.0"></script>
-  <script src="./js/pwa.js?v=1.8.0"></script>
-  <script src="./js/timeline-feed.js?v=1.8.0"></script>
-  <script src="./js/calendar-view.js?v=1.8.0"></script>
-  <script src="./js/memories-view.js?v=1.8.0"></script>
-  <script src="./js/profile-stats.js?v=1.8.0"></script>
-  <script src="./js/app.js?v=1.8.0"></script>
+  <script src="./js/constants.js?v=1.8.1"></script>
+  <script src="./js/api.js?v=1.8.1"></script>
+  <script src="./js/auth.js?v=1.8.1"></script>
+  <script src="./js/toast.js?v=1.8.1"></script>
+  <script src="./js/datetime-picker.js?v=1.8.1"></script>
+  <script src="./js/tag-manager.js?v=1.8.1"></script>
+  <script src="./js/lightbox.js?v=1.8.1"></script>
+  <script src="./js/zen-prompts.js?v=1.8.1"></script>
+  <script src="./js/editor.js?v=1.8.1"></script>
+  <script src="./js/card-themes.js?v=1.8.1"></script>
+  <script src="./js/card-canvas-engine.js?v=1.8.1"></script>
+  <script src="./js/card-export.js?v=1.8.1"></script>
+  <script src="./js/zen-audio.js?v=1.8.1"></script>
+  <script src="./js/passcode.js?v=1.8.1"></script>
+  <script src="./js/pwa.js?v=1.8.1"></script>
+  <script src="./js/timeline-feed.js?v=1.8.1"></script>
+  <script src="./js/calendar-view.js?v=1.8.1"></script>
+  <script src="./js/memories-view.js?v=1.8.1"></script>
+  <script src="./js/profile-stats.js?v=1.8.1"></script>
+  <script src="./js/app.js?v=1.8.1"></script>
 </body>
 </html>

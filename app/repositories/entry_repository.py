@@ -92,26 +92,64 @@ class EntryRepository:
             ORDER BY e.is_pinned DESC, e.entry_date DESC, e.created_at DESC
         """
 
-        if filters.limit:
+        if filters.limit is not None:
             try:
                 limit_val = max(1, min(int(filters.limit), 500))
                 sql += " LIMIT %s"
                 params.append(limit_val)
             except (ValueError, TypeError):
-                pass
+                sql += " LIMIT %s"
+                params.append(100)
+        else:
+            # Default safe query limit to prevent unbounded memory bloat
+            sql += " LIMIT %s"
+            params.append(100)
 
-        if filters.offset:
+        if filters.offset is not None:
             try:
                 offset_val = max(0, int(filters.offset))
                 sql += " OFFSET %s"
                 params.append(offset_val)
             except (ValueError, TypeError):
                 pass
+        else:
+            sql += " OFFSET 0"
 
         with get_cursor() as cur:
             cur.execute(sql, tuple(params))
             rows = cur.fetchall()
             return [cls._format_entry_row(dict(r)) for r in rows]
+
+    @classmethod
+    def get_calendar_summary(cls, user_id: int, month: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Ultra-lightweight calendar summary query returning only id, entry_date, mood, is_pinned.
+        Optimized for rendering calendar dot indicators and calculating profile streaks
+        without downloading heavy text or photo attachments.
+        """
+        sql = """
+            SELECT id, TO_CHAR(entry_date, 'YYYY-MM-DD') AS entry_date, mood, is_pinned
+            FROM entries
+            WHERE user_id = %s
+        """
+        params = [user_id]
+        if month:
+            sql += " AND TO_CHAR(entry_date, 'YYYY-MM') = %s"
+            params.append(month)
+        sql += " ORDER BY entry_date ASC, id ASC;"
+
+        with get_cursor() as cur:
+            cur.execute(sql, tuple(params))
+            rows = cur.fetchall()
+            return [
+                {
+                    "id": r["id"],
+                    "entry_date": str(r["entry_date"]),
+                    "mood": r["mood"] or "serene",
+                    "is_pinned": bool(r.get("is_pinned", False))
+                }
+                for r in rows
+            ]
 
     @classmethod
     def get_by_id(cls, entry_id: int, user_id: int) -> Optional[Dict[str, Any]]:

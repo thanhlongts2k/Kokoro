@@ -193,6 +193,47 @@ const ProfileStats = {
     if (pwaAction && headerPwaBtn && headerPwaBtn.style.display !== 'none') {
       pwaAction.style.display = 'flex';
     }
+  },
+
+  /**
+   * Action handler for cleaning up orphaned media files from uploads directory
+   */
+  async cleanupOrphanedMedia(appContext) {
+    try {
+      const confirmed = window.KokoroDialog
+        ? await window.KokoroDialog.confirm({
+            title: 'Dọn dẹp ảnh rác 🧹',
+            message: 'Hệ thống sẽ quét và xóa vĩnh viễn các tệp ảnh mồ côi không còn thuộc bài viết nào trong thư mục /uploads/ để giải phóng dung lượng. Bạn có chắc chắn muốn dọn dẹp?',
+            confirmText: 'Dọn dẹp ngay',
+            cancelText: 'Hủy bỏ',
+            isDanger: true,
+            icon: 'bi-trash3'
+          })
+        : window.confirm('Hệ thống sẽ quét và xóa vĩnh viễn các tệp ảnh mồ côi không còn thuộc bài viết nào trong thư mục /uploads/ để giải phóng dung lượng. Bạn có chắc chắn muốn dọn dẹp?');
+
+      if (!confirmed) return;
+
+      const toast = (msg, type = 'success') => {
+        if (appContext && typeof appContext.showToast === 'function') appContext.showToast(msg, type);
+        else if (window.KokoroToast) window.KokoroToast.show(msg, type);
+      };
+
+      toast('Đang quét và dọn dẹp ảnh mồ côi... 🍃', 'info');
+      const res = await window.KokoroAPI.cleanupOrphanedMedia(2.0);
+      const data = res?.data || {};
+      const deletedCount = data.deleted_count !== undefined ? data.deleted_count : (res?.deleted_count || 0);
+      const freedMb = data.freed_mb !== undefined ? data.freed_mb : (res?.freed_mb || 0);
+
+      toast(`✨ Đã dọn dẹp sạch sẽ: Xóa thành công ${deletedCount} tệp ảnh rác, giải phóng ${freedMb} MB dung lượng đĩa`);
+      if (appContext && typeof appContext.loadStats === 'function') {
+        await appContext.loadStats();
+      }
+    } catch (err) {
+      console.error('[ProfileStats] Lỗi khi dọn dẹp ảnh mồ côi:', err);
+      const errMsg = 'Lỗi khi dọn dẹp ảnh rác: ' + (err.message || err);
+      if (appContext && typeof appContext.showToast === 'function') appContext.showToast(errMsg, 'error');
+      else if (window.KokoroToast) window.KokoroToast.show(errMsg, 'error');
+    }
   }
 };
 
