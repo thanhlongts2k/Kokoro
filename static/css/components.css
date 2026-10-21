@@ -2186,5 +2186,73 @@ body.modal-scroll-locked {
   -webkit-overflow-scrolling: touch !important;
 }
 
+/* ==========================================================================
+   PERSONALIZATION HUB & SOFT SAKURA TOGGLE (v1.8.5)
+   ========================================================================== */
+.c-profile-bio {
+  margin: 6px 0 0 0;
+  font-size: 13.5px;
+  font-style: italic;
+  color: var(--text-secondary);
+  max-width: 500px;
+  line-height: 1.5;
+  background: rgba(244, 114, 182, 0.06);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px dashed rgba(244, 114, 182, 0.3);
+  display: inline-block;
+}
+
+.switch-toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.switch-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-toggle .slider-round {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(148, 163, 184, 0.35);
+  transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 24px;
+}
+
+.switch-toggle .slider-round:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #ffffff;
+  transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.switch-toggle input:checked + .slider-round {
+  background-color: var(--sakura-500);
+}
+
+.switch-toggle input:checked + .slider-round:before {
+  transform: translateX(20px);
+}
+
+.switch-toggle input:focus + .slider-round {
+  box-shadow: 0 0 0 2px rgba(244, 114, 182, 0.3);
+}
+
 
 

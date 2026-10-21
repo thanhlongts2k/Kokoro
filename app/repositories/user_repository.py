@@ -18,7 +18,7 @@ class UserRepository:
         """Retrieve full user profile by primary key id."""
         with get_cursor() as cur:
             cur.execute("""
-                SELECT id, google_id, email, name, avatar_url, created_at, last_login
+                SELECT id, google_id, email, name, avatar_url, bio, custom_avatar_url, use_custom_profile, created_at, last_login
                 FROM users
                 WHERE id = %s;
             """, (user_id,))
@@ -32,7 +32,7 @@ class UserRepository:
         """Retrieve the first registered user (used for mock dev login fallback)."""
         with get_cursor() as cur:
             cur.execute("""
-                SELECT id, google_id, email, name, avatar_url, created_at, last_login
+                SELECT id, google_id, email, name, avatar_url, bio, custom_avatar_url, use_custom_profile, created_at, last_login
                 FROM users
                 ORDER BY id ASC
                 LIMIT 1;
@@ -47,7 +47,7 @@ class UserRepository:
         """Retrieve all users in database ordered by id ASC."""
         with get_cursor() as cur:
             cur.execute("""
-                SELECT id, google_id, email, name, avatar_url, created_at, last_login
+                SELECT id, google_id, email, name, avatar_url, bio, custom_avatar_url, use_custom_profile, created_at, last_login
                 FROM users
                 ORDER BY id ASC;
             """)
@@ -59,7 +59,7 @@ class UserRepository:
         """Retrieve ONLY mock development accounts. NEVER leak real/private users."""
         with get_cursor() as cur:
             cur.execute("""
-                SELECT id, google_id, email, name, avatar_url, created_at, last_login
+                SELECT id, google_id, email, name, avatar_url, bio, custom_avatar_url, use_custom_profile, created_at, last_login
                 FROM users
                 WHERE google_id LIKE 'mock_%' OR email LIKE '%@kokoro.me'
                 ORDER BY id ASC;
@@ -96,19 +96,58 @@ class UserRepository:
                             avatar_url = COALESCE(%s, avatar_url),
                             last_login = CURRENT_TIMESTAMP
                         WHERE id = %s
-                        RETURNING id, google_id, email, name, avatar_url, created_at, last_login;
+                        RETURNING id, google_id, email, name, avatar_url, bio, custom_avatar_url, use_custom_profile, created_at, last_login;
                     """, (google_id, email, name, avatar_url, existing["id"]))
                     user_row = cur.fetchone()
                 else:
                     cur.execute("""
                         INSERT INTO users (google_id, email, name, avatar_url, last_login)
                         VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
-                        RETURNING id, google_id, email, name, avatar_url, created_at, last_login;
+                        RETURNING id, google_id, email, name, avatar_url, bio, custom_avatar_url, use_custom_profile, created_at, last_login;
                     """, (google_id, email, name, avatar_url))
                     user_row = cur.fetchone()
                     seed_default_categories(user_row["id"], cur=cur)
 
                 return cls._row_to_dto(dict(user_row))
+
+    @classmethod
+    def update_profile(
+        cls,
+        user_id: int,
+        name: Optional[str] = None,
+        bio: Optional[str] = None,
+        custom_avatar_url: Optional[str] = None,
+        use_custom_profile: Optional[bool] = None
+    ) -> Optional[UserDTO]:
+        """
+        Update user profile personalization fields (name, bio, custom_avatar_url, use_custom_profile).
+        """
+        with get_db() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT id, google_id, email, name, avatar_url, bio, custom_avatar_url, use_custom_profile, created_at, last_login
+                    FROM users WHERE id = %s;
+                """, (user_id,))
+                current = cur.fetchone()
+                if not current:
+                    return None
+
+                new_name = name if name is not None else current["name"]
+                new_bio = bio if bio is not None else current.get("bio")
+                new_custom_avatar = custom_avatar_url if custom_avatar_url is not None else current.get("custom_avatar_url")
+                new_use_custom = use_custom_profile if use_custom_profile is not None else current.get("use_custom_profile", False)
+
+                cur.execute("""
+                    UPDATE users
+                    SET name = %s,
+                        bio = %s,
+                        custom_avatar_url = %s,
+                        use_custom_profile = %s
+                    WHERE id = %s
+                    RETURNING id, google_id, email, name, avatar_url, bio, custom_avatar_url, use_custom_profile, created_at, last_login;
+                """, (new_name, new_bio, new_custom_avatar, new_use_custom, user_id))
+                updated = cur.fetchone()
+                return cls._row_to_dto(dict(updated))
 
     @staticmethod
     def _row_to_dto(row: dict) -> UserDTO:
@@ -121,6 +160,9 @@ class UserRepository:
             name=row["name"],
             google_id=row.get("google_id"),
             avatar_url=row.get("avatar_url"),
+            bio=row.get("bio"),
+            custom_avatar_url=row.get("custom_avatar_url"),
+            use_custom_profile=bool(row.get("use_custom_profile", False)),
             created_at=created_str,
             last_login=login_str
         )

@@ -36,10 +36,10 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <!-- Stylesheets (Relative paths for Nginx reverse proxy subpath support) -->
-  <link rel="stylesheet" href="./css/tokens.css?v=1.8.2">
-  <link rel="stylesheet" href="./css/glass.css?v=1.8.2">
-  <link rel="stylesheet" href="./css/components.css?v=1.8.2">
-  <link rel="stylesheet" href="./css/layout.css?v=1.8.2">
+  <link rel="stylesheet" href="./css/tokens.css?v=1.8.5">
+  <link rel="stylesheet" href="./css/glass.css?v=1.8.5">
+  <link rel="stylesheet" href="./css/components.css?v=1.8.5">
+  <link rel="stylesheet" href="./css/layout.css?v=1.8.5">
 </head>
 <body>
 
@@ -465,18 +465,24 @@
              VIEW 4: PROFILE (TRANG CÁ NHÂN & TIỆN ÍCH)
              ========================================== -->
         <div id="view-profile" class="c-view">
-          <!-- Profile Header Card -->
+          <!-- Profile Header Card (v1.8.5 Personalization Hub) -->
           <div class="glass-panel c-profile-header-card">
             <div class="c-profile-avatar-wrap">
               <img src="./icons/sakura.svg" alt="Avatar" id="profile-view-avatar" class="c-profile-avatar-large" onerror="this.onerror=null; this.src='./icons/sakura.svg';" />
             </div>
-            <div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
               <h2 class="c-profile-name" id="profile-view-name">Aria Tanaka</h2>
               <p class="c-profile-email" id="profile-view-email">aria.tanaka@kokoro.me</p>
+              <p class="c-profile-bio" id="profile-view-bio" style="display: none;"></p>
             </div>
-            <span class="c-chip c-chip--mood-serene" style="font-size: 11px;">
-              Thành viên Kokoro Zen Journal 🌸
-            </span>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 4px;">
+              <span class="c-chip c-chip--mood-serene" style="font-size: 11px;">
+                Thành viên Kokoro Zen Journal 🌸
+              </span>
+              <button type="button" class="btn-glass" id="profile-edit-btn" style="border-radius: var(--radius-pill); padding: 5px 14px; font-size: 12px; font-weight: 700; color: var(--text-primary); display: inline-flex; align-items: center; gap: 6px;">
+                <i class="bi bi-pencil-square text-sakura"></i> Chỉnh sửa hồ sơ
+              </button>
+            </div>
           </div>
 
           <!-- Emotion Journey Metrics Card -->
@@ -688,7 +694,7 @@
         <div class="footer-brand">
           <img src="./icons/sakura.svg" alt="Kokoro Logo" class="footer-logo" />
           <span class="footer-title">Kokoro <span style="font-weight: 500; font-size: 14px; color: var(--sakura-500);">心</span></span>
-          <span class="footer-version-badge" id="app-version-badge">v1.8.2</span>
+          <span class="footer-version-badge" id="app-version-badge">v1.8.5</span>
         </div>
         <p class="footer-tagline">
           Lắng đọng tâm trí & lưu giữ những khoảnh khắc nhẹ nhàng trong không gian an yên.
@@ -984,6 +990,92 @@
         <button type="button" class="btn-sakura" id="cleanup-result-close-btn" style="width: 100%; padding: 11px; border-radius: var(--radius-pill); font-size: 13.5px; font-weight: 700;">
           Tuyệt vời 🌸
         </button>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         6.4. SOFT SAKURA EDIT PROFILE & PERSONALIZATION MODAL (v1.8.5)
+         ==================================================================== -->
+    <div class="modal-overlay" id="edit-profile-modal" role="dialog" aria-modal="true" aria-labelledby="edit-profile-title" style="display: none; align-items: center; justify-content: center; z-index: 9999;">
+      <div class="glass-panel" style="max-width: 460px; width: 92%; padding: 26px; border-radius: var(--radius-xl); box-shadow: var(--shadow-xl); position: relative; max-height: min(90vh, 680px); overflow-y: auto;">
+        <!-- Close Button -->
+        <button type="button" class="action-icon-btn" id="edit-profile-close-btn" style="position: absolute; top: 16px; right: 16px;" aria-label="Đóng">
+          <i class="bi bi-x-lg"></i>
+        </button>
+
+        <h3 id="edit-profile-title" style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0 0 4px; display: flex; align-items: center; gap: 8px;">
+          <i class="bi bi-person-gear text-sakura"></i> Cá Nhân Hóa Hồ Sơ
+        </h3>
+        <p style="font-size: 12.5px; color: var(--text-muted); margin: 0 0 18px;">
+          Tùy chỉnh diện mạo, châm ngôn sống và ảnh đại diện của bạn 🌸
+        </p>
+
+        <!-- Google Sync Switcher Toggle -->
+        <div style="background: var(--surface-glass-subtle); border: 1px solid var(--border-glass-subtle); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(244, 114, 182, 0.15); display: flex; align-items: center; justify-content: center; color: var(--sakura-500); font-size: 15px;">
+              <i class="bi bi-google"></i>
+            </div>
+            <div>
+              <div style="font-size: 12.5px; font-weight: 700; color: var(--text-primary);">Sử dụng thông tin từ tài khoản Google</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Khôi phục nhanh tên và ảnh gốc từ Google GIS</div>
+            </div>
+          </div>
+          <label class="switch-toggle" title="Bật để dùng thông tin từ Google">
+            <input type="checkbox" id="edit-profile-google-sync-toggle" />
+            <span class="slider-round"></span>
+          </label>
+        </div>
+
+        <!-- Form fields -->
+        <form id="edit-profile-form" enctype="multipart/form-data">
+          <!-- Avatar picker with circular preview -->
+          <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 18px;">
+            <div style="position: relative; cursor: pointer;" id="edit-profile-avatar-trigger" title="Nhấp để đổi ảnh đại diện">
+              <img id="edit-profile-avatar-preview" src="./icons/sakura.svg" alt="Preview Avatar" style="width: 86px; height: 86px; border-radius: 50%; object-fit: cover; border: 3px solid var(--sakura-400); box-shadow: 0 4px 14px rgba(244, 114, 182, 0.35);" onerror="this.onerror=null; this.src='./icons/sakura.svg';" />
+              <div style="position: absolute; bottom: 0; right: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--sakura-500); color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.25);">
+                <i class="bi bi-camera-fill"></i>
+              </div>
+            </div>
+            <input type="file" id="edit-profile-avatar-input" accept="image/jpeg,image/png,image/webp" style="display: none;" />
+            <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 8px; text-align: center;">
+              Chạm vào ảnh để đổi (Cắt vuông 1:1, nén WebP 256x256 tối ưu)
+            </div>
+          </div>
+
+          <!-- Display Name -->
+          <div style="margin-bottom: 14px;">
+            <label for="edit-profile-name-input" style="display: block; font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">
+              Tên hiển thị <span class="text-sakura">*</span>
+            </label>
+            <input type="text" id="edit-profile-name-input" class="search-input" style="width: 100%; border-radius: var(--radius-md); padding: 9px 12px;" placeholder="Nhập tên của bạn..." maxlength="100" required />
+          </div>
+
+          <!-- Bio with character counter 0/250 -->
+          <div style="margin-bottom: 18px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label for="edit-profile-bio-input" style="font-size: 12px; font-weight: 700; color: var(--text-primary);">
+                Châm ngôn sống (Bio)
+              </label>
+              <span id="edit-profile-bio-counter" style="font-size: 11px; color: var(--text-muted); font-weight: 600;">0/250</span>
+            </div>
+            <textarea id="edit-profile-bio-input" class="search-input" style="width: 100%; border-radius: var(--radius-md); padding: 9px 12px; min-height: 75px; resize: vertical; font-family: inherit; font-size: 12.5px; line-height: 1.5;" placeholder="Viết một câu châm ngôn sống hoặc cảm nghĩ yêu thích của bạn..." maxlength="250"></textarea>
+          </div>
+
+          <!-- Alert / Error message container -->
+          <div id="edit-profile-error" style="display: none; padding: 10px 14px; border-radius: var(--radius-md); background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; font-size: 12px; margin-bottom: 16px;"></div>
+
+          <!-- Action buttons -->
+          <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" class="btn-glass" id="edit-profile-cancel-btn" style="padding: 9px 18px; border-radius: var(--radius-pill); font-size: 12.5px; font-weight: 600;">
+              Hủy
+            </button>
+            <button type="submit" class="btn-sakura" id="edit-profile-submit-btn" style="padding: 9px 22px; border-radius: var(--radius-pill); font-size: 12.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+              <span id="edit-profile-submit-spinner" class="spinner-border spinner-border-sm" style="display: none; width: 13px; height: 13px; border-width: 2px;" role="status"></span>
+              <span id="edit-profile-submit-text">Lưu thay đổi 🌸</span>
+            </button>
+          </div>
+        </form>
       </div>
     </div>
 
@@ -1387,25 +1479,25 @@
   </div>
 
   <!-- Scripts Execution (Relative paths for reverse proxy subpath) -->
-  <script src="./js/constants.js?v=1.8.2"></script>
-  <script src="./js/api.js?v=1.8.2"></script>
-  <script src="./js/auth.js?v=1.8.2"></script>
-  <script src="./js/toast.js?v=1.8.2"></script>
-  <script src="./js/datetime-picker.js?v=1.8.2"></script>
-  <script src="./js/tag-manager.js?v=1.8.2"></script>
-  <script src="./js/lightbox.js?v=1.8.2"></script>
-  <script src="./js/zen-prompts.js?v=1.8.2"></script>
-  <script src="./js/editor.js?v=1.8.2"></script>
-  <script src="./js/card-themes.js?v=1.8.2"></script>
-  <script src="./js/card-canvas-engine.js?v=1.8.2"></script>
-  <script src="./js/card-export.js?v=1.8.2"></script>
-  <script src="./js/zen-audio.js?v=1.8.2"></script>
-  <script src="./js/passcode.js?v=1.8.2"></script>
-  <script src="./js/pwa.js?v=1.8.2"></script>
-  <script src="./js/timeline-feed.js?v=1.8.2"></script>
-  <script src="./js/calendar-view.js?v=1.8.2"></script>
-  <script src="./js/memories-view.js?v=1.8.2"></script>
-  <script src="./js/profile-stats.js?v=1.8.2"></script>
-  <script src="./js/app.js?v=1.8.2"></script>
+  <script src="./js/constants.js?v=1.8.5"></script>
+  <script src="./js/api.js?v=1.8.5"></script>
+  <script src="./js/auth.js?v=1.8.5"></script>
+  <script src="./js/toast.js?v=1.8.5"></script>
+  <script src="./js/datetime-picker.js?v=1.8.5"></script>
+  <script src="./js/tag-manager.js?v=1.8.5"></script>
+  <script src="./js/lightbox.js?v=1.8.5"></script>
+  <script src="./js/zen-prompts.js?v=1.8.5"></script>
+  <script src="./js/editor.js?v=1.8.5"></script>
+  <script src="./js/card-themes.js?v=1.8.5"></script>
+  <script src="./js/card-canvas-engine.js?v=1.8.5"></script>
+  <script src="./js/card-export.js?v=1.8.5"></script>
+  <script src="./js/zen-audio.js?v=1.8.5"></script>
+  <script src="./js/passcode.js?v=1.8.5"></script>
+  <script src="./js/pwa.js?v=1.8.5"></script>
+  <script src="./js/timeline-feed.js?v=1.8.5"></script>
+  <script src="./js/calendar-view.js?v=1.8.5"></script>
+  <script src="./js/memories-view.js?v=1.8.5"></script>
+  <script src="./js/profile-stats.js?v=1.8.5"></script>
+  <script src="./js/app.js?v=1.8.5"></script>
 </body>
 </html>

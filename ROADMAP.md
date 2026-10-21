@@ -531,12 +531,13 @@
 
 ---
 
-### 🔹 GIAI ĐOẠN TIẾP THEO (v1.8.5) — PERSONALIZATION HUB & HỒ SƠ TÀI KHOẢN (NEXT FOCUS)
-1. **Personalization Hub & Hồ Sơ Người Dùng Nâng Cao:**
-   - [ ] Tùy chỉnh Avatar cá nhân: Tải ảnh đại diện tùy ý, cắt cúp vuông và tự động nén tối ưu định dạng WebP (200x200px) lưu tại `/uploads/avatars/`.
-   - [ ] Bio Châm Ngôn & Triết Lý Sống: Cho phép người dùng lưu trữ câu nói tâm đắc, phương châm sống yêu thích hiển thị trang trọng trên Profile Card.
-   - [ ] Tùy chọn nguồn đồng bộ hồ sơ: Cho phép chuyển đổi linh hoạt giữa ảnh/tên từ Google Account và Hồ sơ tùy chỉnh cục bộ (Custom Local Profile).
-   - [ ] REST API cập nhật hồ sơ người dùng: `PUT /api/users/profile` hỗ trợ cập nhật `name`, `bio`, `avatar_file`.
+- [x] **Milestone v1.8.5: Personalization Hub (Cá Nhân Hóa Hồ Sơ & Đồng Bộ Google) — Hoàn Thành Xuất Sắc:**
+  - [x] **PostgreSQL & Mock DB Incremental Migration:** Bổ sung các cột `bio` (TEXT, tối đa 250 ký tự), `custom_avatar_url` (VARCHAR(255)), `use_custom_profile` (BOOLEAN DEFAULT FALSE) qua cú pháp idempotent `ALTER TABLE users ADD COLUMN IF NOT EXISTS ...` trong `app/database.py` và cập nhật `app/mock_database.py`.
+  - [x] **MediaService WebP 256x256 Avatar Processing:** Pillow center-crop 1:1, resize 256x256, nén WebP chất lượng 85% lưu tại `/uploads/avatars/avatar_{user_id}_{timestamp}.webp` kèm hàm tự động xóa file cũ khi thay avatar mới.
+  - [x] **REST API Cập Nhật Hồ Sơ:** Endpoint `PUT /api/users/profile` nhận multipart/form-data và JSON với đầy đủ validation bảo vệ (kích thước file <= 5MB, định dạng ảnh hợp lệ, bio <= 250 ký tự, tên hiển thị <= 100 ký tự); mở rộng payload `GET /api/auth/me` trả kèm các trường cá nhân hóa.
+  - [x] **Giao Diện Chỉnh Sửa Hồ Sơ & Google Sync Switcher:** Nâng cấp Profile Header Card hiển thị avatar ưu tiên (`effectiveAvatarUrl`) và Bio châm ngôn sống Soft Sakura viền nét đứt. Thêm modal `#edit-profile-modal` với preview ảnh tròn tức thì, bộ đếm ký tự bio `0/250`, và công tắc gạt Soft Sakura `[ 🔄 Sử dụng thông tin từ tài khoản Google ]`.
+  - [x] **Kỷ Luật Architectural Bounds & Anti-Cheat Testing:** Giữ vững `static/js/app.js` ở **397 dòng** (< 400 dòng) và `entry_routes.py` ở **294 dòng** (< 300 dòng); viết test suite `tests/test_v185_personalization.py` kiểm thử hành vi thực tế và UI Fallback. Toàn bộ 140 test suites đạt **100% PASS** (`140 passed, 0 skipped, 0 failures, 0 errors`).
+  - [x] **Đồng Bộ Hóa SSoT Toàn Dự Án (`v1.8.5`):** Cập nhật đồng bộ `VERSION`, `app/config.py`, `static/sw.js`, `static/index.html`, `CHANGELOG.md` và `ROADMAP.md`.
 
 ---
 

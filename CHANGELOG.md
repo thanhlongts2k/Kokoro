@@ -2,6 +2,26 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal Diary & Photo Journal PWA** được ghi nhận chi tiết tại tệp này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) và tuân thủ [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.8.5] - 2026-10-21
+### Milestone v1.8.5: Personalization Hub (Cá Nhân Hóa Hồ Sơ & Đồng Bộ Google)
+- **Cập Nhật Lược Đồ Cơ Sở Dữ Liệu PostgreSQL (Incremental Migration) (`app/database.py`, `app/mock_database.py`, `app/schemas/user.py`, `app/repositories/user_repository.py`):**
+  * *Thêm các cột mới vào bảng `users`:* `bio` (TEXT, tối đa 250 ký tự), `custom_avatar_url` (VARCHAR(255), đường dẫn ảnh đại diện tùy biến), `use_custom_profile` (BOOLEAN DEFAULT FALSE, cờ chuyển đổi giữa thông tin tùy biến và thông tin từ Google GIS).
+  * *Migration Idempotent An Toàn:* Tự động thực thi `ALTER TABLE users ADD COLUMN IF NOT EXISTS ...` trong `init_db()` và cập nhật mock SQLite database schema mà không sửa file migration cũ hay làm gián đoạn CSDL đang chạy.
+  * *UserDTO & UserRepository:* Bổ sung hàm `update_profile(user_id, name, bio, custom_avatar_url, use_custom_profile)` và thuộc tính thông minh `effective_avatar_url` (tự động ưu tiên `custom_avatar_url` khi `use_custom_profile=true`, ngược lại dùng Google avatar).
+- **Backend Service Xử Lý Avatar WebP & REST API (`app/services/media_service.py`, `app/routes/user_routes.py`, `server.py`):**
+  * *Mô-đun Nén & Cắt Ảnh Đại Diện WebP 256x256:* `MediaService.process_and_save_avatar()` sử dụng Pillow tự động center-crop ảnh thành hình vuông 1:1, resize chuẩn 256x256 pixels và nén định dạng WebP chất lượng 85% lưu tại `/uploads/avatars/avatar_{user_id}_{timestamp}.webp`.
+  * *Tự Động Dọn Dẹp File Cũ:* `MediaService.delete_avatar_file()` tự động xóa tệp ảnh đại diện cũ khi người dùng tải lên ảnh mới để tránh rác đĩa.
+  * *Endpoint `PUT /api/users/profile`:* Nhận `multipart/form-data` hoặc JSON (`name`, `bio`, `use_custom_profile`, `avatar_file`). Xác thực nghiêm ngặt: giới hạn file <= 5MB, định dạng ảnh hợp lệ (JPEG, PNG, WEBP), châm ngôn sống bio <= 250 ký tự, tên hiển thị <= 100 ký tự.
+  * *Payload `GET /api/auth/me`:* Trả kèm đầy đủ các trường `bio`, `custom_avatar_url`, `use_custom_profile`, `effectiveAvatarUrl`.
+- **Giao Diện Chỉnh Sửa Hồ Sơ & Google Sync Switcher (`static/index.html`, `static/css/components.css`, `static/js/profile-stats.js`, `static/js/api.js`, `static/js/auth.js`):**
+  * *Nâng Cấp Profile Header Card:* Hiển thị avatar theo ưu tiên (`effectiveAvatarUrl`), hiển thị dòng châm ngôn sống Bio phong cách Soft Sakura viền nét đứt nhẹ nhàng dưới tên hiển thị, kèm nút `[ ✏️ Chỉnh sửa hồ sơ ]`.
+  * *Modal Chỉnh Sửa Hồ Sơ (`#edit-profile-modal`):* Khu vực chọn ảnh đại diện có preview tròn tức thì, bộ đếm ký tự châm ngôn sống `0/250`, và công tắc gạt Soft Sakura: `[ 🔄 Sử dụng thông tin từ tài khoản Google ]` giúp khôi phục nhanh tên và avatar gốc từ Google GIS.
+  * *Tuân Thủ Kỷ Luật File Bounds:* Toàn bộ logic modal và tương tác được đóng gói gọn trong `static/js/profile-stats.js`, giữ `static/js/app.js` ở mức **397 dòng** (< 400 dòng) và `entry_routes.py` ở **294 dòng** (< 300 dòng).
+- **Bộ Kiểm Thử Tự Động Toàn Diện v1.8.5 (`tests/test_v185_personalization.py`):**
+  * Kiểm thử trọn vẹn: Cắt xén và nén WebP 256x256, cập nhật bio, toggle switch Google GIS, các trạng thái lỗi/rỗng (file > 5MB, sai định dạng, bio > 250 ký tự, rỗng tên, unauthenticated 401).
+  * Tuân thủ triệt để nguyên tắc cấm test chuỗi tĩnh (Ban on static string matching): Kiểm thử hành vi thực tế (behavioral execution) và xác nhận giao diện có UI Fallback hoạt động trong môi trường Node.js.
+  * Toàn bộ 140 test suites đạt **100% PASS** (`140 passed, 0 skipped, 0 failures, 0 errors`).
+
 ## [1.8.2] - 2026-10-21
 ### Tech Debt Sprint v1.8.2: PWA Auto-Update Lifecycle, Media Cleanup UI & Server-Side Pagination
 - **Xử Lý Nợ 3 — PWA Auto-Update Lifecycle & Fix HTTP 304 Trên Server (`server.py`, `static/js/pwa.js`, `static/sw.js`):**

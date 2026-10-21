@@ -230,7 +230,11 @@ const KokoroAuth = {
       if (profileContainer) profileContainer.style.display = 'block';
       if (loginBtn) loginBtn.style.display = 'none';
 
-      if (avatarEl) avatarEl.src = user.avatar_url || './icons/sakura.svg';
+      const rawAvatar = user.effectiveAvatarUrl || ((user.use_custom_profile || user.useCustomProfile) ? (user.custom_avatar_url || user.customAvatarUrl) : (user.avatar_url || user.avatarUrl)) || user.avatar_url || './icons/sakura.svg';
+      if (avatarEl) {
+        avatarEl.onerror = () => { avatarEl.onerror = null; avatarEl.src = './icons/sakura.svg'; };
+        avatarEl.src = (window.KokoroAPI && typeof window.KokoroAPI.resolveMediaUrl === 'function') ? window.KokoroAPI.resolveMediaUrl(rawAvatar) : rawAvatar;
+      }
       if (nameEl) nameEl.textContent = user.name || 'Người dùng';
       if (dropdownName) dropdownName.textContent = user.name || '';
       if (dropdownEmail) dropdownEmail.textContent = user.email || '';

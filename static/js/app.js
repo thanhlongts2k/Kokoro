@@ -143,6 +143,7 @@ const KokoroApp = {
       const backupInput = document.getElementById('backup-file-input') || document.getElementById('profile-restore-input');
       bind(['import-backup-btn', 'profile-action-import'], (e) => { e.preventDefault(); if (backupInput) { backupInput.value = ''; backupInput.click(); } });
       bind(['profile-action-cleanup-media', 'profile-card-cleanup-media-btn'], async (e) => { e.preventDefault(); if (window.ProfileStats) await window.ProfileStats.cleanupOrphanedMedia(this); });
+      bind(['profile-edit-btn'], (e) => { e.preventDefault(); if (window.ProfileStats) window.ProfileStats.openEditProfileModal(this); });
       if (backupInput) backupInput.addEventListener('change', async (e) => { const f = e.target.files && e.target.files[0]; if (f) await this.importBackup(f); });
     }, 'Actions');
     safeRun(() => {

@@ -668,6 +668,24 @@ const KokoroAPI = (() => {
       return await request('/auth/logout', { method: 'POST' });
     },
 
+    // -----------------------------------------------------------------------
+    // PERSONALIZATION & USER PROFILE API (v1.8.5)
+    // -----------------------------------------------------------------------
+    // PUT /api/users/profile
+    async updateProfile(formData) {
+      if (formData instanceof FormData) {
+        return await request('/users/profile', {
+          method: 'PUT',
+          body: formData
+        });
+      }
+      return await request('/users/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+    },
+
     // HTML Sanitizer
     escapeHtml
   };

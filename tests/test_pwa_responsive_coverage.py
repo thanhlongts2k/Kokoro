@@ -46,23 +46,23 @@ class TestPWAResponsiveCoverage(unittest.TestCase):
 
     def test_04_version_synchronization_v176_v177(self):
         """Verify Config, Auth config, Health endpoint, sw.js, and index.html are synchronized to v1.7.6, v1.7.7, or v1.8.0."""
-        self.assertIn(Config.APP_VERSION, ("v1.7.6", "v1.7.7", "v1.8.0", "v1.8.1", "v1.8.2"))
+        self.assertIn(Config.APP_VERSION, ("v1.7.6", "v1.7.7", "v1.8.0", "v1.8.1", "v1.8.2", "v1.8.5"))
         
         auth_resp = self.client.get("/api/auth/config")
         self.assertEqual(auth_resp.status_code, 200)
-        self.assertIn(auth_resp.json().get("version"), ("v1.7.6", "v1.7.7", "v1.8.0", "v1.8.1", "v1.8.2"))
+        self.assertIn(auth_resp.json().get("version"), ("v1.7.6", "v1.7.7", "v1.8.0", "v1.8.1", "v1.8.2", "v1.8.5"))
 
         health_resp = self.client.get("/api/health")
         self.assertEqual(health_resp.status_code, 200)
-        self.assertIn(health_resp.json().get("version"), ("v1.7.6", "v1.7.7", "v1.8.0", "v1.8.1", "v1.8.2"))
+        self.assertIn(health_resp.json().get("version"), ("v1.7.6", "v1.7.7", "v1.8.0", "v1.8.1", "v1.8.2", "v1.8.5"))
 
         sw_code = (BASE_DIR / "static" / "sw.js").read_text(encoding="utf-8")
-        self.assertTrue(any(v in sw_code for v in ("kokoro-v1.7.6", "kokoro-v1.7.7", "kokoro-v1.8.0", "kokoro-v1.8.1", "kokoro-v1.8.2")))
-        self.assertTrue(any(f"./css/layout.css?v={v}" in sw_code for v in ("1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2")))
+        self.assertTrue(any(v in sw_code for v in ("kokoro-v1.7.6", "kokoro-v1.7.7", "kokoro-v1.8.0", "kokoro-v1.8.1", "kokoro-v1.8.2", "kokoro-v1.8.5")))
+        self.assertTrue(any(f"./css/layout.css?v={v}" in sw_code for v in ("1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2", "1.8.5")))
 
         html_code = (BASE_DIR / "static" / "index.html").read_text(encoding="utf-8")
-        self.assertTrue(any(f'id="app-version-badge">{v}</span>' in html_code for v in ("v1.7.6", "v1.7.7", "v1.8.0", "v1.8.1", "v1.8.2")))
-        self.assertTrue(any(f'./css/layout.css?v={v}' in html_code for v in ("1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2")))
+        self.assertTrue(any(f'id="app-version-badge">{v}</span>' in html_code for v in ("v1.7.6", "v1.7.7", "v1.8.0", "v1.8.1", "v1.8.2", "v1.8.5")))
+        self.assertTrue(any(f'./css/layout.css?v={v}' in html_code for v in ("1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2", "1.8.5")))
 
 if __name__ == "__main__":
     unittest.main()

@@ -280,6 +280,9 @@ def create_mock_db():
         email TEXT UNIQUE NOT NULL,
         name TEXT NOT NULL,
         avatar_url TEXT,
+        bio TEXT DEFAULT '',
+        custom_avatar_url TEXT,
+        use_custom_profile INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_login TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );

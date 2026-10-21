@@ -15,6 +15,9 @@ class UserDTO:
     name: str
     google_id: Optional[str] = None
     avatar_url: Optional[str] = None
+    bio: Optional[str] = None
+    custom_avatar_url: Optional[str] = None
+    use_custom_profile: bool = False
     created_at: Optional[str] = None
     last_login: Optional[str] = None
 
@@ -26,6 +29,8 @@ class UserDTO:
                 "lastLogin": self.last_login,
                 "googleId": self.google_id,
                 "avatarUrl": self.avatar_url,
+                "customAvatarUrl": self.custom_avatar_url,
+                "useCustomProfile": self.use_custom_profile,
             }
             if key in lookup:
                 return lookup[key]
@@ -38,6 +43,9 @@ class UserDTO:
             data["createdAt"] = self.created_at
         if self.last_login:
             data["lastLogin"] = self.last_login
+        data["customAvatarUrl"] = self.custom_avatar_url
+        data["useCustomProfile"] = self.use_custom_profile
+        data["effectiveAvatarUrl"] = self.custom_avatar_url if (self.use_custom_profile and self.custom_avatar_url) else self.avatar_url
         return data
 
 

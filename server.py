@@ -53,6 +53,7 @@ from app.routes.tag_routes import tag_routes
 from app.routes.stats_routes import stats_routes
 from app.routes.auth_routes import auth_routes
 from app.routes.maintenance_routes import maintenance_routes
+from app.routes.user_routes import user_routes
 
 # --------------------------------------------------------------------------
 # APPLICATION ROUTING & STATIC CACHE OPTIMIZATION
@@ -85,6 +86,7 @@ class AppStaticFiles(StaticFiles):
 routes = [
     Route("/api/health", api_health, methods=["GET"]),
     *auth_routes,
+    *user_routes,
     *category_routes,
     *tag_routes,
     *stats_routes,

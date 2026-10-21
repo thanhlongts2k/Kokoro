@@ -20,9 +20,11 @@ from app.repositories.photo_repository import PhotoRepository
 
 ORIGINALS_DIR = Config.UPLOAD_DIR / "originals"
 THUMBNAILS_DIR = Config.UPLOAD_DIR / "thumbnails"
+AVATARS_DIR = Config.UPLOAD_DIR / "avatars"
 
 ORIGINALS_DIR.mkdir(parents=True, exist_ok=True)
 THUMBNAILS_DIR.mkdir(parents=True, exist_ok=True)
+AVATARS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Safe threshold for decompression bomb protection (~89 MegaPixels)
 Image.MAX_IMAGE_PIXELS = 89478485
@@ -31,6 +33,8 @@ class MediaService:
     MAX_DIMENSION: int = 1600
     THUMB_DIMENSION: int = 400
     WEBP_QUALITY: int = 82
+    AVATAR_DIMENSION: int = 256
+    AVATAR_WEBP_QUALITY: int = 85
 
     @classmethod
     def process_and_save_image(cls, file_bytes: bytes, original_filename: str) -> Tuple[str, str, int, int, int]:
@@ -103,6 +107,71 @@ class MediaService:
                     full_path.unlink()
                 except OSError as e:
                     logger.warning("[MediaService] Warning: Could not delete %s: %s", full_path, e)
+
+    @classmethod
+    def process_and_save_avatar(cls, file_bytes: bytes, user_id: int) -> str:
+        """
+        Process an uploaded avatar image using Pillow:
+        - Auto-orient based on EXIF
+        - Center-crop to 1:1 square
+        - Resize to 256x256 pixels
+        - Compress as WebP at 85% quality
+        - Save to uploads/avatars/avatar_{user_id}_{timestamp}.webp
+        - Returns relative URL / path, e.g. /uploads/avatars/avatar_{user_id}_{timestamp}.webp
+        """
+        import io
+        img = Image.open(io.BytesIO(file_bytes))
+
+        # Auto-rotate based on EXIF data safely
+        try:
+            transposed = ImageOps.exif_transpose(img)
+            if transposed is not None:
+                img = transposed
+        except (AttributeError, KeyError, IndexError, ValueError, SyntaxError, OSError) as e:
+            logger.warning("[MediaService] EXIF orientation warning on avatar: %s", e)
+
+        # Convert palette/CMYK to RGB/RGBA for safe WebP encoding
+        if img.mode in ("P", "CMYK"):
+            img = img.convert("RGBA" if "transparency" in img.info else "RGB")
+        elif img.mode not in ("RGB", "RGBA"):
+            img = img.convert("RGB")
+
+        # Center-crop to 1:1 square
+        w, h = img.size
+        min_dim = min(w, h)
+        left = (w - min_dim) // 2
+        top = (h - min_dim) // 2
+        right = left + min_dim
+        bottom = top + min_dim
+        cropped = img.crop((left, top, right, bottom))
+
+        # Resize to 256x256 pixels
+        resized = cropped.resize((cls.AVATAR_DIMENSION, cls.AVATAR_DIMENSION), Image.Resampling.LANCZOS)
+
+        timestamp = int(time.time())
+        avatar_filename = f"avatar_{user_id}_{timestamp}.webp"
+        avatar_full_path = AVATARS_DIR / avatar_filename
+
+        resized.save(avatar_full_path, "WEBP", quality=cls.AVATAR_WEBP_QUALITY, method=4)
+
+        return f"/uploads/avatars/{avatar_filename}"
+
+    @classmethod
+    def delete_avatar_file(cls, avatar_url: Optional[str]) -> None:
+        """Safely delete an avatar file from uploads/avatars given its url or path."""
+        if not avatar_url or not isinstance(avatar_url, str):
+            return
+        # Normalize: strip leading slash if present for path resolution
+        clean_path = avatar_url.lstrip("/")
+        if not clean_path.startswith("uploads/avatars/"):
+            return
+        full_path = Config.BASE_DIR / clean_path
+        if full_path.exists() and full_path.is_file():
+            try:
+                full_path.unlink()
+                logger.info("[MediaService] Deleted old avatar file: %s", full_path)
+            except OSError as e:
+                logger.warning("[MediaService] Warning: Could not delete avatar %s: %s", full_path, e)
 
     @classmethod
     def scan_and_cleanup_orphans(cls, grace_period_hours: float = 2.0) -> CleanupStatsDTO:

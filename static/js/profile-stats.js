@@ -131,17 +131,39 @@ const ProfileStats = {
   renderProfileView(options) {
     const { user, entries, stats } = options;
 
-    // 1. User Header
+    // 1. User Header & Personalization (v1.8.5)
     const avatarEl = document.getElementById('profile-view-avatar');
     const nameEl = document.getElementById('profile-view-name');
     const emailEl = document.getElementById('profile-view-email');
+    const bioEl = document.getElementById('profile-view-bio');
 
     if (avatarEl) {
       avatarEl.onerror = () => { avatarEl.onerror = null; avatarEl.src = './icons/sakura.svg'; };
-      avatarEl.src = (user && user.avatar_url) ? user.avatar_url : './icons/sakura.svg';
+      const rawAvatar = user ? (user.effectiveAvatarUrl || ((user.use_custom_profile || user.useCustomProfile) ? (user.custom_avatar_url || user.customAvatarUrl) : (user.avatar_url || user.avatarUrl)) || user.avatar_url) : null;
+      avatarEl.src = rawAvatar ? (window.KokoroAPI && typeof window.KokoroAPI.resolveMediaUrl === 'function' ? window.KokoroAPI.resolveMediaUrl(rawAvatar) : rawAvatar) : './icons/sakura.svg';
     }
     if (nameEl) nameEl.textContent = user ? user.name : 'Khách vãng lai';
     if (emailEl) emailEl.textContent = user ? user.email : 'chua_dang_nhap@kokoro.me';
+    if (bioEl) {
+      const bioText = user ? (user.bio || '') : '';
+      if (bioText.trim()) {
+        bioEl.textContent = `“${bioText}”`;
+        bioEl.style.display = 'inline-block';
+      } else {
+        bioEl.textContent = '';
+        bioEl.style.display = 'none';
+      }
+    }
+
+    // Bind edit profile button
+    const editBtn = document.getElementById('profile-edit-btn');
+    if (editBtn && !editBtn._bound) {
+      editBtn._bound = true;
+      editBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.openEditProfileModal(window.KokoroApp || options.appContext);
+      });
+    }
 
     // 2. Metrics & Stats
     const entriesCountEl = document.getElementById('profile-stat-entries');
@@ -264,6 +286,271 @@ const ProfileStats = {
     modal.onclick = (e) => {
       if (e.target === modal) closeModal();
     };
+  },
+
+  /**
+   * Open the Personalization Hub Modal (v1.8.5)
+   */
+  openEditProfileModal(appContext) {
+    const modal = document.getElementById('edit-profile-modal');
+    if (!modal) return;
+
+    const user = appContext?.currentUser || window.KokoroAuth?.currentUser;
+    if (!user) {
+      if (window.KokoroToast) window.KokoroToast.show('Vui lòng đăng nhập để chỉnh sửa hồ sơ 🌸', 'warning');
+      return;
+    }
+
+    this.initEditProfileModal(appContext);
+
+    const nameInput = document.getElementById('edit-profile-name-input');
+    const bioInput = document.getElementById('edit-profile-bio-input');
+    const bioCounter = document.getElementById('edit-profile-bio-counter');
+    const avatarPreview = document.getElementById('edit-profile-avatar-preview');
+    const googleSyncToggle = document.getElementById('edit-profile-google-sync-toggle');
+    const errorEl = document.getElementById('edit-profile-error');
+    const fileInput = document.getElementById('edit-profile-avatar-input');
+
+    if (fileInput) fileInput.value = '';
+    if (errorEl) {
+      errorEl.style.display = 'none';
+      errorEl.textContent = '';
+    }
+
+    const useCustom = Boolean(user.use_custom_profile || user.useCustomProfile);
+    const isGoogleSync = !useCustom;
+    if (googleSyncToggle) {
+      googleSyncToggle.checked = isGoogleSync;
+    }
+
+    if (nameInput) {
+      nameInput.value = user.name || '';
+      nameInput.disabled = false;
+    }
+
+    if (bioInput) {
+      bioInput.value = user.bio || '';
+      if (bioCounter) bioCounter.textContent = `${bioInput.value.length}/250`;
+    }
+
+    const currentAvatar = user.effectiveAvatarUrl || (useCustom ? (user.custom_avatar_url || user.customAvatarUrl) : (user.avatar_url || user.avatarUrl)) || user.avatar_url || './icons/sakura.svg';
+    if (avatarPreview) {
+      avatarPreview.onerror = () => { avatarPreview.onerror = null; avatarPreview.src = './icons/sakura.svg'; };
+      avatarPreview.src = (window.KokoroAPI && typeof window.KokoroAPI.resolveMediaUrl === 'function') ? window.KokoroAPI.resolveMediaUrl(currentAvatar) : currentAvatar;
+    }
+
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+    if (typeof window.lockBodyScroll === 'function') window.lockBodyScroll(true);
+  },
+
+  /**
+   * Close the Personalization Hub Modal
+   */
+  closeEditProfileModal() {
+    const modal = document.getElementById('edit-profile-modal');
+    if (!modal) return;
+    modal.style.display = 'none';
+    modal.classList.remove('active');
+    if (typeof window.lockBodyScroll === 'function') window.lockBodyScroll(false);
+  },
+
+  /**
+   * Initialize Edit Profile Modal event listeners once
+   */
+  initEditProfileModal(appContext) {
+    if (this._editModalInitialized) return;
+    this._editModalInitialized = true;
+
+    const modal = document.getElementById('edit-profile-modal');
+    if (!modal) return;
+
+    const closeBtn = document.getElementById('edit-profile-close-btn');
+    const cancelBtn = document.getElementById('edit-profile-cancel-btn');
+    const avatarTrigger = document.getElementById('edit-profile-avatar-trigger');
+    const fileInput = document.getElementById('edit-profile-avatar-input');
+    const avatarPreview = document.getElementById('edit-profile-avatar-preview');
+    const googleSyncToggle = document.getElementById('edit-profile-google-sync-toggle');
+    const bioInput = document.getElementById('edit-profile-bio-input');
+    const bioCounter = document.getElementById('edit-profile-bio-counter');
+    const form = document.getElementById('edit-profile-form');
+    const nameInput = document.getElementById('edit-profile-name-input');
+    const errorEl = document.getElementById('edit-profile-error');
+    const submitBtn = document.getElementById('edit-profile-submit-btn');
+    const spinner = document.getElementById('edit-profile-submit-spinner');
+    const submitText = document.getElementById('edit-profile-submit-text');
+
+    const closeModal = () => this.closeEditProfileModal();
+
+    if (closeBtn) closeBtn.onclick = closeModal;
+    if (cancelBtn) cancelBtn.onclick = closeModal;
+    modal.onclick = (e) => {
+      if (e.target === modal) closeModal();
+    };
+
+    // Avatar file trigger
+    if (avatarTrigger && fileInput) {
+      avatarTrigger.onclick = () => fileInput.click();
+    }
+
+    // Avatar file selected preview
+    if (fileInput) {
+      fileInput.onchange = (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        // Validate max 5MB
+        if (file.size > 5 * 1024 * 1024) {
+          if (errorEl) {
+            errorEl.textContent = 'Kích thước tệp ảnh vượt quá 5MB. Vui lòng chọn ảnh nhỏ hơn 🌸';
+            errorEl.style.display = 'block';
+          }
+          fileInput.value = '';
+          return;
+        }
+
+        // Validate image mime
+        if (!file.type.startsWith('image/')) {
+          if (errorEl) {
+            errorEl.textContent = 'Vui lòng chọn tệp hình ảnh hợp lệ (JPEG, PNG, WEBP) 🌸';
+            errorEl.style.display = 'block';
+          }
+          fileInput.value = '';
+          return;
+        }
+
+        if (errorEl) {
+          errorEl.style.display = 'none';
+          errorEl.textContent = '';
+        }
+
+        // Instant circular preview
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          if (avatarPreview) avatarPreview.src = ev.target.result;
+          // Uncheck Google sync since user picked a custom avatar
+          if (googleSyncToggle && googleSyncToggle.checked) {
+            googleSyncToggle.checked = false;
+          }
+        };
+        reader.readAsDataURL(file);
+      };
+    }
+
+    // Google sync toggle switcher
+    if (googleSyncToggle) {
+      googleSyncToggle.onchange = () => {
+        const isGoogleSync = googleSyncToggle.checked;
+        const user = appContext?.currentUser || window.KokoroAuth?.currentUser;
+        if (!user) return;
+
+        if (isGoogleSync) {
+          // Switch to Google GIS info
+          if (fileInput) fileInput.value = '';
+          const gAvatar = user.avatar_url || user.avatarUrl || './icons/sakura.svg';
+          if (avatarPreview) avatarPreview.src = gAvatar;
+        } else {
+          // Switch to Custom profile info
+          const cAvatar = user.custom_avatar_url || user.customAvatarUrl || user.avatar_url || user.avatarUrl || './icons/sakura.svg';
+          if (avatarPreview) {
+            avatarPreview.src = (window.KokoroAPI && typeof window.KokoroAPI.resolveMediaUrl === 'function') ? window.KokoroAPI.resolveMediaUrl(cAvatar) : cAvatar;
+          }
+        }
+      };
+    }
+
+    // Bio character counter
+    if (bioInput && bioCounter) {
+      bioInput.oninput = () => {
+        const len = bioInput.value.length;
+        bioCounter.textContent = `${len}/250`;
+        if (len > 250) {
+          bioCounter.style.color = '#ef4444';
+        } else {
+          bioCounter.style.color = 'var(--text-muted)';
+        }
+      };
+    }
+
+    // Form submission
+    if (form) {
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+        const name = nameInput ? nameInput.value.trim() : '';
+        if (!name) {
+          if (errorEl) {
+            errorEl.textContent = 'Tên hiển thị không được để trống 🌸';
+            errorEl.style.display = 'block';
+          }
+          return;
+        }
+
+        const bio = bioInput ? bioInput.value.trim() : '';
+        if (bio.length > 250) {
+          if (errorEl) {
+            errorEl.textContent = 'Châm ngôn sống không được vượt quá 250 ký tự 🌸';
+            errorEl.style.display = 'block';
+          }
+          return;
+        }
+
+        const isGoogleSync = googleSyncToggle ? googleSyncToggle.checked : false;
+        const useCustomProfile = !isGoogleSync;
+
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('bio', bio);
+        formData.append('use_custom_profile', useCustomProfile ? 'true' : 'false');
+
+        const file = fileInput && fileInput.files && fileInput.files[0];
+        if (file && useCustomProfile) {
+          formData.append('avatar_file', file);
+        }
+
+        // UI Loading state
+        if (submitBtn) submitBtn.disabled = true;
+        if (spinner) spinner.style.display = 'inline-block';
+        if (submitText) submitText.textContent = 'Đang lưu...';
+        if (errorEl) { errorEl.style.display = 'none'; errorEl.textContent = ''; }
+
+        try {
+          const res = await window.KokoroAPI.updateProfile(formData);
+          const updatedUser = res?.user;
+          if (updatedUser) {
+            if (appContext) {
+              appContext.currentUser = updatedUser;
+            }
+            if (window.KokoroAuth) {
+              window.KokoroAuth.currentUser = updatedUser;
+              window.KokoroAuth.saveLastAuthUser(updatedUser);
+              window.KokoroAuth.updateHeaderUI(updatedUser);
+            }
+            this.renderProfileView({
+              user: updatedUser,
+              entries: appContext?.entries,
+              stats: appContext?.stats,
+              appContext
+            });
+            if (window.KokoroToast) {
+              window.KokoroToast.show('Cập nhật hồ sơ cá nhân thành công 🌸', 'success');
+            }
+            closeModal();
+          } else {
+            throw new Error(res?.message || 'Không nhận được dữ liệu phản hồi');
+          }
+        } catch (err) {
+          console.error('[ProfileStats] Error updating profile:', err);
+          if (errorEl) {
+            errorEl.textContent = err.message || 'Lỗi khi cập nhật hồ sơ 🌸';
+            errorEl.style.display = 'block';
+          }
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+          if (spinner) spinner.style.display = 'none';
+          if (submitText) submitText.textContent = 'Lưu thay đổi 🌸';
+        }
+      };
+    }
   }
 };
 

@@ -201,6 +201,11 @@ def init_db():
     -- MIGRATION: ALTER ENTRIES ADD category_id (v1.6.0)
     ALTER TABLE entries ADD COLUMN IF NOT EXISTS category_id INT REFERENCES categories(id) ON DELETE SET NULL;
 
+    -- MIGRATION: ALTER USERS ADD bio, custom_avatar_url, use_custom_profile (v1.8.5)
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS custom_avatar_url VARCHAR(255);
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS use_custom_profile BOOLEAN DEFAULT FALSE;
+
     -- INDEXES FOR PERFORMANCE
     CREATE INDEX IF NOT EXISTS idx_entries_user_date ON entries(user_id, entry_date DESC);
     CREATE INDEX IF NOT EXISTS idx_entries_pinned_date ON entries(user_id, is_pinned DESC, entry_date DESC, created_at DESC);
