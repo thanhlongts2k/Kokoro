@@ -10,6 +10,16 @@ const KokoroAuth = {
   mockUsers: [],
 
   async init() {
+    // 0. Pre-hydrate cached user session for immediate UI rendering on reload/offline
+    const cachedUser = this.getLastAuthUser();
+    if (cachedUser && !this.currentUser) {
+      this.currentUser = cachedUser;
+      this.updateHeaderUI(cachedUser);
+      if (window.PasscodeLock && cachedUser.id) {
+        window.PasscodeLock.onUserChanged(cachedUser.id);
+      }
+    }
+
     this.setupDropdownListeners();
 
     try {
@@ -54,10 +64,14 @@ const KokoroAuth = {
 
   setupDropdownListeners() {
     const logoutBtn = document.getElementById('logout-btn');
+    const profileLogoutBtn = document.getElementById('profile-action-logout') || document.getElementById('profile-logout-btn');
     const loginHeaderBtn = document.getElementById('header-login-btn');
 
     if (logoutBtn) {
       logoutBtn.addEventListener('click', () => this.logout());
+    }
+    if (profileLogoutBtn) {
+      profileLogoutBtn.addEventListener('click', () => this.logout());
     }
 
     if (loginHeaderBtn) {

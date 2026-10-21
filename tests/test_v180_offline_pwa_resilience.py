@@ -220,6 +220,62 @@ class TestV180OfflinePWAResilience(unittest.TestCase):
         # 4. tag-manager.js guards getTags against unauthenticated user
         self.assertIn("window.KokoroAuth && !window.KokoroAuth.currentUser", tag_manager_js)
 
+    def test_11_backup_input_lifecycle_and_pwa_meta_contracts(self):
+        """Verify backupInput declaration, error boundaries, PWA meta tag, and Node execution."""
+        app_js = (BASE_DIR / "static" / "js" / "app.js").read_text(encoding="utf-8")
+        auth_js = (BASE_DIR / "static" / "js" / "auth.js").read_text(encoding="utf-8")
+        index_html = (BASE_DIR / "static" / "index.html").read_text(encoding="utf-8")
+
+        # 1. backupInput safe declaration
+        self.assertIn("const backupInput = document.getElementById('backup-file-input') || document.getElementById('profile-restore-input');", app_js)
+        self.assertIn('id="backup-file-input"', index_html)
+
+        # 2. setupEventListeners and setupNetworkListeners wrapped in error boundaries
+        self.assertIn("try { this.setupEventListeners(); }", app_js)
+        self.assertIn("try { this.setupNetworkListeners(); }", app_js)
+        self.assertIn("safeRun(() => {", app_js)
+
+        # 3. PWA meta tag modern Chromium/WebKit standard
+        self.assertIn('<meta name="mobile-web-app-capable" content="yes">', index_html)
+
+        # 4. auth.js pre-hydrates session and handles profile-action-logout
+        self.assertIn("const cachedUser = this.getLastAuthUser();", auth_js)
+        self.assertIn("profile-action-logout", auth_js)
+
+        # 5. Node.js execution verification of KokoroApp.init()
+        import subprocess
+        node_script = """
+const fs = require('fs');
+const vm = require('vm');
+const dom = {
+  getElementById: (id) => ({ addEventListener: () => {}, style: {}, classList: { add: () => {}, remove: () => {}, toggle: () => {} }, querySelectorAll: () => [] }),
+  querySelectorAll: () => [],
+  addEventListener: () => {},
+  documentElement: { getAttribute: () => 'light', setAttribute: () => {} }
+};
+const sandbox = {
+  window: { location: { hash: '#timeline' }, addEventListener: () => {}, scrollTo: () => {}, history: { replaceState: () => {}, pushState: () => {} }, localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} }, navigator: { onLine: true } },
+  document: dom,
+  location: { hash: '#timeline' },
+  navigator: { onLine: true },
+  history: { replaceState: () => {}, pushState: () => {} },
+  localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
+  console: console,
+  setTimeout: setTimeout,
+  clearTimeout: clearTimeout
+};
+sandbox.window.window = sandbox.window;
+sandbox.window.document = dom;
+const code = fs.readFileSync('static/js/app.js', 'utf8');
+vm.createContext(sandbox);
+vm.runInContext(code, sandbox);
+sandbox.window.KokoroApp.init();
+process.stdout.write('OK');
+"""
+        res = subprocess.run(["node", "-e", node_script], cwd=str(BASE_DIR), capture_output=True, text=True)
+        self.assertEqual(res.returncode, 0, f"Node execution failed: {res.stderr}")
+        self.assertIn("OK", res.stdout)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

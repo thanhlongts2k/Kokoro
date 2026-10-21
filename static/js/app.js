@@ -28,13 +28,20 @@ const KokoroApp = {
     [window.KokoroDateTimePicker, window.Lightbox, window.Editor, window.ZenAudio, window.PasscodeLock, window.PWA].forEach(m => m?.init?.());
     if (window.KokoroCardExport) window.KokoroCardExport.init();
     if (window.KokoroTagManager?.initModal) window.KokoroTagManager.initModal();
-    this.setupEventListeners(); this.setupNetworkListeners();
+    try { this.setupEventListeners(); } catch (err) { console.error('[KokoroApp] setupEventListeners failed:', err); }
+    try { this.setupNetworkListeners(); } catch (err) { console.error('[KokoroApp] setupNetworkListeners failed:', err); }
 
     const initialHash = location.hash ? location.hash.replace('#', '') : 'timeline';
     if (['timeline', 'calendar', 'memories', 'profile'].includes(initialHash) && initialHash !== 'timeline') {
       this.switchView(initialHash, false);
       try { history.replaceState({ view: initialHash }, '', '#' + initialHash); } catch (err) {}
     } else { try { history.replaceState({ view: 'timeline' }, '', '#timeline'); } catch (err) {} }
+
+    // Instant offline/cached session pre-hydration before network check
+    if (window.KokoroAuth && !window.KokoroAuth.currentUser && typeof window.KokoroAuth.getLastAuthUser === 'function') {
+      const cached = window.KokoroAuth.getLastAuthUser();
+      if (cached) { window.KokoroAuth.currentUser = cached; window.KokoroAuth.updateHeaderUI(cached); }
+    }
 
     if (window.KokoroAuth) await window.KokoroAuth.init();
     if (window.KokoroAuth?.currentUser) {
@@ -89,73 +96,80 @@ const KokoroApp = {
   },
 
   setupEventListeners() {
-    document.querySelectorAll('[data-switch-view], [data-view-target]').forEach((b) => b.addEventListener('click', (e) => {
-      const v = e.currentTarget.dataset.switchView || e.currentTarget.dataset.viewTarget;
-      if (v) this.switchView(v);
-    }));
-    document.querySelectorAll('.bottom-nav-item').forEach((b) => b.addEventListener('click', (e) => {
-      const tab = e.currentTarget.dataset.tab;
-      if (tab === 'editor') { if (window.Editor) window.Editor.open(); } else if (tab) this.switchView(tab);
-    }));
+    const safeRun = (fn, name) => { try { fn(); } catch (e) { console.warn(`[KokoroApp] ${name} error:`, e); } };
+    safeRun(() => {
+      document.querySelectorAll('[data-switch-view], [data-view-target]').forEach((b) => b.addEventListener('click', (e) => {
+        const v = e.currentTarget.dataset.switchView || e.currentTarget.dataset.viewTarget; if (v) this.switchView(v);
+      }));
+      document.querySelectorAll('.bottom-nav-item').forEach((b) => b.addEventListener('click', (e) => {
+        const tab = e.currentTarget.dataset.tab; if (tab === 'editor') { if (window.Editor) window.Editor.open(); } else if (tab) this.switchView(tab);
+      }));
+    }, 'Nav');
 
-    document.addEventListener('click', (e) => {
-      const pill = e.target.closest('#header-profile-pill, .header-profile-pill, #user-profile-pill');
-      const dropdown = document.getElementById('profile-dropdown-menu');
-      if (pill) { e.stopPropagation(); if (dropdown) dropdown.classList.toggle('active'); return; }
-      if (dropdown && !e.target.closest('#profile-dropdown-menu')) dropdown.classList.remove('active');
-      const item = e.target.closest('#profile-dropdown-menu .dropdown-item, #profile-dropdown-menu .dropdown-header');
-      if (item && dropdown) {
-        setTimeout(() => dropdown.classList.remove('active'), 150);
-        if (item.classList.contains('dropdown-header') || item.dataset.switchView === 'profile') this.switchView('profile');
-      }
-    });
+    safeRun(() => {
+      document.addEventListener('click', (e) => {
+        const pill = e.target.closest('#header-profile-pill, .header-profile-pill, #user-profile-pill'), dropdown = document.getElementById('profile-dropdown-menu');
+        if (pill) { e.stopPropagation(); if (dropdown) dropdown.classList.toggle('active'); return; }
+        if (dropdown && !e.target.closest('#profile-dropdown-menu')) dropdown.classList.remove('active');
+        const item = e.target.closest('#profile-dropdown-menu .dropdown-item, #profile-dropdown-menu .dropdown-header');
+        if (item && dropdown) {
+          setTimeout(() => dropdown.classList.remove('active'), 150);
+          if (item.classList.contains('dropdown-header') || item.dataset.switchView === 'profile') this.switchView('profile');
+        }
+      });
+    }, 'Dropdown');
 
     const bind = (ids, fn) => ids.forEach((id) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); });
-    bind(['header-add-entry-btn', 'fab-create-btn', 'header-new-entry-btn', 'mobile-fab-btn'], () => { if (window.Editor) window.Editor.open(); });
-    bind(['lock-screen-now-btn', 'profile-action-lock-now'], (e) => { e.preventDefault(); if (window.PasscodeLock) window.PasscodeLock.lockNow(); });
-    bind(['passcode-settings-btn', 'profile-action-pin'], (e) => { e.preventDefault(); if (window.PasscodeLock) window.PasscodeLock.openSetupModal(); });
-    bind(['passcode-close-settings-btn'], () => { if (window.PasscodeLock) window.PasscodeLock.closeSetupModal(); });
-    bind(['profile-action-category-tags'], () => { if (window.KokoroTagManager && window.KokoroTagManager.openCategoryModal) window.KokoroTagManager.openCategoryModal(); });
-    bind(['profile-action-theme', 'dropdown-theme-toggle-btn', 'theme-toggle-btn'], () => this.toggleTheme());
-    bind(['profile-action-logout'], () => { if (window.KokoroAuth) window.KokoroAuth.logout(); });
-    bind(['profile-action-pwa', 'pwa-install-menu-item'], () => { const p = document.getElementById('pwa-install-btn'); if (p) p.click(); });
-    bind(['export-backup-btn', 'profile-action-export'], (e) => { e.preventDefault(); this.exportBackup(); });
-    bind(['import-backup-btn', 'profile-action-import'], (e) => { e.preventDefault(); if (backupInput) { backupInput.value = ''; backupInput.click(); } });
-    bind(['profile-action-cleanup-media'], async (e) => { e.preventDefault(); if (window.ProfileStats) await window.ProfileStats.cleanupOrphanedMedia(this); });
-    if (backupInput) backupInput.addEventListener('change', async (e) => { const f = e.target.files && e.target.files[0]; if (f) await this.importBackup(f); });
+    safeRun(() => {
+      bind(['header-add-entry-btn', 'fab-create-btn', 'header-new-entry-btn', 'mobile-fab-btn'], () => { if (window.Editor) window.Editor.open(); });
+      bind(['lock-screen-now-btn', 'profile-action-lock-now'], (e) => { e.preventDefault(); if (window.PasscodeLock) window.PasscodeLock.lockNow(); });
+      bind(['passcode-settings-btn', 'profile-action-pin'], (e) => { e.preventDefault(); if (window.PasscodeLock) window.PasscodeLock.openSetupModal(); });
+      bind(['passcode-close-settings-btn'], () => { if (window.PasscodeLock) window.PasscodeLock.closeSetupModal(); });
+      bind(['profile-action-category-tags'], () => { if (window.KokoroTagManager?.openCategoryModal) window.KokoroTagManager.openCategoryModal(); });
+      bind(['profile-action-theme', 'dropdown-theme-toggle-btn', 'theme-toggle-btn'], () => this.toggleTheme());
+      bind(['profile-action-logout', 'profile-logout-btn', 'logout-btn'], () => { if (window.KokoroAuth) window.KokoroAuth.logout(); });
+      bind(['profile-action-pwa', 'pwa-install-menu-item'], () => { const p = document.getElementById('pwa-install-btn'); if (p) p.click(); });
+      bind(['export-backup-btn', 'profile-action-export'], (e) => { e.preventDefault(); this.exportBackup(); });
+      const backupInput = document.getElementById('backup-file-input') || document.getElementById('profile-restore-input');
+      bind(['import-backup-btn', 'profile-action-import'], (e) => { e.preventDefault(); if (backupInput) { backupInput.value = ''; backupInput.click(); } });
+      bind(['profile-action-cleanup-media'], async (e) => { e.preventDefault(); if (window.ProfileStats) await window.ProfileStats.cleanupOrphanedMedia(this); });
+      if (backupInput) backupInput.addEventListener('change', async (e) => { const f = e.target.files && e.target.files[0]; if (f) await this.importBackup(f); });
+    }, 'Actions');
 
-    const handleRoute = () => { const h = (location.hash || '#timeline').replace('#', ''); if (['timeline', 'calendar', 'memories', 'profile'].includes(h) && h !== this.currentView) this.switchView(h, false); };
-    window.addEventListener('hashchange', handleRoute); window.addEventListener('popstate', handleRoute);
+    safeRun(() => {
+      const handleRoute = () => { const h = (location.hash || '#timeline').replace('#', ''); if (['timeline', 'calendar', 'memories', 'profile'].includes(h) && h !== this.currentView) this.switchView(h, false); };
+      window.addEventListener('hashchange', handleRoute); window.addEventListener('popstate', handleRoute);
+    }, 'Route');
 
-    const searchInput = document.getElementById('search-input'), searchClearBtn = document.getElementById('search-clear-btn');
-    let searchDebounceTimer = null;
-    if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
-        const val = e.target.value; if (searchClearBtn) searchClearBtn.style.display = val.length > 0 ? 'inline-flex' : 'none';
-        clearTimeout(searchDebounceTimer);
-        searchDebounceTimer = setTimeout(() => { this.searchQuery = val.trim(); this.timelineState.search = this.searchQuery; this.loadEntries(); }, (window.KokoroConstants ? window.KokoroConstants.TIMEOUTS.SEARCH_DEBOUNCE_MS : 300));
-      });
-    }
-    if (searchClearBtn && searchInput) searchClearBtn.addEventListener('click', () => { searchInput.value = ''; searchClearBtn.style.display = 'none'; this.searchQuery = ''; this.timelineState.search = ''; this.loadEntries(); });
+    safeRun(() => {
+      const searchInput = document.getElementById('search-input'), searchClearBtn = document.getElementById('search-clear-btn');
+      let searchDebounceTimer = null;
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          const val = e.target.value; if (searchClearBtn) searchClearBtn.style.display = val.length > 0 ? 'inline-flex' : 'none';
+          clearTimeout(searchDebounceTimer);
+          searchDebounceTimer = setTimeout(() => { this.searchQuery = val.trim(); this.timelineState.search = this.searchQuery; this.loadEntries(); }, (window.KokoroConstants ? window.KokoroConstants.TIMEOUTS.SEARCH_DEBOUNCE_MS : 300));
+        });
+      }
+      if (searchClearBtn && searchInput) searchClearBtn.addEventListener('click', () => { searchInput.value = ''; searchClearBtn.style.display = 'none'; this.searchQuery = ''; this.timelineState.search = ''; this.loadEntries(); });
+    }, 'Search');
 
-    const prevMonthBtn = document.getElementById('full-cal-prev-btn'), nextMonthBtn = document.getElementById('full-cal-next-btn');
-    if (prevMonthBtn) prevMonthBtn.addEventListener('click', () => { this.calMonth--; if (this.calMonth < 0) { this.calMonth = 11; this.calYear--; } this.renderFullCalendar(); });
-    if (nextMonthBtn) nextMonthBtn.addEventListener('click', () => { this.calMonth++; if (this.calMonth > 11) { this.calMonth = 0; this.calYear++; } this.renderFullCalendar(); });
-
-    const delOk = document.getElementById('confirm-delete-btn') || document.getElementById('delete-confirm-btn');
-    const delCancel = document.getElementById('confirm-cancel-btn') || document.getElementById('delete-cancel-btn');
-    const delModal = document.getElementById('delete-confirm-modal') || document.getElementById('delete-modal');
-    if (delOk) delOk.addEventListener('click', () => this.confirmDelete());
-    if (delCancel) delCancel.addEventListener('click', () => this.closeDeleteConfirm());
-    if (delModal) delModal.addEventListener('click', (e) => { if (e.target === delModal) this.closeDeleteConfirm(); });
-    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.pendingDeleteId !== null) this.closeDeleteConfirm(); });
+    safeRun(() => {
+      const prevMonthBtn = document.getElementById('full-cal-prev-btn'), nextMonthBtn = document.getElementById('full-cal-next-btn');
+      if (prevMonthBtn) prevMonthBtn.addEventListener('click', () => { this.calMonth--; if (this.calMonth < 0) { this.calMonth = 11; this.calYear--; } this.renderFullCalendar(); });
+      if (nextMonthBtn) nextMonthBtn.addEventListener('click', () => { this.calMonth++; if (this.calMonth > 11) { this.calMonth = 0; this.calYear++; } this.renderFullCalendar(); });
+      const delOk = document.getElementById('confirm-delete-btn') || document.getElementById('delete-confirm-btn'), delCancel = document.getElementById('confirm-cancel-btn') || document.getElementById('delete-cancel-btn'), delModal = document.getElementById('delete-confirm-modal') || document.getElementById('delete-modal');
+      if (delOk) delOk.addEventListener('click', () => this.confirmDelete());
+      if (delCancel) delCancel.addEventListener('click', () => this.closeDeleteConfirm());
+      if (delModal) delModal.addEventListener('click', (e) => { if (e.target === delModal) this.closeDeleteConfirm(); });
+      window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.pendingDeleteId !== null) this.closeDeleteConfirm(); });
+    }, 'CalendarDelete');
   },
 
   async loadCategories() {
     if (window.KokoroAuth && !window.KokoroAuth.currentUser) { this.categories = []; return; }
     try {
-      const res = await window.KokoroAPI.getCategories();
-      const cats = (res && (res.categories || res.data)) ? (res.categories || res.data) : [];
+      const res = await window.KokoroAPI.getCategories(), cats = (res && (res.categories || res.data)) ? (res.categories || res.data) : [];
       if (cats) { this.categories = cats; this.renderMoodFilterChips(); this.renderMemoriesMoodFilterChips(); }
     } catch (e) { console.warn('[KokoroApp] Failed to load categories:', e); }
   },
@@ -188,22 +202,16 @@ const KokoroApp = {
   async loadStats() {
     if (window.KokoroAuth && !window.KokoroAuth.currentUser) { this.stats = null; return; }
     try {
-      const res = await window.KokoroAPI.getStats();
-      const st = res && (res.data || (res.totalEntries !== undefined ? res : null));
+      const res = await window.KokoroAPI.getStats(), st = res && (res.data || (res.totalEntries !== undefined ? res : null));
       if (st) { this.stats = st; this.renderStats(); this.updateMoodCountBadges(this.stats); }
     } catch (err) { console.warn('[KokoroApp] Failed to load stats:', err); }
   },
 
   async loadPopularTags() {
-    const container = document.getElementById('sidebar-popular-tags');
-    if (!container) return;
+    const container = document.getElementById('sidebar-popular-tags'); if (!container) return;
     if (window.KokoroAuth && !window.KokoroAuth.currentUser) { container.innerHTML = ''; return; }
     if (window.KokoroTagManager) await window.KokoroTagManager.loadPopularTags(container, this.activeTagFilter, (tag) => this.setTagFilter(tag));
   },
-
-  // -------------------------------------------------------------------------
-  // DELEGATED VIEW RENDERING (TIMELINE, CALENDAR, MEMORIES, PROFILE)
-  // -------------------------------------------------------------------------
 
   _getCardCallbacks() {
     return {
@@ -215,32 +223,22 @@ const KokoroApp = {
       onSelectTag: (tag) => this.setTagFilter(tag)
     };
   },
-
-  getFilteredEntries() {
-    return window.TimelineFeed ? window.TimelineFeed.getFilteredEntries(this.entries, this.timelineState, this.activeDateFilter) : this.entries;
-  },
-
+  getFilteredEntries() { return window.TimelineFeed ? window.TimelineFeed.getFilteredEntries(this.entries, this.timelineState, this.activeDateFilter) : this.entries; },
   buildEntryCardHtml(entry) {
     // Contracts: window.escapeHtml(entry.title) / window.escapeHtml(entry.content) / category-badge-pill / weatherBadgeHtml / weatherIcons / data-action="export-card"
     return window.TimelineFeed ? window.TimelineFeed.buildEntryCardHtml(entry, { activeTagFilter: this.activeTagFilter }) : '';
   },
-
-  attachCardActions(container) {
-    if (window.TimelineFeed) window.TimelineFeed.attachCardActions(container, this._getCardCallbacks());
-  },
-
+  attachCardActions(container) { if (window.TimelineFeed) window.TimelineFeed.attachCardActions(container, this._getCardCallbacks()); },
   renderTimeline() {
     this.renderDailyZenCard();
     const feedEl = document.getElementById('timeline-feed-container');
     if (feedEl && window.TimelineFeed) window.TimelineFeed.renderTimeline({ feedEl, filteredEntries: this.getFilteredEntries(), isLoading: this.isLoading, pagination: this.timelinePagination, activeTagFilter: this.activeTagFilter, callbacks: this._getCardCallbacks() });
   },
-
   handleLoadMoreEntries() {
     // Contracts: timeline-load-more-btn / timeline-end-indicator
     const feedEl = document.getElementById('timeline-feed-container');
     if (feedEl && window.TimelineFeed) window.TimelineFeed.handleLoadMoreEntries({ feedEl, filteredEntries: this.getFilteredEntries(), pagination: this.timelinePagination, activeTagFilter: this.activeTagFilter, callbacks: this._getCardCallbacks() });
   },
-
   renderMoodFilterChips() { if (window.TimelineFeed) window.TimelineFeed.renderMoodFilterChips({ sidebarContainer: document.getElementById('sidebar-mood-filters'), mobileContainer: document.getElementById('mobile-mood-chips'), categories: this.categories, totalEntries: this.allEntries.length, timelineState: this.timelineState, onSelectMood: (m, c) => this.setMoodFilter(m, c) }); },
   renderCalendar() { if (window.CalendarView) window.CalendarView.renderMiniCalendar({ gridEl: document.getElementById('mini-calendar-grid'), monthTitleEl: document.getElementById('cal-month-title'), entries: this.entries, activeDateFilter: this.activeDateFilter, onSelectDate: (d) => { this.setDateFilter(d); this.renderCalendar(); } }); },
   renderFullCalendar() {
@@ -248,15 +246,9 @@ const KokoroApp = {
     window.CalendarView.renderFullCalendar({ gridEl: document.getElementById('full-calendar-grid'), monthTitleEl: document.getElementById('full-cal-month-title'), entries: this.entries, calYear: this.calYear, calMonth: this.calMonth, selectedCalDate: this.selectedCalDate, onSelectDate: (d) => { this.selectedCalDate = d; this.renderFullCalendar(); } });
     this.renderSelectedDateEntries();
   },
-  renderSelectedDateEntries() {
-    if (window.CalendarView) window.CalendarView.renderSelectedDateEntries({ listEl: document.getElementById('calendar-day-entries-list'), headingEl: document.getElementById('calendar-selected-date-heading'), entries: this.entries, selectedCalDate: this.selectedCalDate, cardBuilder: (e) => this.buildEntryCardHtml(e), attachCardActions: (el) => this.attachCardActions(el) });
-  },
-  renderMemoriesGallery() {
-    if (window.MemoriesView) window.MemoriesView.renderMemoriesGallery({ gridEl: document.getElementById('memories-photo-grid'), badgeEl: document.getElementById('memories-total-badge'), tagScrollEl: document.getElementById('memories-tag-chips'), entries: (this.allEntries && this.allEntries.length > 0) ? this.allEntries : this.entries, memoriesState: this.memoriesState, activeMemoriesMood: this.activeMemoriesMood, onSelectTag: (t) => { this.memoriesState.tag = (this.memoriesState.tag === t) ? null : t; this.renderMemoriesGallery(); }, onPhotoClick: (s, t) => { if (window.Lightbox) window.Lightbox.open(s, t); } });
-  },
-  renderMemoriesMoodFilterChips() {
-    if (window.MemoriesView) window.MemoriesView.renderMemoriesMoodFilterChips({ container: document.getElementById('memories-mood-scroll') || document.getElementById('memories-mood-filters'), categories: this.categories, memoriesState: this.memoriesState, onSelectMood: (m, c) => { this.activeMemoriesMood = m; this.memoriesState.mood = m; this.memoriesState.categoryId = c; this.renderMemoriesMoodFilterChips(); this.renderMemoriesGallery(); } });
-  },
+  renderSelectedDateEntries() { if (window.CalendarView) window.CalendarView.renderSelectedDateEntries({ listEl: document.getElementById('calendar-day-entries-list'), headingEl: document.getElementById('calendar-selected-date-heading'), entries: this.entries, selectedCalDate: this.selectedCalDate, cardBuilder: (e) => this.buildEntryCardHtml(e), attachCardActions: (el) => this.attachCardActions(el) }); },
+  renderMemoriesGallery() { if (window.MemoriesView) window.MemoriesView.renderMemoriesGallery({ gridEl: document.getElementById('memories-photo-grid'), badgeEl: document.getElementById('memories-total-badge'), tagScrollEl: document.getElementById('memories-tag-chips'), entries: (this.allEntries && this.allEntries.length > 0) ? this.allEntries : this.entries, memoriesState: this.memoriesState, activeMemoriesMood: this.activeMemoriesMood, onSelectTag: (t) => { this.memoriesState.tag = (this.memoriesState.tag === t) ? null : t; this.renderMemoriesGallery(); }, onPhotoClick: (s, t) => { if (window.Lightbox) window.Lightbox.open(s, t); } }); },
+  renderMemoriesMoodFilterChips() { if (window.MemoriesView) window.MemoriesView.renderMemoriesMoodFilterChips({ container: document.getElementById('memories-mood-scroll') || document.getElementById('memories-mood-filters'), categories: this.categories, memoriesState: this.memoriesState, onSelectMood: (m, c) => { this.activeMemoriesMood = m; this.memoriesState.mood = m; this.memoriesState.categoryId = c; this.renderMemoriesMoodFilterChips(); this.renderMemoriesGallery(); } }); },
   updateMemoriesMoodBadges() { if (window.MemoriesView) window.MemoriesView.updateMemoriesMoodBadges(this.allEntries || this.entries, this.memoriesState); },
   renderProfileView() { if (window.ProfileStats) window.ProfileStats.renderProfileView({ user: window.KokoroAuth ? window.KokoroAuth.currentUser : null, entries: this.entries, stats: this.stats }); },
   renderStats() { if (window.ProfileStats) window.ProfileStats.renderStats({ entries: this.entries, stats: this.stats }); },
