@@ -498,6 +498,9 @@
 - [x] **Khắc Phục Triệt Để 2 Lỗi Runtime Console (`static/js/app.js`, `static/js/tag-manager.js`, `static/js/zen-prompts.js`):**
   - [x] Sửa dứt điểm lỗi 401 Cascade khi đăng xuất: trong `app.js` (`onUserChanged`, `loadCategories`, `loadEntries`, `loadStats`, `loadPopularTags`), kiểm tra nghiêm ngặt `if (!user)` xóa sạch feed hiển thị và return ngay lập tức mà không gọi API cá nhân; chặn tương tự trong `tag-manager.js`.
   - [x] Sửa lỗi TypeError nút "Gợi ý khác" trên banner Zen Prompt: bổ sung hàm `shufflePrompt()` và `renderNewPrompt()` vào `window.KokoroZenPrompt`, kèm logic phòng thủ đa tầng trong `app.js`.
+- [x] **Cơ Chế Tự Động Cập Nhật & Tự Reload PWA (Auto-Refresh PWA Lifecycle) (`static/sw.js`, `static/js/pwa.js`):**
+  - [x] Service Worker `self.skipWaiting()` kích hoạt ngay lập tức và chuỗi `self.clients.claim()` dọn sạch cache cũ nắm quyền kiểm soát client.
+  - [x] Client `pwa.js` thăm dò cập nhật qua `registration.update()` khi vào app và khi chuyển tab (`visibilitychange`), tự động reload qua `controllerchange` với cờ chống loop.
 - [x] **Frontend UI Dọn Rác Ảnh Mồ Côi & Tối Ưu Bộ Nhớ (`static/index.html`, `static/js/api.js`, `static/js/app.js`):**
   - [x] Thêm action card kính mờ Soft Sakura `#profile-action-cleanup-media` trong khu vực Cài đặt hồ sơ cá nhân (`#view-profile`): `[ 🧹 Dọn dẹp ảnh rác & Tối ưu bộ nhớ ]`.
   - [x] Popup xác nhận dịu dàng Soft Sakura qua `KokoroDialog.confirm` giải thích rõ cơ chế quét và xóa ảnh mồ côi trong `/uploads/`.

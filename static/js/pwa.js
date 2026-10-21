@@ -1,13 +1,15 @@
 /**
- * KOKORO (心) — PWA REGISTRATION & INSTALLATION HANDLER
+ * KOKORO (心) — PWA REGISTRATION, AUTO-UPDATE & INSTALLATION HANDLER
  */
 
 let deferredPrompt = null;
+let refreshing = false;
 
 const PWA = {
   init() {
     this.registerServiceWorker();
     this.setupInstallPrompt();
+    this.setupAutoReloadListener();
   },
 
   registerServiceWorker() {
@@ -15,14 +17,52 @@ const PWA = {
       window.addEventListener('load', () => {
         navigator.serviceWorker
           .register('./sw.js')
-          .then((reg) => {
-            console.log('[Kokoro PWA] Service Worker registered with scope:', reg.scope);
-            // Proactively check for Service Worker updates on page load
-            reg.update();
+          .then((registration) => {
+            console.log('[Kokoro PWA] Service Worker registered with scope:', registration.scope);
+
+            // 1. Thăm dò kiểm tra bản mới ngay khi vào app
+            registration.update();
+
+            // 2. Thăm dò lại mỗi khi người dùng chuyển tab quay lại app
+            document.addEventListener('visibilitychange', () => {
+              if (document.visibilityState === 'visible') {
+                registration.update();
+              }
+            });
+
+            // 3. Nếu đã có worker đang chờ (waiting), gửi lệnh SKIP_WAITING ngay
+            if (registration.waiting) {
+              registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+
+            // 4. Khi phát hiện bản mới đang cài đặt, kích hoạt ngay khi cài xong
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              if (newWorker) {
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                  }
+                });
+              }
+            });
           })
           .catch((err) => {
             console.warn('[Kokoro PWA] Service Worker registration failed:', err);
           });
+      });
+    }
+  },
+
+  setupAutoReloadListener() {
+    if ('serviceWorker' in navigator) {
+      // Bắt sự kiện controllerchange để tự reload (có cờ chống loop)
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          console.log('[Kokoro PWA] Controller changed -> Auto-refreshing for newest version ✨');
+          window.location.reload();
+        }
       });
     }
   },

@@ -276,6 +276,26 @@ process.stdout.write('OK');
         self.assertEqual(res.returncode, 0, f"Node execution failed: {res.stderr}")
         self.assertIn("OK", res.stdout)
 
+    def test_12_pwa_auto_refresh_and_skip_waiting_contracts(self):
+        """Verify sw.js and pwa.js implement skipWaiting, clients.claim, update on visibilitychange, and controllerchange reload."""
+        sw_code = (BASE_DIR / "static" / "sw.js").read_text(encoding="utf-8")
+        pwa_code = (BASE_DIR / "static" / "js" / "pwa.js").read_text(encoding="utf-8")
+
+        # 1. sw.js calls self.skipWaiting() on install and chains self.clients.claim() on activate
+        self.assertIn("self.skipWaiting();", sw_code)
+        self.assertIn(".then(() => self.clients.claim())", sw_code)
+        self.assertIn("SKIP_WAITING", sw_code)
+
+        # 2. pwa.js registers sw.js and probes update on start and visibilitychange
+        self.assertIn("registration.update()", pwa_code)
+        self.assertIn("visibilitychange", pwa_code)
+        self.assertIn("document.visibilityState === 'visible'", pwa_code)
+
+        # 3. pwa.js handles controllerchange with refreshing anti-loop guard and reloads
+        self.assertIn("controllerchange", pwa_code)
+        self.assertIn("refreshing = true", pwa_code)
+        self.assertIn("window.location.reload()", pwa_code)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
