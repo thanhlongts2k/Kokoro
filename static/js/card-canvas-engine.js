@@ -49,6 +49,160 @@
     },
 
     /**
+     * Safe Image Loader with Dual Offline Fallback (v1.8.6)
+     * Tries original URL first; if failed/offline, falls back to thumbUrl (CacheStorage)
+     */
+    async loadPhotoWithFallback(photo) {
+      if (!photo) return null;
+      const rawUrl = photo.url || photo.thumbUrl;
+      const primaryUrl = window.KokoroAPI ? window.KokoroAPI.resolveMediaUrl(rawUrl) : rawUrl;
+      let img = await this.loadImageSafe(primaryUrl);
+      if (!img && photo.thumbUrl && photo.url && photo.thumbUrl !== photo.url) {
+        const fallbackUrl = window.KokoroAPI ? window.KokoroAPI.resolveMediaUrl(photo.thumbUrl) : photo.thumbUrl;
+        img = await this.loadImageSafe(fallbackUrl);
+      }
+      return img;
+    },
+
+    /**
+     * Parallel Multi-Photo Loader (v1.8.6)
+     * Uses Promise.all to load multiple images concurrently, eliminating cumulative lag
+     */
+    async loadMultiplePhotosSafe(photos, maxCount = 4) {
+      if (!photos || !photos.length) return [];
+      const targetPhotos = photos.slice(0, maxCount);
+      const loadPromises = targetPhotos.map((p) => this.loadPhotoWithFallback(p));
+      const loadedImages = await Promise.all(loadPromises);
+      return loadedImages.filter(Boolean);
+    },
+
+    /**
+     * Adaptive Multi-Photo Collage / Scrapbook Engine (v1.8.6)
+     * Mathematically calculates layouts for 2, 3, or 4 photos on 1080p canvas.
+     * Prevents aspect ratio distortion via drawImageCover() smart focal point cropping.
+     * @param {CanvasRenderingContext2D} ctx
+     * @param {Array<HTMLImageElement>} images
+     * @param {number} photoX
+     * @param {number} photoY
+     * @param {number} photoW
+     * @param {number} photoH
+     * @param {number} gap (default: 14)
+     * @param {number} baseRadius (default: 20)
+     */
+    drawCollageFrame(ctx, images, photoX, photoY, photoW, photoH, gap = 14, baseRadius = 20) {
+      if (!ctx || !images || !images.length) return;
+
+      const count = images.length;
+
+      if (count === 1) {
+        // Single photo fallback
+        this.drawImageCover(ctx, images[0], photoX, photoY, photoW, photoH, baseRadius);
+        ctx.save();
+        this.drawRoundedRect(ctx, photoX, photoY, photoW, photoH, baseRadius);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.restore();
+        return;
+      }
+
+      if (count === 2) {
+        // ====================================================================
+        // KỊCH BẢN 2 ẢNH: SPLIT DUO (Chia đôi chiều rộng, 2 cột đều nhau)
+        // ====================================================================
+        const colW = (photoW - gap) / 2;
+        const colH = photoH;
+
+        // Ảnh 1 (Trái)
+        this.drawImageCover(ctx, images[0], photoX, photoY, colW, colH, baseRadius);
+        ctx.save();
+        this.drawRoundedRect(ctx, photoX, photoY, colW, colH, baseRadius);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.restore();
+
+        // Ảnh 2 (Phải)
+        const rightX = photoX + colW + gap;
+        this.drawImageCover(ctx, images[1], rightX, photoY, colW, colH, baseRadius);
+        ctx.save();
+        this.drawRoundedRect(ctx, rightX, photoY, colW, colH, baseRadius);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.restore();
+        return;
+      }
+
+      if (count === 3) {
+        // ====================================================================
+        // KỊCH BẢN 3 ẢNH: MAGAZINE COVER (Hero 60% trái + 2 ảnh phụ 40% phải)
+        // ====================================================================
+        const leftW = Math.round((photoW - gap) * 0.60);
+        const rightW = photoW - gap - leftW;
+        const rightH = (photoH - gap) / 2;
+
+        // Ảnh 1: Hero chính bên trái (chiếm 60% chiều rộng)
+        this.drawImageCover(ctx, images[0], photoX, photoY, leftW, photoH, baseRadius);
+        ctx.save();
+        this.drawRoundedRect(ctx, photoX, photoY, leftW, photoH, baseRadius);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.restore();
+
+        // Cột phải: 2 ảnh phụ xếp dọc đều nhau
+        const rightX = photoX + leftW + gap;
+
+        // Ảnh 2: Phụ trên
+        this.drawImageCover(ctx, images[1], rightX, photoY, rightW, rightH, baseRadius);
+        ctx.save();
+        this.drawRoundedRect(ctx, rightX, photoY, rightW, rightH, baseRadius);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.lineWidth = 3.5;
+        ctx.stroke();
+        ctx.restore();
+
+        // Ảnh 3: Phụ dưới
+        const sub2Y = photoY + rightH + gap;
+        this.drawImageCover(ctx, images[2], rightX, sub2Y, rightW, rightH, baseRadius);
+        ctx.save();
+        this.drawRoundedRect(ctx, rightX, sub2Y, rightW, rightH, baseRadius);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.lineWidth = 3.5;
+        ctx.stroke();
+        ctx.restore();
+        return;
+      }
+
+      // ======================================================================
+      // KỊCH BẢN 4 ẢNH (HOẶC NHIỀU HƠN): BALANCED 2x2 GRID (Lưới 4 ô đều nhau)
+      // ======================================================================
+      const cellW = (photoW - gap) / 2;
+      const cellH = (photoH - gap) / 2;
+      const cellRadius = Math.min(baseRadius, 18);
+
+      const positions = [
+        { x: photoX, y: photoY },                           // Top-left
+        { x: photoX + cellW + gap, y: photoY },              // Top-right
+        { x: photoX, y: photoY + cellH + gap },              // Bottom-left
+        { x: photoX + cellW + gap, y: photoY + cellH + gap } // Bottom-right
+      ];
+
+      for (let i = 0; i < 4 && i < count; i++) {
+        const pos = positions[i];
+        this.drawImageCover(ctx, images[i], pos.x, pos.y, cellW, cellH, cellRadius);
+
+        ctx.save();
+        this.drawRoundedRect(ctx, pos.x, pos.y, cellW, cellH, cellRadius);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.lineWidth = 3.5;
+        ctx.stroke();
+        ctx.restore();
+      }
+    },
+
+    /**
      * Rounded Rectangle Helper (Cross-browser fallback)
      */
     drawRoundedRect(ctx, x, y, width, height, radius) {
@@ -1009,13 +1163,17 @@
       const hasContent = Boolean(entry.content && entry.content.trim());
       const hasText = hasTitle || hasContent;
 
+      // Photo Selection Mode (v1.8.6):
+      // -1: Collage Mode (khi >= 2 ảnh), 0..N: Single selected photo
+      const selectedPhotoIndex = (typeof options.selectedPhotoIndex === 'number')
+        ? options.selectedPhotoIndex
+        : (hasPhoto && entry.photos.length >= 2 ? -1 : 0);
+      const isCollage = selectedPhotoIndex === -1 && hasPhoto && entry.photos.length >= 2;
+
       if (hasPhoto && !hasText) {
         // =========================================================
         // LAYOUT 1: PHOTO-ONLY MODE (Thuần Ảnh — Khung ảnh chiếm diện tích chính)
         // =========================================================
-        const photoUrl = window.KokoroAPI.resolveMediaUrl(entry.photos[0].url || entry.photos[0].thumbUrl);
-        const photoImg = await this.loadImageSafe(photoUrl);
-
         const footerSpace = isStory ? 200 : 100;
         const photoH = (cardMarginY + cardHeight - footerSpace) - cursorY;
         const photoW = contentWidth;
@@ -1031,36 +1189,71 @@
         ctx.fill();
         ctx.restore();
 
-        if (photoImg) {
-          this.drawImageCover(ctx, photoImg, photoX, photoY, photoW, photoH, 32);
+        let photoImg = null;
+        let photoImages = null;
 
-          ctx.save();
-          this.drawRoundedRect(ctx, photoX, photoY, photoW, photoH, 32);
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 14;
-          ctx.stroke();
-          ctx.restore();
-        }
+        if (isCollage) {
+          // Adaptive Collage Mode (v1.8.6): 2, 3, or 4 photos
+          photoImages = await this.loadMultiplePhotosSafe(entry.photos, 4);
+          this.drawCollageFrame(ctx, photoImages, photoX, photoY, photoW, photoH, 14, 28);
 
-        // Multiple Photos Badge
-        if (entry.photos.length > 1) {
-          const extraCount = `+${entry.photos.length - 1} ảnh`;
-          ctx.save();
-          ctx.font = '700 22px "Plus Jakarta Sans", sans-serif';
-          const badgeW = ctx.measureText(extraCount).width + 30;
-          const badgeH = 42;
-          const badgeX = photoX + photoW - badgeW - 20;
-          const badgeY = photoY + photoH - badgeH - 20;
+          // Overflow badge if > 4 photos
+          if (entry.photos.length > 4) {
+            const extraCount = `+${entry.photos.length - 4} ảnh`;
+            ctx.save();
+            ctx.font = '700 22px "Plus Jakarta Sans", sans-serif';
+            const badgeW = ctx.measureText(extraCount).width + 30;
+            const badgeH = 42;
+            const badgeX = photoX + photoW - badgeW - 20;
+            const badgeY = photoY + photoH - badgeH - 20;
 
-          this.drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 21);
-          ctx.fillStyle = 'rgba(15, 23, 42, 0.76)';
-          ctx.fill();
+            this.drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 21);
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.76)';
+            ctx.fill();
 
-          ctx.fillStyle = '#ffffff';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(extraCount, badgeX + badgeW / 2, badgeY + badgeH / 2);
-          ctx.restore();
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(extraCount, badgeX + badgeW / 2, badgeY + badgeH / 2);
+            ctx.restore();
+          }
+        } else {
+          // Single Selected Photo
+          const targetPhoto = (selectedPhotoIndex >= 0 && entry.photos[selectedPhotoIndex]) ? entry.photos[selectedPhotoIndex] : entry.photos[0];
+          const photoUrl = window.KokoroAPI ? window.KokoroAPI.resolveMediaUrl(targetPhoto.url || targetPhoto.thumbUrl) : (targetPhoto.url || targetPhoto.thumbUrl);
+          photoImg = await this.loadImageSafe(photoUrl) || await this.loadPhotoWithFallback(targetPhoto);
+
+          if (photoImg) {
+            this.drawImageCover(ctx, photoImg, photoX, photoY, photoW, photoH, 32);
+
+            ctx.save();
+            this.drawRoundedRect(ctx, photoX, photoY, photoW, photoH, 32);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 14;
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          // Multiple Photos Badge
+          if (entry.photos.length > 1) {
+            const extraCount = `+${entry.photos.length - 1} ảnh`;
+            ctx.save();
+            ctx.font = '700 22px "Plus Jakarta Sans", sans-serif';
+            const badgeW = ctx.measureText(extraCount).width + 30;
+            const badgeH = 42;
+            const badgeX = photoX + photoW - badgeW - 20;
+            const badgeY = photoY + photoH - badgeH - 20;
+
+            this.drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 21);
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.76)';
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(extraCount, badgeX + badgeW / 2, badgeY + badgeH / 2);
+            ctx.restore();
+          }
         }
 
         // Studio Theme Decorations
@@ -1069,13 +1262,14 @@
           cursorY = decor1Y;
         }
 
+        // Memory Hygiene: Release image references immediately
+        photoImg = null;
+        photoImages = null;
+
       } else if (hasPhoto && hasText) {
         // =========================================================
         // LAYOUT 2: PHOTO + TEXT MODE (Tạp Chí Ảnh — Ảnh trên, Chữ dưới)
         // =========================================================
-        const photoUrl = window.KokoroAPI.resolveMediaUrl(entry.photos[0].url || entry.photos[0].thumbUrl);
-        const photoImg = await this.loadImageSafe(photoUrl);
-
         const contentRaw = (entry.content || '').replace(/^(?:>\s*)+/gm, '').trim();
         const titleRaw = (entry.title || '').replace(/^(?:>\s*)+/gm, '').trim();
         const roughLineCount = (titleRaw ? 1 : 0) + (contentRaw ? contentRaw.split(/\r?\n/).reduce((acc, p) => acc + Math.max(1, Math.ceil(p.length / 40)), 0) : 0);
@@ -1113,28 +1307,67 @@
         const photoX = contentLeft;
         const photoY = cursorY;
 
-        this.drawPhotoFrame(ctx, entry, photoImg, photoX, photoY, photoW, photoH, 24, isStory, themeId);
+        let photoImg = null;
+        let photoImages = null;
 
-        // Multiple Photos Badge
-        if (entry.photos.length > 1) {
-          const extraCount = `+${entry.photos.length - 1} ảnh`;
-          ctx.save();
-          ctx.font = '700 20px "Plus Jakarta Sans", sans-serif';
-          const badgeW = ctx.measureText(extraCount).width + 26;
-          const badgeH = 36;
-          const badgeX = photoX + photoW - badgeW - 16;
-          const badgeY = photoY + photoH - badgeH - 16;
+        if (isCollage) {
+          // Adaptive Collage Mode (v1.8.6): 2, 3, or 4 photos
+          photoImages = await this.loadMultiplePhotosSafe(entry.photos, 4);
+          this.drawCollageFrame(ctx, photoImages, photoX, photoY, photoW, photoH, 14, 20);
 
-          this.drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 18);
-          ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
-          ctx.fill();
+          // Overflow badge if > 4 photos
+          if (entry.photos.length > 4) {
+            const extraCount = `+${entry.photos.length - 4} ảnh`;
+            ctx.save();
+            ctx.font = '700 20px "Plus Jakarta Sans", sans-serif';
+            const badgeW = ctx.measureText(extraCount).width + 26;
+            const badgeH = 36;
+            const badgeX = photoX + photoW - badgeW - 16;
+            const badgeY = photoY + photoH - badgeH - 16;
 
-          ctx.fillStyle = '#ffffff';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(extraCount, badgeX + badgeW / 2, badgeY + badgeH / 2);
-          ctx.restore();
+            this.drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 18);
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(extraCount, badgeX + badgeW / 2, badgeY + badgeH / 2);
+            ctx.restore();
+          }
+        } else {
+          // Single Selected Photo
+          const targetPhoto = (selectedPhotoIndex >= 0 && entry.photos[selectedPhotoIndex]) ? entry.photos[selectedPhotoIndex] : entry.photos[0];
+          const photoUrl = window.KokoroAPI ? window.KokoroAPI.resolveMediaUrl(targetPhoto.url || targetPhoto.thumbUrl) : (targetPhoto.url || targetPhoto.thumbUrl);
+          photoImg = await this.loadImageSafe(photoUrl) || await this.loadPhotoWithFallback(targetPhoto);
+
+          this.drawPhotoFrame(ctx, entry, photoImg, photoX, photoY, photoW, photoH, 24, isStory, themeId);
+
+          // Multiple Photos Badge
+          if (entry.photos.length > 1) {
+            const extraCount = `+${entry.photos.length - 1} ảnh`;
+            ctx.save();
+            ctx.font = '700 20px "Plus Jakarta Sans", sans-serif';
+            const badgeW = ctx.measureText(extraCount).width + 26;
+            const badgeH = 36;
+            const badgeX = photoX + photoW - badgeW - 16;
+            const badgeY = photoY + photoH - badgeH - 16;
+
+            this.drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 18);
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(extraCount, badgeX + badgeW / 2, badgeY + badgeH / 2);
+            ctx.restore();
+          }
         }
+
+        // Memory Hygiene: Release image references immediately
+        photoImg = null;
+        photoImages = null;
 
         cursorY += photoH + 42;
 

@@ -16,7 +16,7 @@ else:
     logger.warning("[Kokoro Security Warning] .env file not found at %s. Falling back to environment variables.", _env_path)
 
 class Config:
-    APP_VERSION: str = "v1.8.5"
+    APP_VERSION: str = "v1.8.6"
     BASE_DIR: Path = BASE_DIR
     PORT: int = int(os.getenv("PORT", "5050"))
     HOST: str = os.getenv("HOST", "0.0.0.0")

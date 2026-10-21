@@ -2,6 +2,28 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal Diary & Photo Journal PWA** được ghi nhận chi tiết tại tệp này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) và tuân thủ [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.8.6] - 2026-10-21
+### Milestone v1.8.6: Hybrid Multi-Photo Card Export (Thumbnail Selector & Adaptive Collage Canvas Engine)
+- **Giao Diện & Tương Tác Modal Xuất Thẻ (`static/index.html`, `static/css/components.css`, `static/js/card-export.js`):**
+  * *Thanh Chọn Ảnh Đa Ảnh (`#card-export-photo-bar`):* Bổ sung container capsule chọn ảnh nằm ngay dưới `.card-export-theme-bar` và phía trên `.card-export-preview-box`.
+  * *Tự Động Ẩn Khi Không Cần Thiết:* Tự động ẩn (`display: none`) khi bài viết không có ảnh hoặc chỉ có 1 ảnh, giữ nguyên giao diện gọn gàng vốn có.
+  * *Chuyển Đổi Linh Hoạt Giữa Bố Cục Ghép Ảnh & Ảnh Đơn:* Khi bài viết có $\ge 2$ ảnh, tự động render nút chip đầu tiên `[ 🧩 Bố cục ghép ảnh ]` (index = -1) cùng chuỗi thumbnail tròn $44 \times 44\text{px}$ đánh số thứ tự 1, 2, 3...
+  * *Active Ring & Visual Hierarchy:* Thumbnail/chip được chọn có viền `2px solid var(--sakura-500)`, hiệu ứng phóng nhẹ `scale(1.05)` và đổ bóng Soft Sakura rực rỡ; thanh cuộn ngang khóa trục dọc với `touch-action: pan-x !important`.
+  * *Điều Phối Trạng Thái Controller:* `card-export.js` quản lý biến `selectedPhotoIndex` (-1 cho collage, 0..N cho ảnh đơn), cập nhật ngay lập tức khi click và re-render canvas không giật lag.
+- **Nâng Cấp Engine Canvas Xử Lý Đa Ảnh (`static/js/card-canvas-engine.js`):**
+  * *Tải Ảnh Song Song & Fallback Ngoại Tuyến Kép:* `loadMultiplePhotosSafe()` sử dụng `Promise.all` tải đồng thời các ảnh mục tiêu, triệt tiêu độ trễ cộng dồn; `loadPhotoWithFallback()` tự động nạp từ `thumbUrl` trong CacheStorage khi người dùng ngoại tuyến chưa tải ảnh gốc full-res.
+  * *Thuật Toán Bố Cục Ghép Ảnh Thích Ứng (`drawCollageFrame`):*
+    - **Kịch bản 2 ảnh (Split Duo):** Chia đôi chiều rộng, mỗi ảnh rộng $(photoW - gap)/2$, bo góc $20\text{px}$.
+    - **Kịch bản 3 ảnh (Magazine Cover):** 1 ảnh chính Hero chiếm 60% chiều rộng bên trái; 2 ảnh phụ xếp dọc đều nhau chiếm 40% chiều rộng bên phải.
+    - **Kịch bản 4 ảnh (Balanced 2x2 Grid):** Lưới 4 ô đều nhau $(photoW - gap)/2 \times (photoH - gap)/2$ bo góc $18\text{px}$.
+    - **Chống méo hình tuyệt đối:** Từng ảnh con đều được vẽ qua `drawImageCover()` tự động căn giữa điểm nhìn vàng 35% (Smart Focal Point), không biến dạng dù tỷ lệ ảnh dọc hay ngang.
+  * *Chế Độ Ảnh Tiêu Điểm:* Khi người dùng bấm chọn 1 thumbnail bất kỳ (`selectedPhotoIndex >= 0`), engine kết xuất duy nhất ảnh đó theo chuẩn layout đơn.
+  * *Vệ Sinh Bộ Nhớ RAM (Memory Hygiene):* Giải phóng tức thời tham chiếu `photoImg = null; photoImages = null;` sau khi vẽ, bảo vệ WebKit Safari trên iPhone khỏi lỗi tràn RAM (OOM).
+- **Bộ Kiểm Thử Tự Động Toàn Diện v1.8.6 (`tests/test_v186_hybrid_card_export.py`):**
+  * Xây dựng 5 nhóm test case bao phủ: Hợp đồng DOM thanh chọn ảnh, logic ẩn/hiện và chuyển đổi chip, ma trận tọa độ hình học 2/3/4 ảnh, cơ chế fallback thumbnail offline và dọn dẹp bộ nhớ.
+  * Toàn bộ test suites đạt **100% PASS** (`145 passed, 0 skipped, 0 failures, 0 errors`).
+  * Tuân thủ tuyệt đối giới hạn định lượng tệp: `static/js/app.js` đạt **397 dòng** (< 400 dòng) và `app/routes/entry_routes.py` đạt **294 dòng** (< 300 dòng).
+
 ## [1.8.5] - 2026-10-21
 ### Milestone v1.8.5: Personalization Hub (Cá Nhân Hóa Hồ Sơ & Đồng Bộ Google)
 - **Cập Nhật Lược Đồ Cơ Sở Dữ Liệu PostgreSQL (Incremental Migration) (`app/database.py`, `app/mock_database.py`, `app/schemas/user.py`, `app/repositories/user_repository.py`):**

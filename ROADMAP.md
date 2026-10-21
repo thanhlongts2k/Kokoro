@@ -541,6 +541,16 @@
 
 ---
 
+- [x] **Milestone v1.8.6: Hybrid Multi-Photo Card Export (Thumbnail Selector & Adaptive Collage Canvas Engine) — Hoàn Thành Xuất Sắc:**
+  - [x] **Giao Diện & Tương Tác Modal Xuất Thẻ:** Thêm container `.card-export-photo-bar` nằm giữa theme bar và preview box; tự động ẩn khi bài viết có $\le 1$ ảnh; hiển thị chip `[ 🧩 Bố cục ghép ảnh ]` và các thumbnail tròn $44 \times 44\text{px}$ khi bài viết có $\ge 2$ ảnh.
+  - [x] **Controller `card-export.js`:** Quản lý `selectedPhotoIndex`, bắt sự kiện click thumbnail/chip, cập nhật active ring và kích hoạt re-render tức thì.
+  - [x] **Canvas Engine `card-canvas-engine.js` Đa Ảnh:** `loadMultiplePhotosSafe` với `Promise.all` song song và fallback offline sang `thumbUrl`. Hàm ma trận `drawCollageFrame()` tính toán tọa độ cho 2 ảnh (Split duo), 3 ảnh (Magazine hero 60% + 2 sub 40%), và 4 ảnh (Balanced 2x2 grid) với Smart Focal Point 35% chống méo ảnh.
+  - [x] **Vệ Sinh Bộ Nhớ RAM (Memory Hygiene):** Hủy tham chiếu đối tượng ảnh ngay sau khi vẽ, bảo vệ WebKit Safari trên iOS khỏi crash OOM.
+  - [x] **Kỷ Luật Architectural Bounds & Anti-Cheat Testing:** Giữ nguyên `static/js/app.js` ở **397 dòng** (< 400 dòng) và `entry_routes.py` ở **294 dòng** (< 300 dòng); bổ sung `tests/test_v186_hybrid_card_export.py` đạt 100% PASS (`skipped=0, failures=0, errors=0`).
+  - [x] **Đồng Bộ Hóa SSoT Toàn Dự Án (`v1.8.6`):** Đồng bộ `VERSION`, `app/config.py`, `static/sw.js`, `static/index.html`, `CHANGELOG.md` và `ROADMAP.md`.
+
+---
+
 ## 🚀 PHẦN III: LỘ TRÌNH TRIỂN KHAI CHI TIẾT THEO 12 PHIÊN BẢN (v1.8.0 – v3.0.0+)
 
 Lộ trình được thiết kế bài bản theo từng cột mốc rõ ràng, đảm bảo nguyên tắc Zero Regression:

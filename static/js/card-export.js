@@ -18,12 +18,14 @@
     currentBlobUrl: null,
     currentExportFile: null,
     isRendering: false,
+    selectedPhotoIndex: -1, // -1: collage mode (when >= 2 photos), 0..N: single photo index
 
     // DOM Elements Cache
     modalEl: null,
     canvasEl: null,
     squareBtn: null,
     storyBtn: null,
+    photoBarEl: null,
     downloadBtn: null,
     shareBtn: null,
     closeBtn: null,
@@ -34,6 +36,7 @@
       this.canvasEl = document.getElementById('card-export-canvas');
       this.squareBtn = document.getElementById('card-export-ratio-square');
       this.storyBtn = document.getElementById('card-export-ratio-story');
+      this.photoBarEl = document.getElementById('card-export-photo-bar');
       this.downloadBtn = document.getElementById('card-export-download-btn');
       this.shareBtn = document.getElementById('card-export-share-btn');
       this.closeBtn = document.getElementById('card-export-close-btn');
@@ -94,8 +97,13 @@
         if (window.lockBodyScroll) window.lockBodyScroll(true);
       }
 
+      // Default photo selection: -1 (Collage) if >= 2 photos; 0 if 1 photo
+      const photoCount = (entry.photos && entry.photos.length) || 0;
+      this.selectedPhotoIndex = photoCount >= 2 ? -1 : 0;
+
       this.updateRatioButtons();
       this.updateThemeButtons();
+      this.updatePhotoBar();
       this.render();
     },
 
@@ -114,6 +122,11 @@
         this.canvasEl.height = 0;
       }
       this.activeEntry = null;
+      this.selectedPhotoIndex = -1;
+      if (this.photoBarEl) {
+        this.photoBarEl.style.display = 'none';
+        this.photoBarEl.innerHTML = '';
+      }
     },
 
     cleanupMemory() {
@@ -170,6 +183,66 @@
       });
     },
 
+    setPhotoIndex(idx) {
+      if (this.selectedPhotoIndex === idx || this.isRendering) return;
+      this.selectedPhotoIndex = idx;
+      this.updatePhotoBarActiveState();
+      this.render();
+    },
+
+    updatePhotoBarActiveState() {
+      if (!this.photoBarEl) return;
+      this.photoBarEl.querySelectorAll('.export-photo-btn, .export-photo-thumb').forEach((btn) => {
+        const idx = parseInt(btn.dataset.index, 10);
+        if (idx === this.selectedPhotoIndex) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    },
+
+    updatePhotoBar() {
+      if (!this.photoBarEl) return;
+      const photos = (this.activeEntry && this.activeEntry.photos) || [];
+      if (photos.length <= 1) {
+        this.photoBarEl.style.display = 'none';
+        this.photoBarEl.innerHTML = '';
+        return;
+      }
+
+      this.photoBarEl.style.display = 'flex';
+      let html = `
+        <button type="button" class="export-photo-btn ${this.selectedPhotoIndex === -1 ? 'active' : ''}" data-index="-1" id="photo-btn-collage" title="Bố cục ghép ảnh nghệ thuật">
+          <span>🧩</span> Bố cục ghép ảnh
+        </button>
+      `;
+
+      photos.forEach((photo, i) => {
+        const rawUrl = photo.thumbUrl || photo.url || '';
+        const thumbUrl = (window.KokoroAPI && window.KokoroAPI.resolveMediaUrl) ? window.KokoroAPI.resolveMediaUrl(rawUrl) : rawUrl;
+        const isActive = this.selectedPhotoIndex === i;
+        html += `
+          <button type="button" class="export-photo-thumb ${isActive ? 'active' : ''}" data-index="${i}" title="Ảnh ${i + 1}" aria-label="Chọn ảnh ${i + 1}">
+            <img src="${thumbUrl}" alt="Ảnh ${i + 1}" loading="lazy" />
+            <span class="thumb-index">${i + 1}</span>
+          </button>
+        `;
+      });
+
+      this.photoBarEl.innerHTML = html;
+
+      this.photoBarEl.querySelectorAll('.export-photo-btn, .export-photo-thumb').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const target = e.currentTarget;
+          const idx = parseInt(target.dataset.index, 10);
+          if (!isNaN(idx)) {
+            this.setPhotoIndex(idx);
+          }
+        });
+      });
+    },
+
     showLoading(show = true) {
       if (this.loadingEl) {
         this.loadingEl.style.display = show ? 'flex' : 'none';
@@ -216,10 +289,11 @@
           throw new Error('KokoroCardCanvasEngine is not loaded.');
         }
 
-        // 2. Execute 2D Canvas rendering via dedicated engine
+        // 2. Execute 2D Canvas rendering via dedicated engine (v1.8.6: selectedPhotoIndex)
         await engine.renderCard(this.canvasEl, this.activeEntry, {
           ratio: this.activeRatio,
-          theme: this.activeTheme
+          theme: this.activeTheme,
+          selectedPhotoIndex: this.selectedPhotoIndex
         });
 
         // 3. Pre-generate Blob & File for Instant iOS Safari Web Share
@@ -346,6 +420,8 @@
     drawDoodleHeart(...args) { return window.KokoroCardCanvasEngine && window.KokoroCardCanvasEngine.drawDoodleHeart(...args); },
     drawMemoryMetadata(...args) { return window.KokoroCardCanvasEngine && window.KokoroCardCanvasEngine.drawMemoryMetadata(...args); },
     drawPhotoFrame(...args) { return window.KokoroCardCanvasEngine && window.KokoroCardCanvasEngine.drawPhotoFrame(...args); },
+    drawCollageFrame(...args) { return window.KokoroCardCanvasEngine && window.KokoroCardCanvasEngine.drawCollageFrame(...args); },
+    loadMultiplePhotosSafe(...args) { return window.KokoroCardCanvasEngine && window.KokoroCardCanvasEngine.loadMultiplePhotosSafe(...args); },
     drawDecorations(...args) { return window.KokoroCardCanvasEngine && window.KokoroCardCanvasEngine.drawDecorations(...args); }
   };
 
