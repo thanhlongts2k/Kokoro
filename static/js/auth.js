@@ -94,7 +94,12 @@ const KokoroAuth = {
   },
 
   initGoogleIdentity() {
-    if (!this.config || !this.config.google_client_id) return;
+    const gisWrapper = document.getElementById('gis-signin-wrapper');
+    if (!this.config || !this.config.google_client_id) {
+      if (gisWrapper) gisWrapper.style.display = 'none';
+      return;
+    }
+    if (gisWrapper) gisWrapper.style.display = 'flex';
 
     // Retry checking GIS library availability if still loading
     const tryInitGIS = () => {
@@ -281,8 +286,16 @@ const KokoroAuth = {
 
     // 2. In Login Modal
     const quickSection = document.getElementById('login-quick-dev-section');
+    const loginDivider = document.getElementById('login-divider');
+    const hasGoogle = Boolean(this.config && this.config.google_client_id);
+
     if (quickSection) {
+      quickSection.style.display = 'flex';
       quickSection.innerHTML = '';
+      if (loginDivider) {
+        loginDivider.style.display = hasGoogle ? 'flex' : 'none';
+      }
+
       this.mockUsers.forEach((u) => {
         const chip = document.createElement('div');
         chip.className = 'dev-user-chip';
@@ -300,6 +313,69 @@ const KokoroAuth = {
         chip.addEventListener('click', () => this.switchUser(u.id));
         quickSection.appendChild(chip);
       });
+    }
+  },
+
+  async ensureLoginButtonsRendered() {
+    // 1. Fetch public auth settings if missing
+    if (!this.config) {
+      try {
+        const cfgRes = await window.KokoroAPI.getAuthConfig();
+        if (cfgRes && cfgRes.status === 'success') {
+          this.config = cfgRes;
+        }
+      } catch (e) {
+        console.warn('[KokoroAuth] Không thể tải auth config:', e);
+      }
+    }
+
+    const gisWrapper = document.getElementById('gis-signin-wrapper');
+    const hasGoogle = Boolean(this.config && this.config.google_client_id);
+    if (gisWrapper) {
+      gisWrapper.style.display = hasGoogle ? 'flex' : 'none';
+    }
+    if (hasGoogle) {
+      this.initGoogleIdentity();
+    }
+
+    // 2. Fetch mock users if mock_auth is active and mockUsers is empty
+    if ((!this.mockUsers || this.mockUsers.length === 0) && this.config && this.config.mock_auth) {
+      try {
+        const mockRes = await window.KokoroAPI.getMockUsers();
+        if (mockRes && mockRes.status === 'success' && mockRes.users && mockRes.users.length > 0) {
+          this.mockUsers = mockRes.users;
+        }
+      } catch (e) {
+        console.warn('[KokoroAuth] Không thể tải danh sách mock users:', e);
+      }
+    }
+
+    const quickSection = document.getElementById('login-quick-dev-section');
+    const loginDivider = document.getElementById('login-divider');
+
+    if (this.mockUsers && this.mockUsers.length > 0 && this.config && this.config.mock_auth) {
+      this.renderMockUsersUI();
+      if (loginDivider) {
+        loginDivider.style.display = hasGoogle ? 'flex' : 'none';
+      }
+    } else {
+      // Fallback: If Google GIS is unavailable AND no mock users exist, ensure guest demo button is present
+      if (!hasGoogle && quickSection) {
+        quickSection.style.display = 'flex';
+        quickSection.innerHTML = `
+          <button type="button" class="btn-sakura" id="guest-demo-login-btn" style="width: 100%; padding: 12px 18px; border-radius: var(--radius-pill); font-size: 13.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 16px rgba(244, 114, 182, 0.25);">
+            <span>🌸</span> Trải nghiệm nhanh (Khách / Guest Demo)
+          </button>
+        `;
+        if (loginDivider) loginDivider.style.display = 'none';
+        const guestBtn = document.getElementById('guest-demo-login-btn');
+        if (guestBtn) {
+          guestBtn.addEventListener('click', () => this.switchUser(null));
+        }
+      } else if (hasGoogle && quickSection) {
+        quickSection.style.display = 'none';
+        if (loginDivider) loginDivider.style.display = 'none';
+      }
     }
   },
 
@@ -352,19 +428,20 @@ const KokoroAuth = {
     const dropdown = document.getElementById('profile-dropdown-menu');
     if (dropdown) dropdown.classList.remove('active');
 
-    this.showLoginModal();
+    await this.showLoginModal();
 
     if (window.KokoroApp) {
       await window.KokoroApp.onUserChanged(null);
     }
   },
 
-  showLoginModal() {
+  async showLoginModal() {
     const overlay = document.getElementById('login-modal-overlay');
     if (overlay) {
       overlay.classList.add('active');
       document.body.style.overflow = 'hidden';
     }
+    await this.ensureLoginButtonsRendered();
   },
 
   hideLoginModal() {

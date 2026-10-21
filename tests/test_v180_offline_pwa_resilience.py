@@ -296,6 +296,32 @@ process.stdout.write('OK');
         self.assertIn("refreshing = true", pwa_code)
         self.assertIn("window.location.reload()", pwa_code)
 
+    def test_13_auth_dropdown_logout_and_login_modal_fallback_contracts(self):
+        """Verify fix for avatar dropdown logout race condition, scrollable menu, and modal login button recovery."""
+        glass_css = (BASE_DIR / "static" / "css" / "glass.css").read_text(encoding="utf-8")
+        app_code = (BASE_DIR / "static" / "js" / "app.js").read_text(encoding="utf-8")
+        auth_code = (BASE_DIR / "static" / "js" / "auth.js").read_text(encoding="utf-8")
+        html_code = (BASE_DIR / "static" / "index.html").read_text(encoding="utf-8")
+
+        # 1. glass.css scrolling and pointer-events
+        self.assertIn("max-height: min(460px, calc(100vh - 80px))", glass_css)
+        self.assertIn("overflow-y: auto", glass_css)
+        self.assertIn("#logout-btn i", glass_css)
+        self.assertIn("pointer-events: none;", glass_css)
+
+        # 2. app.js event delegation for #logout-btn
+        self.assertIn("e.target.closest('#logout-btn')", app_code)
+        self.assertIn("window.KokoroAuth.logout()", app_code)
+
+        # 3. auth.js ensureLoginButtonsRendered and fallback
+        self.assertIn("ensureLoginButtonsRendered", auth_code)
+        self.assertIn("guest-demo-login-btn", auth_code)
+        self.assertIn("Trải nghiệm nhanh (Khách / Guest Demo)", auth_code)
+
+        # 4. index.html login-divider default display none
+        self.assertIn('id="login-divider" style="display: none;"', html_code)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+

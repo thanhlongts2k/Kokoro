@@ -110,6 +110,16 @@ const KokoroApp = {
       document.addEventListener('click', (e) => {
         const pill = e.target.closest('#header-profile-pill, .header-profile-pill, #user-profile-pill'), dropdown = document.getElementById('profile-dropdown-menu');
         if (pill) { e.stopPropagation(); if (dropdown) dropdown.classList.toggle('active'); return; }
+
+        // Immediate logout delegation from avatar dropdown to eliminate race conditions
+        const logoutTrigger = e.target.closest('#logout-btn');
+        if (logoutTrigger) {
+          e.preventDefault();
+          if (dropdown) dropdown.classList.remove('active');
+          if (window.KokoroAuth) window.KokoroAuth.logout();
+          return;
+        }
+
         if (dropdown && !e.target.closest('#profile-dropdown-menu')) dropdown.classList.remove('active');
         const item = e.target.closest('#profile-dropdown-menu .dropdown-item, #profile-dropdown-menu .dropdown-header');
         if (item && dropdown) {

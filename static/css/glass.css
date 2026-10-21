@@ -324,6 +324,10 @@ html, body {
   top: calc(100% + 8px) !important;
   right: 0 !important;
   width: 260px;
+  max-height: min(460px, calc(100vh - 80px)) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
   background: var(--surface-glass-modal);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -395,6 +399,10 @@ html, body {
 .dropdown-item.text-danger:hover {
   background: rgba(225, 29, 72, 0.15);
   color: #f43f5e;
+}
+
+#logout-btn i {
+  pointer-events: none;
 }
 
 /* ==========================================================================

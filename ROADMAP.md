@@ -498,6 +498,11 @@
 - [x] **Khắc Phục Triệt Để 2 Lỗi Runtime Console (`static/js/app.js`, `static/js/tag-manager.js`, `static/js/zen-prompts.js`):**
   - [x] Sửa dứt điểm lỗi 401 Cascade khi đăng xuất: trong `app.js` (`onUserChanged`, `loadCategories`, `loadEntries`, `loadStats`, `loadPopularTags`), kiểm tra nghiêm ngặt `if (!user)` xóa sạch feed hiển thị và return ngay lập tức mà không gọi API cá nhân; chặn tương tự trong `tag-manager.js`.
   - [x] Sửa lỗi TypeError nút "Gợi ý khác" trên banner Zen Prompt: bổ sung hàm `shufflePrompt()` và `renderNewPrompt()` vào `window.KokoroZenPrompt`, kèm logic phòng thủ đa tầng trong `app.js`.
+- [x] **Khắc Phục Dứt Điểm Liệt Nút Đăng Xuất Avatar Header & Tự Động Phục Hồi Modal Đăng Nhập (`static/css/glass.css`, `static/js/app.js`, `static/js/auth.js`, `static/index.html`):**
+  - [x] Menu `.profile-dropdown-menu` bổ sung giới hạn chiều cao `max-height: min(460px, calc(100vh - 80px))` và cuộn `overflow-y: auto`, cùng `pointer-events: none` cho icon `i` bên trong `#logout-btn`.
+  - [x] Tái cấu trúc Event Delegation trong `app.js` bắt sự kiện `#logout-btn` lập tức gọi `KokoroAuth.logout()` không qua timeout, triệt tiêu race condition trên mobile WebKit.
+  - [x] Tự động ẩn container `#gis-signin-wrapper` khi `google_client_id` rỗng và luôn khôi phục `display: flex` cho `#login-quick-dev-section` khi render mock users.
+  - [x] Tự động fallback nút `[ 🌸 Trải nghiệm nhanh (Khách / Guest Demo) ]` khi cả Google GIS lẫn Mock API đều chưa cấu hình, chống tình trạng modal đăng nhập trắng trơn.
 - [x] **Cơ Chế Tự Động Cập Nhật & Tự Reload PWA (Auto-Refresh PWA Lifecycle) (`static/sw.js`, `static/js/pwa.js`):**
   - [x] Service Worker `self.skipWaiting()` kích hoạt ngay lập tức và chuỗi `self.clients.claim()` dọn sạch cache cũ nắm quyền kiểm soát client.
   - [x] Client `pwa.js` thăm dò cập nhật qua `registration.update()` khi vào app và khi chuyển tab (`visibilitychange`), tự động reload qua `controllerchange` với cờ chống loop.
