@@ -16,7 +16,7 @@ const PWA = {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker
-          .register('./sw.js')
+          .register('./sw.js', { updateViaCache: 'none' })
           .then((registration) => {
             console.log('[Kokoro PWA] Service Worker registered with scope:', registration.scope);
 
@@ -56,13 +56,19 @@ const PWA = {
 
   setupAutoReloadListener() {
     if ('serviceWorker' in navigator) {
-      // Bắt sự kiện controllerchange để tự reload (có cờ chống loop)
+      // Bắt sự kiện controllerchange để tự reload (có cờ chống loop qua sessionStorage)
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-          refreshing = true;
-          console.log('[Kokoro PWA] Controller changed -> Auto-refreshing for newest version ✨');
-          window.location.reload();
+        if (refreshing) return;
+        const lastRefresh = sessionStorage.getItem('pwa_controller_refresh_timestamp');
+        const now = Date.now();
+        if (lastRefresh && (now - parseInt(lastRefresh, 10)) < 10000) {
+          console.warn('[Kokoro PWA] Bỏ qua reload liên tiếp để chống loop.');
+          return;
         }
+        refreshing = true;
+        sessionStorage.setItem('pwa_controller_refresh_timestamp', String(now));
+        console.log('[Kokoro PWA] Controller changed -> Auto-refreshing for newest version ✨');
+        window.location.reload();
       });
     }
   },

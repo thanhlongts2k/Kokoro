@@ -379,13 +379,36 @@ const TimelineFeed = {
   /**
    * Append next chunk of entries directly to DOM preserving scroll offset on mobile
    */
-  handleLoadMoreEntries(options) {
-    const { feedEl, filteredEntries, pagination, callbacks, activeTagFilter } = options;
+  async handleLoadMoreEntries(options) {
+    const { feedEl, pagination, callbacks, activeTagFilter, appContext } = options;
     if (!feedEl) return;
 
+    if (appContext && appContext.paginationInfo && appContext.paginationInfo.has_more && window.KokoroAPI) {
+      try {
+        const nextRes = await window.KokoroAPI.getEntries({
+          mood: appContext.timelineState?.mood,
+          category_id: appContext.timelineState?.categoryId,
+          tag: appContext.timelineState?.tag,
+          search: appContext.timelineState?.search,
+          offset: (appContext.entries || []).length,
+          limit: 15
+        });
+        const moreItems = nextRes?.entries || nextRes?.data || [];
+        if (moreItems.length > 0) {
+          appContext.entries = (appContext.entries || []).concat(moreItems);
+          appContext.paginationInfo = nextRes.pagination || null;
+        }
+      } catch (e) {
+        console.warn('[TimelineFeed] Không thể tải trang tiếp theo:', e);
+      }
+    }
+
+    const currentEntries = (appContext && typeof appContext.getFilteredEntries === 'function')
+      ? appContext.getFilteredEntries()
+      : (options.filteredEntries || []);
     const currentLimit = pagination.visibleLimit;
     const nextLimit = currentLimit + pagination.pageSize;
-    const nextChunk = filteredEntries.slice(currentLimit, nextLimit);
+    const nextChunk = currentEntries.slice(currentLimit, nextLimit);
 
     if (nextChunk.length === 0) return;
 

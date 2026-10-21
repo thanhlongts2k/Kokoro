@@ -520,6 +520,14 @@
   - [x] Đạt chuẩn 100% PASS trên toàn bộ bộ test (119 tests, 0 skipped, 0 failures, 0 errors).
 - [x] **Đồng Bộ Hóa Phiên Bản Toàn Bộ SSoT (`v1.8.1`):**
   - [x] Cập nhật `VERSION`, `app/config.py`, `static/sw.js`, `static/index.html` lên `v1.8.1`.
+- [x] **Xử Lý Triệt Để Nợ Kỹ Thuật (Tech Debt Sprint v1.8.2) — Kiến Trúc Bền Vững & Zero-Lag:**
+  - [x] **PWA Auto-Update Lifecycle & Fix HTTP 304:** Server whitelist Cache-Control `no-cache, no-store, must-revalidate, max-age=0` cho `sw.js` và `manifest.webmanifest`. Client `pwa.js` đăng ký với `{ updateViaCache: 'none' }` và cơ chế chống reload loop 10s trên sự kiện `controllerchange`.
+  - [x] **UI Dọn Rác Ảnh Mồ Côi & Modal Kính Mờ Soft Sakura:** Tích hợp Thẻ Tối Ưu Lưu Trữ (`#profile-storage-card`) kèm nút `[ 🧹 Dọn dẹp ảnh rác & Tối ưu bộ nhớ ]`, modal kết quả 4 thông số (`#cleanup-result-modal`) và rate-limiting 60s trên server chống spam disk I/O.
+  - [x] **Bóc Tách Clean Architecture & Quantitative File Bounds:** Tách `app/routes/entry_helpers.py`, đưa `app/routes/entry_routes.py` xuống 294 dòng (< 300) và giữ `static/js/app.js` ở 396 dòng (< 400).
+  - [x] **Phân Trang Server-Side An Toàn:** Envelope phân trang `{ status: "success", entries: [...], pagination: { total, limit, offset, has_more } }` cho `GET /api/entries` và kết nối nạp trang lũy tiến trên timeline.
+  - [x] **Tối Ưu Hóa Calendar Summary:** Tích hợp `GET /api/entries/calendar-summary` với bộ đệm offline `CacheManager` vẽ chấm lịch siêu nhẹ.
+  - [x] **100% Test Automation Coverage:** Thêm `tests/test_v182_tech_debt_elimination.py`, bảo toàn 129/129 tests pass tuyệt đối (`skipped=0, failures=0, errors=0`).
+  - [x] **Đồng Bộ SSoT Toàn Diện:** Cập nhật đồng bộ `VERSION`, `app/config.py`, `static/sw.js`, `static/index.html` lên `v1.8.2`.
 
 ---
 

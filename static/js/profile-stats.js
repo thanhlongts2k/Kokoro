@@ -225,6 +225,7 @@ const ProfileStats = {
       const freedMb = data.freed_mb !== undefined ? data.freed_mb : (res?.freed_mb || 0);
 
       toast(`✨ Đã dọn dẹp sạch sẽ: Xóa thành công ${deletedCount} tệp ảnh rác, giải phóng ${freedMb} MB dung lượng đĩa`);
+      this.showCleanupResultModal(data, appContext);
       if (appContext && typeof appContext.loadStats === 'function') {
         await appContext.loadStats();
       }
@@ -234,6 +235,35 @@ const ProfileStats = {
       if (appContext && typeof appContext.showToast === 'function') appContext.showToast(errMsg, 'error');
       else if (window.KokoroToast) window.KokoroToast.show(errMsg, 'error');
     }
+  },
+
+  showCleanupResultModal(data, appContext) {
+    const modal = document.getElementById('cleanup-result-modal');
+    if (!modal) return;
+
+    const scannedEl = document.getElementById('cleanup-res-scanned');
+    const deletedEl = document.getElementById('cleanup-res-deleted');
+    const freedEl = document.getElementById('cleanup-res-freed');
+    const durationEl = document.getElementById('cleanup-res-duration');
+    const closeBtn = document.getElementById('cleanup-result-close-btn');
+
+    if (scannedEl) scannedEl.textContent = data.scanned_count ?? 0;
+    if (deletedEl) deletedEl.textContent = data.deleted_count ?? 0;
+    if (freedEl) freedEl.textContent = (data.freed_mb ?? 0) + ' MB';
+    if (durationEl) durationEl.textContent = (data.duration_ms ?? 0) + ' ms';
+
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+
+    const closeModal = () => {
+      modal.style.display = 'none';
+      modal.classList.remove('active');
+    };
+
+    if (closeBtn) closeBtn.onclick = closeModal;
+    modal.onclick = (e) => {
+      if (e.target === modal) closeModal();
+    };
   }
 };
 

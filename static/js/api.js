@@ -219,7 +219,7 @@ const KokoroAPI = (() => {
         if (month) params.append('month', month);
         params.append('_t', Date.now());
         const qs = `?${params.toString()}`;
-        return await request(`/entries/calendar-summary${qs}`, {
+        const data = await request(`/entries/calendar-summary${qs}`, {
           method: 'GET',
           cache: 'no-store',
           headers: {
@@ -227,7 +227,19 @@ const KokoroAPI = (() => {
             'Pragma': 'no-cache'
           }
         });
+        if (data && data.entries) {
+          CacheManager.save('calendar_summary', data);
+        }
+        return data;
       } catch (err) {
+        // Offline Fallback for calendar summary
+        const isOffline = !navigator.onLine || (err && (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')));
+        if (isOffline) {
+          const cached = CacheManager.get('calendar_summary');
+          if (cached) {
+            return { ...cached, _isOffline: true };
+          }
+        }
         console.error('[KokoroAPI] Lỗi tải tóm tắt lịch:', err);
         throw err;
       }

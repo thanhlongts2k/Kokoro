@@ -48,7 +48,7 @@ const CalendarView = {
     const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay(); // 0: Sun
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-    const datesWithEntries = new Set((entries || []).map((e) => e.entryDate));
+    const datesWithEntries = new Set((entries || []).map((e) => e.entryDate || e.entry_date));
 
     let html = `
       <div class="cal-day-label">CN</div>
@@ -112,10 +112,11 @@ const CalendarView = {
     // Map dates to moods array
     const dateToMoods = {};
     (entries || []).forEach((e) => {
-      if (e.entryDate) {
-        if (!dateToMoods[e.entryDate]) dateToMoods[e.entryDate] = [];
-        if (e.mood && !dateToMoods[e.entryDate].includes(e.mood)) {
-          dateToMoods[e.entryDate].push(e.mood);
+      const d = e.entryDate || e.entry_date;
+      if (d) {
+        if (!dateToMoods[d]) dateToMoods[d] = [];
+        if (e.mood && !dateToMoods[d].includes(e.mood)) {
+          dateToMoods[d].push(e.mood);
         }
       }
     });

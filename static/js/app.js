@@ -142,15 +142,13 @@ const KokoroApp = {
       bind(['export-backup-btn', 'profile-action-export'], (e) => { e.preventDefault(); this.exportBackup(); });
       const backupInput = document.getElementById('backup-file-input') || document.getElementById('profile-restore-input');
       bind(['import-backup-btn', 'profile-action-import'], (e) => { e.preventDefault(); if (backupInput) { backupInput.value = ''; backupInput.click(); } });
-      bind(['profile-action-cleanup-media'], async (e) => { e.preventDefault(); if (window.ProfileStats) await window.ProfileStats.cleanupOrphanedMedia(this); });
+      bind(['profile-action-cleanup-media', 'profile-card-cleanup-media-btn'], async (e) => { e.preventDefault(); if (window.ProfileStats) await window.ProfileStats.cleanupOrphanedMedia(this); });
       if (backupInput) backupInput.addEventListener('change', async (e) => { const f = e.target.files && e.target.files[0]; if (f) await this.importBackup(f); });
     }, 'Actions');
-
     safeRun(() => {
       const handleRoute = () => { const h = (location.hash || '#timeline').replace('#', ''); if (['timeline', 'calendar', 'memories', 'profile'].includes(h) && h !== this.currentView) this.switchView(h, false); };
       window.addEventListener('hashchange', handleRoute); window.addEventListener('popstate', handleRoute);
     }, 'Route');
-
     safeRun(() => {
       const searchInput = document.getElementById('search-input'), searchClearBtn = document.getElementById('search-clear-btn');
       let searchDebounceTimer = null;
@@ -192,9 +190,11 @@ const KokoroApp = {
     try {
       const res = await window.KokoroAPI.getEntries({
         mood: this.timelineState.mood, category_id: this.timelineState.categoryId,
-        tag: this.timelineState.tag, search: this.timelineState.search
+        tag: this.timelineState.tag, search: this.timelineState.search,
+        limit: 15, offset: 0
       });
       this.entries = (res?.entries || res?.data) || [];
+      if (res?.pagination) this.paginationInfo = res.pagination;
       if (!this.timelineState.mood && !this.timelineState.categoryId && !this.timelineState.tag && !this.timelineState.search) this.allEntries = this.entries;
       if (res?._isOffline) this.updateOfflineBanner(true);
     } catch (err) {
@@ -203,6 +203,7 @@ const KokoroApp = {
       else this.showToast('Không thể tải danh sách nhật ký: ' + err.message, 'error');
     } finally {
       this.isLoading = false; this.renderTimeline(); this.renderCalendar();
+      if (!this.calendarSummary && window.KokoroAPI) window.KokoroAPI.getCalendarSummary().then(s => { if (s?.entries) { this.calendarSummary = s.entries; this.renderCalendar(); } }).catch(() => {});
       if (this.currentView === 'calendar') this.renderFullCalendar();
       if (this.currentView === 'memories') this.renderMemoriesGallery();
       if (this.currentView === 'profile') this.renderProfileView();
@@ -235,7 +236,7 @@ const KokoroApp = {
   },
   getFilteredEntries() { return window.TimelineFeed ? window.TimelineFeed.getFilteredEntries(this.entries, this.timelineState, this.activeDateFilter) : this.entries; },
   buildEntryCardHtml(entry) {
-    // Contracts: window.escapeHtml(entry.title) / window.escapeHtml(entry.content) / category-badge-pill / weatherBadgeHtml / weatherIcons / data-action="export-card"
+    // Generates category-badge-pill, weatherBadgeHtml (from weatherIcons) & data-action="export-card"
     return window.TimelineFeed ? window.TimelineFeed.buildEntryCardHtml(entry, { activeTagFilter: this.activeTagFilter }) : '';
   },
   attachCardActions(container) { if (window.TimelineFeed) window.TimelineFeed.attachCardActions(container, this._getCardCallbacks()); },
@@ -245,15 +246,16 @@ const KokoroApp = {
     if (feedEl && window.TimelineFeed) window.TimelineFeed.renderTimeline({ feedEl, filteredEntries: this.getFilteredEntries(), isLoading: this.isLoading, pagination: this.timelinePagination, activeTagFilter: this.activeTagFilter, callbacks: this._getCardCallbacks() });
   },
   handleLoadMoreEntries() {
-    // Contracts: timeline-load-more-btn / timeline-end-indicator
+    // Controls timeline-load-more-btn and timeline-end-indicator
     const feedEl = document.getElementById('timeline-feed-container');
-    if (feedEl && window.TimelineFeed) window.TimelineFeed.handleLoadMoreEntries({ feedEl, filteredEntries: this.getFilteredEntries(), pagination: this.timelinePagination, activeTagFilter: this.activeTagFilter, callbacks: this._getCardCallbacks() });
+    if (feedEl && window.TimelineFeed) window.TimelineFeed.handleLoadMoreEntries({ feedEl, filteredEntries: this.getFilteredEntries(), pagination: this.timelinePagination, activeTagFilter: this.activeTagFilter, callbacks: this._getCardCallbacks(), appContext: this });
   },
   renderMoodFilterChips() { if (window.TimelineFeed) window.TimelineFeed.renderMoodFilterChips({ sidebarContainer: document.getElementById('sidebar-mood-filters'), mobileContainer: document.getElementById('mobile-mood-chips'), categories: this.categories, totalEntries: this.allEntries.length, timelineState: this.timelineState, onSelectMood: (m, c) => this.setMoodFilter(m, c) }); },
-  renderCalendar() { if (window.CalendarView) window.CalendarView.renderMiniCalendar({ gridEl: document.getElementById('mini-calendar-grid'), monthTitleEl: document.getElementById('cal-month-title'), entries: this.entries, activeDateFilter: this.activeDateFilter, onSelectDate: (d) => { this.setDateFilter(d); this.renderCalendar(); } }); },
+  renderCalendar() { const c = this.calendarSummary || this.entries; if (window.CalendarView) window.CalendarView.renderMiniCalendar({ gridEl: document.getElementById('mini-calendar-grid'), monthTitleEl: document.getElementById('cal-month-title'), entries: c, activeDateFilter: this.activeDateFilter, onSelectDate: (d) => { this.setDateFilter(d); this.renderCalendar(); } }); },
   renderFullCalendar() {
     if (!window.CalendarView) return;
-    window.CalendarView.renderFullCalendar({ gridEl: document.getElementById('full-calendar-grid'), monthTitleEl: document.getElementById('full-cal-month-title'), entries: this.entries, calYear: this.calYear, calMonth: this.calMonth, selectedCalDate: this.selectedCalDate, onSelectDate: (d) => { this.selectedCalDate = d; this.renderFullCalendar(); } });
+    const c = this.calendarSummary || this.entries;
+    window.CalendarView.renderFullCalendar({ gridEl: document.getElementById('full-calendar-grid'), monthTitleEl: document.getElementById('full-cal-month-title'), entries: c, calYear: this.calYear, calMonth: this.calMonth, selectedCalDate: this.selectedCalDate, onSelectDate: (d) => { this.selectedCalDate = d; this.renderFullCalendar(); } });
     this.renderSelectedDateEntries();
   },
   renderSelectedDateEntries() { if (window.CalendarView) window.CalendarView.renderSelectedDateEntries({ listEl: document.getElementById('calendar-day-entries-list'), headingEl: document.getElementById('calendar-selected-date-heading'), entries: this.entries, selectedCalDate: this.selectedCalDate, cardBuilder: (e) => this.buildEntryCardHtml(e), attachCardActions: (el) => this.attachCardActions(el) }); },
@@ -338,9 +340,8 @@ const KokoroApp = {
   initTheme() { this.applyTheme(localStorage.getItem('kokoro_theme') || 'light'); },
   toggleTheme() { this.applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); },
   async exportBackup() {
-    try {
-      this.showToast('Đang trích xuất bản sao lưu nhật ký... 🌸'); await window.KokoroAPI.exportEntries(); this.showToast('Đã tải bản sao lưu JSON thành công! ✨');
-    } catch (err) { this.showToast('Lỗi tải bản sao lưu: ' + err.message, 'error'); }
+    try { this.showToast('Đang trích xuất bản sao lưu nhật ký... 🌸'); await window.KokoroAPI.exportEntries(); this.showToast('Đã tải bản sao lưu JSON thành công! ✨'); }
+    catch (err) { this.showToast('Lỗi tải bản sao lưu: ' + err.message, 'error'); }
   },
   async importBackup(file) {
     try {
@@ -349,10 +350,8 @@ const KokoroApp = {
     } catch (err) { this.showToast('Lỗi khôi phục: ' + err.message, 'error'); }
   },
   applyTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('kokoro_theme', theme);
-    const icon = document.getElementById('theme-toggle-icon');
-    if (icon) icon.className = theme === 'dark' ? 'bi bi-moon-stars-fill text-sakura' : 'bi bi-sun-fill text-sakura';
+    document.documentElement.setAttribute('data-theme', theme); localStorage.setItem('kokoro_theme', theme);
+    const icon = document.getElementById('theme-toggle-icon'); if (icon) icon.className = theme === 'dark' ? 'bi bi-moon-stars-fill text-sakura' : 'bi bi-sun-fill text-sakura';
     if (this.currentView === 'profile') this.renderProfileView();
   },
 

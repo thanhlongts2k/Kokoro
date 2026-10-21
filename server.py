@@ -72,7 +72,11 @@ class AppStaticFiles(StaticFiles):
         response = await super().get_response(path, scope)
         if response.status_code == 200:
             norm_path = path.replace("\\", "/").lower()
-            if norm_path.endswith(".html") or norm_path in ("", ".", "/", "index.html") or "index.html" in norm_path:
+            if norm_path in ("sw.js", "manifest.webmanifest") or norm_path.endswith("/sw.js") or norm_path.endswith("/manifest.webmanifest"):
+                response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+                response.headers["Pragma"] = "no-cache"
+                response.headers["Expires"] = "0"
+            elif norm_path.endswith(".html") or norm_path in ("", ".", "/", "index.html") or "index.html" in norm_path:
                 response.headers["Cache-Control"] = "no-cache, must-revalidate"
             else:
                 response.headers["Cache-Control"] = "public, max-age=86400"

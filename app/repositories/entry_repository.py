@@ -121,6 +121,58 @@ class EntryRepository:
             return [cls._format_entry_row(dict(r)) for r in rows]
 
     @classmethod
+    def count_entries(cls, user_id: int, filters: Optional[EntryFilterDTO] = None) -> int:
+        """Count total matching entries for a user with given filters."""
+        sql = """
+            SELECT COUNT(DISTINCT e.id) AS total_count
+            FROM entries e
+            LEFT JOIN categories c ON e.category_id = c.id
+            LEFT JOIN entry_tags et ON e.id = et.entry_id
+            LEFT JOIN tags t ON et.tag_id = t.id
+            WHERE e.user_id = %s
+        """
+        params: List[Any] = [user_id]
+        if filters:
+            if filters.mood and filters.mood != "all":
+                sql += " AND e.mood = %s"
+                params.append(filters.mood)
+
+            if filters.category_param and filters.category_param != "all":
+                if filters.category_param in ("uncategorized", "null", "none"):
+                    sql += " AND e.category_id IS NULL"
+                else:
+                    try:
+                        cat_id = int(filters.category_param)
+                        sql += " AND e.category_id = %s"
+                        params.append(cat_id)
+                    except (ValueError, TypeError):
+                        pass
+
+            if filters.tag:
+                clean_tag = filters.tag if filters.tag.startswith("#") else f"#{filters.tag}"
+                sql += " AND t.name = %s"
+                params.append(clean_tag)
+
+            if filters.month:
+                sql += " AND TO_CHAR(e.entry_date, 'YYYY-MM') = %s"
+                params.append(filters.month)
+
+            if filters.search:
+                clean_search = filters.search.strip()
+                tag_search = clean_search if clean_search.startswith("#") else f"#{clean_search}"
+                sql += " AND (e.title ILIKE %s OR e.content ILIKE %s OR t.name ILIKE %s OR t.name ILIKE %s)"
+                params.extend([f"%{clean_search}%", f"%{clean_search}%", f"%{clean_search}%", f"%{tag_search}%"])
+
+        with get_cursor() as cur:
+            cur.execute(sql, tuple(params))
+            row = cur.fetchone()
+            if not row:
+                return 0
+            if isinstance(row, dict):
+                return int(row.get("total_count", 0))
+            return int(row[0])
+
+    @classmethod
     def get_calendar_summary(cls, user_id: int, month: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Ultra-lightweight calendar summary query returning only id, entry_date, mood, is_pinned.

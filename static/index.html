@@ -36,10 +36,10 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <!-- Stylesheets (Relative paths for Nginx reverse proxy subpath support) -->
-  <link rel="stylesheet" href="./css/tokens.css?v=1.8.1">
-  <link rel="stylesheet" href="./css/glass.css?v=1.8.1">
-  <link rel="stylesheet" href="./css/components.css?v=1.8.1">
-  <link rel="stylesheet" href="./css/layout.css?v=1.8.1">
+  <link rel="stylesheet" href="./css/tokens.css?v=1.8.2">
+  <link rel="stylesheet" href="./css/glass.css?v=1.8.2">
+  <link rel="stylesheet" href="./css/components.css?v=1.8.2">
+  <link rel="stylesheet" href="./css/layout.css?v=1.8.2">
 </head>
 <body>
 
@@ -517,6 +517,23 @@
             </div>
           </div>
 
+          <!-- Storage Optimization & Maintenance Card (v1.8.2) -->
+          <div class="glass-panel" style="padding: 20px; margin-bottom: 20px;" id="profile-storage-card">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h4 style="font-size: 13px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;">
+                  <i class="bi bi-hdd-network text-sakura"></i> Tối ưu lưu trữ & Bộ nhớ
+                </h4>
+                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
+                  Quét và giải phóng ảnh mồ côi không thuộc bài viết nào trong /uploads/. Tự động bảo lưu ảnh nháp 2 giờ gần nhất 🍃
+                </p>
+              </div>
+              <button type="button" class="btn-sakura" id="profile-card-cleanup-media-btn" style="padding: 8px 18px; border-radius: var(--radius-pill); font-size: 12.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 14px rgba(244, 114, 182, 0.2);">
+                <i class="bi bi-trash3"></i> 🧹 Dọn dẹp ảnh rác & Tối ưu bộ nhớ
+              </button>
+            </div>
+          </div>
+
           <!-- Settings & Utilities Action Menu -->
           <div class="glass-panel c-profile-menu-card">
             <!-- 1. Passcode Lock -->
@@ -671,7 +688,7 @@
         <div class="footer-brand">
           <img src="./icons/sakura.svg" alt="Kokoro Logo" class="footer-logo" />
           <span class="footer-title">Kokoro <span style="font-weight: 500; font-size: 14px; color: var(--sakura-500);">心</span></span>
-          <span class="footer-version-badge" id="app-version-badge">v1.8.1</span>
+          <span class="footer-version-badge" id="app-version-badge">v1.8.2</span>
         </div>
         <p class="footer-tagline">
           Lắng đọng tâm trí & lưu giữ những khoảnh khắc nhẹ nhàng trong không gian an yên.
@@ -926,6 +943,47 @@
             <i class="bi bi-check2"></i> Xác nhận
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         6.3. SOFT SAKURA CLEANUP ORPHANED MEDIA RESULT MODAL (v1.8.2)
+         ==================================================================== -->
+    <div class="modal-overlay" id="cleanup-result-modal" role="dialog" aria-modal="true" aria-labelledby="cleanup-result-title" style="display: none; align-items: center; justify-content: center; z-index: 9999;">
+      <div class="glass-panel confirm-dialog" style="max-width: 420px; width: 92%; padding: 24px; text-align: center;">
+        <div class="confirm-icon-wrapper" style="background: rgba(16, 185, 129, 0.12); color: #10b981; margin: 0 auto 14px;">
+          <i class="bi bi-stars" style="font-size: 24px;"></i>
+        </div>
+        <h4 id="cleanup-result-title" style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0 0 6px;">
+          Dọn Dẹp Thành Công 🍃
+        </h4>
+        <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 18px;">
+          Hệ thống đã quét và thanh lọc các tệp ảnh mồ côi an toàn
+        </p>
+
+        <!-- 4 Metrics Grid -->
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px;">
+          <div class="c-card--metric" style="padding: 12px 8px; border-radius: var(--radius-md); background: var(--surface-glass-subtle); border: 1px solid var(--border-glass-subtle);">
+            <div class="c-card--metric-value" style="font-size: 20px; font-weight: 800; color: var(--text-primary);" id="cleanup-res-scanned">0</div>
+            <div class="c-card--metric-label" style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Tệp đã quét</div>
+          </div>
+          <div class="c-card--metric" style="padding: 12px 8px; border-radius: var(--radius-md); background: var(--surface-glass-subtle); border: 1px solid var(--border-glass-subtle);">
+            <div class="c-card--metric-value text-sakura" style="font-size: 20px; font-weight: 800;" id="cleanup-res-deleted">0</div>
+            <div class="c-card--metric-label" style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Ảnh đã xóa</div>
+          </div>
+          <div class="c-card--metric" style="padding: 12px 8px; border-radius: var(--radius-md); background: var(--surface-glass-subtle); border: 1px solid var(--border-glass-subtle);">
+            <div class="c-card--metric-value" style="font-size: 20px; font-weight: 800; color: #10b981;" id="cleanup-res-freed">0 MB</div>
+            <div class="c-card--metric-label" style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Đã giải phóng</div>
+          </div>
+          <div class="c-card--metric" style="padding: 12px 8px; border-radius: var(--radius-md); background: var(--surface-glass-subtle); border: 1px solid var(--border-glass-subtle);">
+            <div class="c-card--metric-value" style="font-size: 20px; font-weight: 800; color: #f59e0b;" id="cleanup-res-duration">0 ms</div>
+            <div class="c-card--metric-label" style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Thời gian quét</div>
+          </div>
+        </div>
+
+        <button type="button" class="btn-sakura" id="cleanup-result-close-btn" style="width: 100%; padding: 11px; border-radius: var(--radius-pill); font-size: 13.5px; font-weight: 700;">
+          Tuyệt vời 🌸
+        </button>
       </div>
     </div>
 
@@ -1329,25 +1387,25 @@
   </div>
 
   <!-- Scripts Execution (Relative paths for reverse proxy subpath) -->
-  <script src="./js/constants.js?v=1.8.1"></script>
-  <script src="./js/api.js?v=1.8.1"></script>
-  <script src="./js/auth.js?v=1.8.1"></script>
-  <script src="./js/toast.js?v=1.8.1"></script>
-  <script src="./js/datetime-picker.js?v=1.8.1"></script>
-  <script src="./js/tag-manager.js?v=1.8.1"></script>
-  <script src="./js/lightbox.js?v=1.8.1"></script>
-  <script src="./js/zen-prompts.js?v=1.8.1"></script>
-  <script src="./js/editor.js?v=1.8.1"></script>
-  <script src="./js/card-themes.js?v=1.8.1"></script>
-  <script src="./js/card-canvas-engine.js?v=1.8.1"></script>
-  <script src="./js/card-export.js?v=1.8.1"></script>
-  <script src="./js/zen-audio.js?v=1.8.1"></script>
-  <script src="./js/passcode.js?v=1.8.1"></script>
-  <script src="./js/pwa.js?v=1.8.1"></script>
-  <script src="./js/timeline-feed.js?v=1.8.1"></script>
-  <script src="./js/calendar-view.js?v=1.8.1"></script>
-  <script src="./js/memories-view.js?v=1.8.1"></script>
-  <script src="./js/profile-stats.js?v=1.8.1"></script>
-  <script src="./js/app.js?v=1.8.1"></script>
+  <script src="./js/constants.js?v=1.8.2"></script>
+  <script src="./js/api.js?v=1.8.2"></script>
+  <script src="./js/auth.js?v=1.8.2"></script>
+  <script src="./js/toast.js?v=1.8.2"></script>
+  <script src="./js/datetime-picker.js?v=1.8.2"></script>
+  <script src="./js/tag-manager.js?v=1.8.2"></script>
+  <script src="./js/lightbox.js?v=1.8.2"></script>
+  <script src="./js/zen-prompts.js?v=1.8.2"></script>
+  <script src="./js/editor.js?v=1.8.2"></script>
+  <script src="./js/card-themes.js?v=1.8.2"></script>
+  <script src="./js/card-canvas-engine.js?v=1.8.2"></script>
+  <script src="./js/card-export.js?v=1.8.2"></script>
+  <script src="./js/zen-audio.js?v=1.8.2"></script>
+  <script src="./js/passcode.js?v=1.8.2"></script>
+  <script src="./js/pwa.js?v=1.8.2"></script>
+  <script src="./js/timeline-feed.js?v=1.8.2"></script>
+  <script src="./js/calendar-view.js?v=1.8.2"></script>
+  <script src="./js/memories-view.js?v=1.8.2"></script>
+  <script src="./js/profile-stats.js?v=1.8.2"></script>
+  <script src="./js/app.js?v=1.8.2"></script>
 </body>
 </html>

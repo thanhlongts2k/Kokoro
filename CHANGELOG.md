@@ -2,6 +2,24 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal Diary & Photo Journal PWA** được ghi nhận chi tiết tại tệp này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) và tuân thủ [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.8.2] - 2026-10-21
+### Tech Debt Sprint v1.8.2: PWA Auto-Update Lifecycle, Media Cleanup UI & Server-Side Pagination
+- **Xử Lý Nợ 3 — PWA Auto-Update Lifecycle & Fix HTTP 304 Trên Server (`server.py`, `static/js/pwa.js`, `static/sw.js`):**
+  * *HTTP Cache-Control Whitelist (`server.py`):* Trong `AppStaticFiles.get_response()`, bổ sung cấu hình chống cache cho `sw.js` và `manifest.webmanifest`: `Cache-Control: no-cache, no-store, must-revalidate, max-age=0`, `Pragma: no-cache`, `Expires: 0`. Trình duyệt luôn luôn kiểm tra và nạp bản Service Worker mới nhất từ server thay vì nhận mã phản hồi HTTP 304 Not Modified.
+  * *Đăng Ký SW Không Cache & Chống Loop Reload (`static/js/pwa.js`):* Cấu hình `{ updateViaCache: 'none' }` khi gọi `navigator.serviceWorker.register()`. Lắng nghe sự kiện `controllerchange` kết hợp khóa `sessionStorage` (`pwa_controller_refresh_timestamp` với khoảng cách an toàn 10 giây) để reload an toàn nạp ngay giao diện mới mà không bao giờ bị vòng lặp vô tận.
+  * *Service Worker Transition (`static/sw.js`):* Duy trì `self.skipWaiting()` trong `install` và `self.clients.claim()` trong `activate`, bảo đảm client chuyển đổi tức thì sang worker mới.
+- **Xử Lý Nợ 1 — UI Dọn Rác Ảnh Mồ Côi & Modal Kết Quả Kính Mờ Soft Sakura (`static/index.html`, `static/js/profile-stats.js`, `static/js/app.js`, `app/routes/maintenance_routes.py`):**
+  * *Thẻ Tối Ưu Lưu Trữ (`static/index.html`):* Bổ sung "Thẻ Tối Ưu Lưu Trữ" (`#profile-storage-card`) trong màn hình Hồ sơ `#view-profile` với nút bấm Soft Sakura: `[ 🧹 Dọn dẹp ảnh rác & Tối ưu bộ nhớ ]` (`#profile-card-cleanup-media-btn`).
+  * *Modal Kết Quả Kính Mờ Soft Sakura (`static/index.html`, `static/js/profile-stats.js`):* Xây dựng `#cleanup-result-modal` phong cách kính mờ Soft Sakura hiển thị 4 chỉ số hiệu quả rõ ràng: Số file đã quét (`#cleanup-res-scanned`), Số ảnh rác đã xóa (`#cleanup-res-deleted`), Dung lượng đã giải phóng MB (`#cleanup-res-freed`), Thời gian xử lý ms (`#cleanup-res-duration`); tự động gọi `loadStats()` làm mới dữ liệu sau dọn dẹp.
+  * *Phòng Thủ Rate Limiting Chống DoS Disk I/O (`app/routes/maintenance_routes.py`):* Triển khai bộ đếm thời gian rate limit in-memory giới hạn tối đa 1 lần dọn / 60 giây (`CLEANUP_RATE_LIMIT_SECONDS = 60.0`), trả về HTTP 429 Too Many Requests khi gọi liên tiếp, hỗ trợ cờ `X-Bypass-Rate-Limit: true` cho testing.
+- **Xử Lý Nợ 2 — Phân Trang Server-Side, Calendar Summary & Bóc Tách File Bounds (`app/routes/entry_routes.py`, `app/routes/entry_helpers.py`, `app/repositories/entry_repository.py`, `static/js/timeline-feed.js`, `static/js/calendar-view.js`, `static/js/api.js`, `static/js/app.js`):**
+  * *Bóc Tách Clean Architecture (`app/routes/entry_helpers.py`):* Tạo module `entry_helpers.py` tiếp nhận toàn bộ các hàm xử lý ảnh upload, parse DTO và export/import. Rút gọn `app/routes/entry_routes.py` từ 455 dòng xuống **294 dòng** (< giới hạn trần 300 dòng) và kiểm soát `static/js/app.js` ở **396 dòng** (< 400 dòng).
+  * *Phân Trang An Toàn (`GET /api/entries`):* Bổ sung envelope phân trang `{ status: "success", entries: [...], pagination: { total, limit, offset, has_more } }` với `limit=15`, `offset=0`, trần an toàn `max_limit=50`, duy trì `?all=true` cho sao lưu dữ liệu.
+  * *Tối Ưu Timeline & Calendar:* Nâng cấp `timeline-feed.js` nạp bài viết theo từng trang trực tiếp từ server khi click "Xem thêm bài viết cũ hơn"; nâng cấp `calendar-view.js` và `api.js` sử dụng `GET /api/entries/calendar-summary` với bộ đệm offline `CacheManager`, triệt tiêu phụ thuộc vào danh sách đầy đủ.
+- **Bộ Kiểm Thử Chuyên Biệt v1.8.2 & Bảo Toàn 100% Test Pass (`tests/test_v182_tech_debt_elimination.py`):**
+  * Bổ sung 7 test tự động chuyên biệt kiểm định trọn vẹn: Header HTTP no-cache của SW, chống loop pwa.js, hợp đồng DOM dọn rác, rate-limiting 429, envelope phân trang, calendar-summary và kiểm tra định lượng line counts.
+  * Toàn bộ 129 test suites vượt qua tuyệt đối: `129 passed, 0 skipped, 0 failures, 0 errors`.
+
 ## [1.8.1] - 2026-10-21
 ### Tech Debt Sprint, Query Optimization, Runtime Console Fixes & 100% Automated Test Coverage (Zero Skipped)
 - **Khắc Phục Triệt Để 2 Lỗi Runtime Console & Showstopper Crash Vòng Đời Khởi Tạo (`static/js/app.js`, `static/js/auth.js`, `static/js/tag-manager.js`, `static/js/zen-prompts.js`, `static/index.html`):**
