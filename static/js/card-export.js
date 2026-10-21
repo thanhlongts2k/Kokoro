@@ -231,13 +231,13 @@
               this.currentBlobUrl = URL.createObjectURL(blob);
               const filename = this.getExportFilename();
               try {
-                this.currentExportFile = new File([blob], filename, { type: 'image/png' });
+                this.currentExportFile = new File([blob], filename, { type: 'image/jpeg' });
               } catch (e) {
                 this.currentExportFile = blob;
               }
             }
             resolve();
-          }, 'image/png');
+          }, 'image/jpeg', 0.92);
         });
 
       } catch (err) {
@@ -252,12 +252,36 @@
     },
 
     /**
-     * Download Card Image to Local Disk
+     * Download Card Image to Local Disk / Save to iOS Photos
      */
-    download() {
-      if (!this.currentBlobUrl || !this.activeEntry) return;
+    async download() {
+      if (!this.currentBlobUrl || !this.activeEntry || this.isRendering) return;
       const filename = this.getExportFilename();
 
+      // On iOS Safari / Mobile PWA, <a download> is blocked or cannot save to Camera Roll.
+      // Use Web Share API if supported so user can choose "Save Image" directly to Photos.
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      if (isMobile && this.currentExportFile && navigator.canShare) {
+        try {
+          const shareData = {
+            files: [this.currentExportFile],
+            title: this.activeEntry.title || 'Khoảnh khắc nhật ký Kokoro',
+            text: 'Lưu thẻ ảnh nhật ký Kokoro 🌸'
+          };
+          if (navigator.canShare(shareData)) {
+            await navigator.share(shareData);
+            if (window.KokoroToast) {
+              window.KokoroToast.show('Đã mở bảng lưu ảnh vào thiết bị ✨', 'success');
+            }
+            return;
+          }
+        } catch (err) {
+          if (err.name === 'AbortError') return;
+          console.warn('[KokoroCardExport] Mobile save fallback to direct link:', err);
+        }
+      }
+
+      // Standard Desktop / Fallback direct download
       const link = document.createElement('a');
       link.download = filename;
       link.href = this.currentBlobUrl;
@@ -275,7 +299,7 @@
      * Executes synchronously within user activation to prevent Safari NotAllowedError
      */
     async share() {
-      if (!this.activeEntry) return;
+      if (!this.activeEntry || this.isRendering) return;
 
       const title = this.activeEntry.title || 'Khoảnh khắc nhật ký Kokoro';
       const text = this.activeEntry.content ? this.activeEntry.content.slice(0, 100) : 'Lắng đọng tâm trí cùng Kokoro Journal 🌸';

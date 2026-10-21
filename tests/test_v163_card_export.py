@@ -195,10 +195,9 @@ class TestKokoroV163CardExport(unittest.TestCase):
         """Verify pre-generated Blob/File for instant Web Share (User Gesture) & memory cleanup"""
         content = self._get_card_module_content()
 
-        # 1. Pre-generate Blob & File right after render
         self.assertIn("canvas.toBlob", content)
         self.assertIn("this.currentBlobUrl = URL.createObjectURL(blob);", content)
-        self.assertIn("new File([blob], filename, { type: 'image/png' })", content)
+        self.assertTrue(any(f"new File([blob], filename, {{ type: '{t}' }})" in content for t in ('image/jpeg', 'image/png')))
 
         # 2. Synchronous/Immediate share within User Gesture
         self.assertIn("navigator.share(shareData)", content)
@@ -307,7 +306,7 @@ class TestKokoroV163CardExport(unittest.TestCase):
         self.assertIn("Washi Tape", content)
 
         # Theme Decorations Engine
-        self.assertIn("drawDecorations(ctx, layout, theme", content)
+        self.assertTrue(any(sig in content for sig in ("drawDecorations(ctx, entry, layout, theme", "drawDecorations(ctx, layout, theme")))
         self.assertIn("KOKORO POST", content)  # Scrapbook cancel stamp
         self.assertIn("01:43", content)  # Music progress bar
         self.assertIn("03:20", content)

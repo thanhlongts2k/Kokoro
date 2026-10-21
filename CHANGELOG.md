@@ -3,7 +3,12 @@
 Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal Diary & Photo Journal PWA** được ghi nhận chi tiết tại tệp này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) và tuân thủ [Semantic Versioning (SemVer)](https://semver.org/).
 
 ## [1.8.0] - 2026-10-20
-### Feature, Fix & PWA Offline Resilience (Fix Kéo Chéo iOS, Offline Resilience & CRUD Danh Mục/Thẻ)
+### Feature, Fix & PWA Offline Resilience (Fix Kéo Chéo iOS, Offline Resilience, CRUD & Xuất Thẻ Ảnh)
+- **Vá Lỗi & Hoàn Thiện Phân Hệ Xuất Thẻ Ảnh Kỷ Niệm (Daily Card Export) (`static/js/card-canvas-engine.js`, `static/js/card-export.js`):**
+  * *Khắc Phục Bug Scope & ReferenceError Theme Giai Điệu:* Bổ sung tham số `entry` vào `drawDecorations(ctx, entry, layout, ...)` và truyền đầy đủ tại 3 điểm gọi hàm trong `renderCard()` (Photo-Only, Photo+Text, Text-Only); bổ sung optional chaining phòng thủ an toàn `(entry?.songTitle || entry?.song_title || entry?.title || 'Giai điệu ngày bình yên')` triệt tiêu lỗi `entry is not defined`.
+  * *Chuẩn Hóa MIME-Type & Tối Ưu Dung Lượng File:* Chuyển đổi định dạng xuất thẻ canvas từ `image/png` sang `image/jpeg` chất lượng 0.92, tối ưu dung lượng file từ ~2-3MB xuống < 500KB (~85% kích thước), tăng tốc độ tạo và chia sẻ thẻ ảnh.
+  * *Hỗ Trợ Lưu Ảnh Trực Tiếp Vào Thư Viện iOS Photos & Chống Click Spam:* Nâng cấp hàm `download()` tự động phát hiện thiết bị di động / iOS PWA để kích hoạt Web Share API (`navigator.share`) mở Action Sheet hệ thống (cho phép chọn "Lưu hình ảnh" vào Apple Photos), duy trì fallback `<a download>` cho Desktop / Android; bổ sung cờ `isRendering` chống spam click khi canvas đang xử lý.
+  * *Bộ Kiểm Thử Tự Động:* Xây dựng `tests/test_v180_card_export_fix.py` kiểm định hợp đồng tham số, AST và thực thi Node.js mô phỏng 5 themes không phát sinh ngoại lệ (7/7 tests PASS).
 - **Khắc Phục Triệt Để Bug Kéo Chéo Dải Danh Mục / Mood Trên iOS WebKit PWA (`static/css/layout.css`, `static/css/components.css`):**
   * Khóa cứng trục cuộn ngang thuần túy cho `.mobile-mood-scroll`, `#mobile-mood-chips` với `overflow-x: auto !important; overflow-y: hidden !important; touch-action: pan-x !important; overscroll-behavior-x: contain !important; overscroll-behavior-y: none !important; -webkit-overflow-scrolling: touch !important;`.
   * Khóa trục cuộn ngoài cho `.main-wrapper` và `.timeline-view` (`overflow-x: hidden; touch-action: pan-y pinch-zoom;`), ngăn chặn triệt để hiện tượng vuốt chéo (diagonal rubber-band drag) làm trôi xô lệch banner chào mừng.

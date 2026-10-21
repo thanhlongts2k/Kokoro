@@ -699,7 +699,7 @@
      * - music: mini audio player timeline bar (01:43 ──●── 03:20), waveforms, floating notes & Now Playing
      * - editorial: large translucent quote watermark behind text
      */
-    drawDecorations(ctx, layout, theme, isStory, targetWidth, targetHeight, cursorY, contentLines, contentLeft, contentWidth, cardMarginX, cardWidth, cardMarginY, cardHeight, footerY, photoBounds) {
+    drawDecorations(ctx, entry, layout, theme, isStory, targetWidth, targetHeight, cursorY, contentLines, contentLeft, contentWidth, cardMarginX, cardWidth, cardMarginY, cardHeight, footerY, photoBounds) {
       const themeId = theme || 'sakura';
 
       if (themeId === 'scrapbook') {
@@ -834,7 +834,7 @@
         ctx.fillStyle = '#f8fafc';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        const songName = (entry && entry.songTitle) || 'Giai điệu ngày bình yên';
+        const songName = (entry?.songTitle || entry?.song_title || entry?.title || 'Giai điệu ngày bình yên');
         ctx.fillText(`🎵 Now Playing: ${songName}`, targetWidth / 2, nowPlayingY);
 
         ctx.restore();
@@ -1064,7 +1064,7 @@
         }
 
         // Studio Theme Decorations
-        const decor1Y = this.drawDecorations(ctx, 'photo-only', themeId, isStory, targetWidth, targetHeight, cursorY, [], contentLeft, contentWidth, cardMarginX, cardWidth, cardMarginY, cardHeight, cardMarginY + cardHeight - 54, { x: photoX, y: photoY, w: photoW, h: photoH });
+        const decor1Y = this.drawDecorations(ctx, entry, 'photo-only', themeId, isStory, targetWidth, targetHeight, cursorY, [], contentLeft, contentWidth, cardMarginX, cardWidth, cardMarginY, cardHeight, cardMarginY + cardHeight - 54, { x: photoX, y: photoY, w: photoW, h: photoH });
         if (decor1Y && decor1Y > cursorY) {
           cursorY = decor1Y;
         }
@@ -1186,7 +1186,7 @@
         }
 
         // Studio Theme Decorations
-        const decor2Y = this.drawDecorations(ctx, 'photo-text', themeId, isStory, targetWidth, targetHeight, cursorY, [], contentLeft, contentWidth, cardMarginX, cardWidth, cardMarginY, cardHeight, cardMarginY + cardHeight - 54, { x: photoX, y: photoY, w: photoW, h: photoH });
+        const decor2Y = this.drawDecorations(ctx, entry, 'photo-text', themeId, isStory, targetWidth, targetHeight, cursorY, [], contentLeft, contentWidth, cardMarginX, cardWidth, cardMarginY, cardHeight, cardMarginY + cardHeight - 54, { x: photoX, y: photoY, w: photoW, h: photoH });
         if (decor2Y && decor2Y > cursorY) {
           cursorY = decor2Y;
         }
@@ -1281,7 +1281,7 @@
         }
 
         // Studio Theme Decorations
-        const decor3Y = this.drawDecorations(ctx, 'text-only', themeId, isStory, targetWidth, targetHeight, cursorY, [], contentLeft, contentWidth, cardMarginX, cardWidth, cardMarginY, cardHeight, cardMarginY + cardHeight - 54);
+        const decor3Y = this.drawDecorations(ctx, entry, 'text-only', themeId, isStory, targetWidth, targetHeight, cursorY, [], contentLeft, contentWidth, cardMarginX, cardWidth, cardMarginY, cardHeight, cardMarginY + cardHeight - 54);
         if (decor3Y && decor3Y > cursorY) {
           cursorY = decor3Y;
         }
