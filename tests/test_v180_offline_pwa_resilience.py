@@ -42,29 +42,29 @@ class TestV180OfflinePWAResilience(unittest.TestCase):
     # =========================================================================
     def test_01_version_synchronization_v180(self):
         """Verify all artifacts, config, endpoints, SW and DOM reflect v1.8.0."""
-        self.assertIn(Config.APP_VERSION, ("v1.8.0", "v1.8.1", "v1.8.2", "v1.8.5", "v1.8.6"))
+        self.assertIn(Config.APP_VERSION, ("v1.8.0", "v1.8.1", "v1.8.2", "v1.8.5", "v1.8.6", "v1.8.7"))
 
         # Auth config endpoint
         auth_resp = self.client.get("/api/auth/config")
         self.assertEqual(auth_resp.status_code, 200)
-        self.assertIn(auth_resp.json().get("version"), ("v1.8.0", "v1.8.1", "v1.8.2", "v1.8.5", "v1.8.6"))
+        self.assertIn(auth_resp.json().get("version"), ("v1.8.0", "v1.8.1", "v1.8.2", "v1.8.5", "v1.8.6", "v1.8.7"))
 
         # Health endpoint
         health_resp = self.client.get("/api/health")
         self.assertEqual(health_resp.status_code, 200)
-        self.assertIn(health_resp.json().get("version"), ("v1.8.0", "v1.8.1", "v1.8.2", "v1.8.5", "v1.8.6"))
+        self.assertIn(health_resp.json().get("version"), ("v1.8.0", "v1.8.1", "v1.8.2", "v1.8.5", "v1.8.6", "v1.8.7"))
 
         # Service Worker cache version & assets
         sw_code = (BASE_DIR / "static" / "sw.js").read_text(encoding="utf-8")
-        self.assertTrue(any(v in sw_code for v in ("kokoro-v1.8.0", "kokoro-v1.8.1", "kokoro-v1.8.2", "kokoro-v1.8.5", "kokoro-v1.8.6")))
-        self.assertTrue(any(v in sw_code for v in ("./js/app.js?v=1.8.0", "./js/app.js?v=1.8.1", "./js/app.js?v=1.8.2", "./js/app.js?v=1.8.5", "./js/app.js?v=1.8.6")))
-        self.assertTrue(any(v in sw_code for v in ("./css/layout.css?v=1.8.0", "./css/layout.css?v=1.8.1", "./css/layout.css?v=1.8.2", "./css/layout.css?v=1.8.5", "./css/layout.css?v=1.8.6")))
+        self.assertTrue(any(v in sw_code for v in ("kokoro-v1.8.0", "kokoro-v1.8.1", "kokoro-v1.8.2", "kokoro-v1.8.5", "kokoro-v1.8.6", "kokoro-v1.8.7")))
+        self.assertTrue(any(v in sw_code for v in ("./js/app.js?v=1.8.0", "./js/app.js?v=1.8.1", "./js/app.js?v=1.8.2", "./js/app.js?v=1.8.5", "./js/app.js?v=1.8.6", "./js/app.js?v=1.8.7")))
+        self.assertTrue(any(v in sw_code for v in ("./css/layout.css?v=1.8.0", "./css/layout.css?v=1.8.1", "./css/layout.css?v=1.8.2", "./css/layout.css?v=1.8.5", "./css/layout.css?v=1.8.6", "./css/layout.css?v=1.8.7")))
 
         # Index HTML badge & asset query params
         html_code = (BASE_DIR / "static" / "index.html").read_text(encoding="utf-8")
-        self.assertTrue(any(v in html_code for v in ('id="app-version-badge">v1.8.0</span>', 'id="app-version-badge">v1.8.1</span>', 'id="app-version-badge">v1.8.2</span>', 'id="app-version-badge">v1.8.5</span>', 'id="app-version-badge">v1.8.5</span>', 'id="app-version-badge">v1.8.6</span>')))
-        self.assertTrue(any(v in html_code for v in ("./js/app.js?v=1.8.0", "./js/app.js?v=1.8.1", "./js/app.js?v=1.8.2", "./js/app.js?v=1.8.5", "./js/app.js?v=1.8.6")))
-        self.assertTrue(any(v in html_code for v in ("./css/tokens.css?v=1.8.0", "./css/tokens.css?v=1.8.1", "./css/tokens.css?v=1.8.2", "./css/tokens.css?v=1.8.5", "./css/tokens.css?v=1.8.6")))
+        self.assertTrue(any(v in html_code for v in ('id="app-version-badge">v1.8.0</span>', 'id="app-version-badge">v1.8.1</span>', 'id="app-version-badge">v1.8.2</span>', 'id="app-version-badge">v1.8.5</span>', 'id="app-version-badge">v1.8.5</span>', 'id="app-version-badge">v1.8.6</span>', 'id="app-version-badge">v1.8.7</span>')))
+        self.assertTrue(any(v in html_code for v in ("./js/app.js?v=1.8.0", "./js/app.js?v=1.8.1", "./js/app.js?v=1.8.2", "./js/app.js?v=1.8.5", "./js/app.js?v=1.8.6", "./js/app.js?v=1.8.7")))
+        self.assertTrue(any(v in html_code for v in ("./css/tokens.css?v=1.8.0", "./css/tokens.css?v=1.8.1", "./css/tokens.css?v=1.8.2", "./css/tokens.css?v=1.8.5", "./css/tokens.css?v=1.8.6", "./css/tokens.css?v=1.8.7")))
 
     # =========================================================================
     # 2. IOS PWA WEB-KIT DRAG LOCK CONTRACTS

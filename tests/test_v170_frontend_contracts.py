@@ -30,35 +30,35 @@ class TestV170FrontendContracts(unittest.TestCase):
 
     def test_01_version_synchronization_v170(self):
         """Verify Config, Auth config, Health endpoint, Service Worker cache, and index.html footer badge are v1.7.0, v1.7.1, or v1.7.2"""
-        self.assertIn(Config.APP_VERSION, ("v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7", "v1.8.0", "v1.8.1", "v1.8.2", "v1.8.5", "v1.8.6"))
+        self.assertIn(Config.APP_VERSION, ("v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7", "v1.8.0", "v1.8.1", "v1.8.2", "v1.8.5", "v1.8.6", "v1.8.7"))
 
         # 1. Auth config API
         auth_resp = self.client.get("/api/auth/config")
         self.assertEqual(auth_resp.status_code, 200)
-        self.assertIn(auth_resp.json().get("version"), ("v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7", "v1.8.0", "v1.8.1", "v1.8.2", "v1.8.5", "v1.8.6"))
+        self.assertIn(auth_resp.json().get("version"), ("v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7", "v1.8.0", "v1.8.1", "v1.8.2", "v1.8.5", "v1.8.6", "v1.8.7"))
 
         # 2. Health API
         health_resp = self.client.get("/api/health")
         self.assertEqual(health_resp.status_code, 200)
-        self.assertIn(health_resp.json().get("version"), ("v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7", "v1.8.0", "v1.8.1", "v1.8.2", "v1.8.5", "v1.8.6"))
+        self.assertIn(health_resp.json().get("version"), ("v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7", "v1.8.0", "v1.8.1", "v1.8.2", "v1.8.5", "v1.8.6", "v1.8.7"))
 
         # 3. Service Worker CACHE_NAME
         sw_file = BASE_DIR / "static" / "sw.js"
         sw_code = sw_file.read_text(encoding="utf-8")
-        self.assertTrue(any(v in sw_code for v in ("kokoro-v1.7.0", "kokoro-v1.7.1", "kokoro-v1.7.2", "kokoro-v1.7.3", "kokoro-v1.7.4", "kokoro-v1.7.5", "kokoro-v1.7.6", "kokoro-v1.7.7", "kokoro-v1.8.0", "kokoro-v1.8.1", "kokoro-v1.8.2", "kokoro-v1.8.5", "kokoro-v1.8.6")))
-        self.assertTrue(any(f"./js/constants.js?v={v}" in sw_code for v in ("1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2", "1.8.5", "1.8.6")))
-        self.assertTrue(any(f"./js/timeline-feed.js?v={v}" in sw_code for v in ("1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2", "1.8.5", "1.8.6")))
-        self.assertTrue(any(f"./js/calendar-view.js?v={v}" in sw_code for v in ("1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2", "1.8.5", "1.8.6")))
-        self.assertTrue(any(f"./js/memories-view.js?v={v}" in sw_code for v in ("1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2", "1.8.5", "1.8.6")))
-        self.assertTrue(any(f"./js/profile-stats.js?v={v}" in sw_code for v in ("1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2", "1.8.5", "1.8.6")))
-        self.assertTrue(any(f"./js/app.js?v={v}" in sw_code for v in ("1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2", "1.8.5", "1.8.6")))
+        self.assertTrue(any(v in sw_code for v in ("kokoro-v1.7.0", "kokoro-v1.7.1", "kokoro-v1.7.2", "kokoro-v1.7.3", "kokoro-v1.7.4", "kokoro-v1.7.5", "kokoro-v1.7.6", "kokoro-v1.7.7", "kokoro-v1.8.0", "kokoro-v1.8.1", "kokoro-v1.8.2", "kokoro-v1.8.5", "kokoro-v1.8.6", "kokoro-v1.8.7")))
+        self.assertTrue(any(f"./js/constants.js?v={v}" in sw_code for v in ("1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2", "1.8.5", "1.8.6", "1.8.7")))
+        self.assertTrue(any(f"./js/timeline-feed.js?v={v}" in sw_code for v in ("1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2", "1.8.5", "1.8.6", "1.8.7")))
+        self.assertTrue(any(f"./js/calendar-view.js?v={v}" in sw_code for v in ("1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2", "1.8.5", "1.8.6", "1.8.7")))
+        self.assertTrue(any(f"./js/memories-view.js?v={v}" in sw_code for v in ("1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2", "1.8.5", "1.8.6", "1.8.7")))
+        self.assertTrue(any(f"./js/profile-stats.js?v={v}" in sw_code for v in ("1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2", "1.8.5", "1.8.6", "1.8.7")))
+        self.assertTrue(any(f"./js/app.js?v={v}" in sw_code for v in ("1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2", "1.8.5", "1.8.6", "1.8.7")))
 
         # 4. Index HTML version badge & script queries
         html_file = BASE_DIR / "static" / "index.html"
         html_code = html_file.read_text(encoding="utf-8")
-        self.assertTrue(any(f'id="app-version-badge">{v}</span>' in html_code for v in ("v1.7.0", "v1.8.5", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7", "v1.8.0", "v1.8.1", "v1.8.2", "v1.8.5", "v1.8.6")))
-        self.assertTrue(any(f"./js/app.js?v={v}" in html_code for v in ("1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2", "1.8.5", "1.8.6")))
-        self.assertTrue(any(f"./js/constants.js?v={v}" in html_code for v in ("1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2", "1.8.5", "1.8.6")))
+        self.assertTrue(any(f'id="app-version-badge">{v}</span>' in html_code for v in ("v1.7.0", "v1.8.5", "v1.7.1", "v1.7.2", "v1.7.3", "v1.7.4", "v1.7.5", "v1.7.6", "v1.7.7", "v1.8.0", "v1.8.1", "v1.8.2", "v1.8.5", "v1.8.6", "v1.8.7")))
+        self.assertTrue(any(f"./js/app.js?v={v}" in html_code for v in ("1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2", "1.8.5", "1.8.6", "1.8.7")))
+        self.assertTrue(any(f"./js/constants.js?v={v}" in html_code for v in ("1.7.0", "1.7.1", "1.7.2", "1.7.3", "1.7.4", "1.7.5", "1.7.6", "1.7.7", "1.8.0", "1.8.1", "1.8.2", "1.8.5", "1.8.6", "1.8.7")))
 
     def test_02_app_js_god_file_slimming_contract(self):
         """Verify app.js line count is strictly < 400 lines (down from 2,025 lines)"""

@@ -203,7 +203,7 @@ const KokoroApp = {
       if (!navigator.onLine || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) this.updateOfflineBanner(true);
       else this.showToast('Không thể tải danh sách nhật ký: ' + err.message, 'error');
     } finally {
-      this.isLoading = false; this.renderTimeline(); this.renderCalendar();
+      this.isLoading = false; this.renderTimeline(); this.renderCalendar(); this.renderStats();
       if (!this.calendarSummary && window.KokoroAPI) window.KokoroAPI.getCalendarSummary().then(s => { if (s?.entries) { this.calendarSummary = s.entries; this.renderCalendar(); } }).catch(() => {});
       if (this.currentView === 'calendar') this.renderFullCalendar();
       if (this.currentView === 'memories') this.renderMemoriesGallery();
@@ -214,7 +214,7 @@ const KokoroApp = {
   async loadStats() {
     if (window.KokoroAuth && !window.KokoroAuth.currentUser) { this.stats = null; return; }
     try {
-      const res = await window.KokoroAPI.getStats(), st = res && (res.data || (res.totalEntries !== undefined ? res : null));
+      const res = await window.KokoroAPI.getStats(), st = res && (res.data || (res.totalEntries !== undefined || res.total_entries !== undefined ? res : null));
       if (st) { this.stats = st; this.renderStats(); this.updateMoodCountBadges(this.stats); }
     } catch (err) { console.warn('[KokoroApp] Failed to load stats:', err); }
   },

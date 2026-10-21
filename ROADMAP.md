@@ -551,6 +551,15 @@
 
 ---
 
+- [x] **Milestone v1.8.7: PWA Service Worker Cache-Busting & Emotion Stats Lifecycle Resilience — Hoàn Thành Xuất Sắc:**
+  - [x] **Phá Vỡ Service Worker Cache (Cache-Busting):** Nâng cấp `CACHE_NAME = 'kokoro-v1.8.7'` và đồng bộ chuỗi phiên bản `?v=1.8.7` toàn bộ CSS/JS trong `static/sw.js` và `static/index.html`. Ép trình duyệt dọn cache cũ `kokoro-v1.8.6` và tải JS mới.
+  - [x] **Vá Vòng Đời Gọi Hàm (Lifecycle Patch):** Bổ sung `this.renderStats()` vào khối `finally` của `loadEntries()` trong `static/js/app.js`, đảm bảo widget luôn re-render khi tải xong nhật ký.
+  - [x] **Phòng Thủ Kép Hai Kiểu Đặt Tên (Dual-Case Stats):** Sử dụng toán tử `??` để đọc linh hoạt cả `camelCase` và `snake_case` (`totalEntries`/`total_entries`, `totalPhotos`/`total_photos`, `streakDays`/`streak_days`, `moodBreakdown`/`mood_breakdown`) trong `static/js/profile-stats.js`.
+  - [x] **Kỷ Luật Architectural Bounds & Anti-Cheat Testing:** Giữ nguyên `static/js/app.js` ở **397 dòng** (< 400 dòng) và `entry_routes.py` ở **294 dòng** (< 300 dòng); toàn bộ 148 test suites đạt **100% PASS** (`148 passed, 0 skipped, 0 failures, 0 errors`).
+  - [x] **Đồng Bộ Hóa SSoT Toàn Dự Án (`v1.8.7`):** Đồng bộ `VERSION`, `app/config.py`, `static/sw.js`, `static/index.html`, `CHANGELOG.md` và `ROADMAP.md`.
+
+---
+
 ## 🚀 PHẦN III: LỘ TRÌNH TRIỂN KHAI CHI TIẾT THEO 12 PHIÊN BẢN (v1.8.0 – v3.0.0+)
 
 Lộ trình được thiết kế bài bản theo từng cột mốc rõ ràng, đảm bảo nguyên tắc Zero Regression:

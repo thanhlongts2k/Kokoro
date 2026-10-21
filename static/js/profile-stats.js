@@ -114,16 +114,16 @@ const ProfileStats = {
 
     // 1. Total entries count (SSoT from Server Stats, fallback to local entries length)
     const countEl = document.getElementById('stat-total-entries');
-    const totalEntries = (stats && stats.totalEntries !== undefined)
-      ? Number(stats.totalEntries)
+    const totalEntries = (stats && (stats.totalEntries !== undefined || stats.total_entries !== undefined))
+      ? Number(stats.totalEntries !== undefined ? stats.totalEntries : stats.total_entries)
       : (entries ? entries.length : 0);
     if (countEl) countEl.textContent = totalEntries;
 
     // 2. Writing streak (SSoT from Server Stats, fallback to client calculation)
     const streakEl = document.getElementById('stat-writing-streak');
     if (streakEl) {
-      const streakDays = (stats && stats.streakDays !== undefined)
-        ? Number(stats.streakDays)
+      const streakDays = (stats && (stats.streakDays !== undefined || stats.streak_days !== undefined))
+        ? Number(stats.streakDays !== undefined ? stats.streakDays : stats.streak_days)
         : this.calculateStreak(entries);
       streakEl.textContent = `${streakDays || 0} ngày`;
     }
@@ -132,8 +132,8 @@ const ProfileStats = {
     const photosEl = document.getElementById('stat-photos-count');
     if (photosEl) {
       let totalPhotos = 0;
-      if (stats && stats.totalPhotos !== undefined) {
-        totalPhotos = Number(stats.totalPhotos);
+      if (stats && (stats.totalPhotos !== undefined || stats.total_photos !== undefined)) {
+        totalPhotos = Number(stats.totalPhotos !== undefined ? stats.totalPhotos : stats.total_photos);
       } else if (entries && entries.length) {
         entries.forEach((e) => {
           if (e.photos && Array.isArray(e.photos)) totalPhotos += e.photos.length;
@@ -143,10 +143,10 @@ const ProfileStats = {
     }
 
     // 4. Mood breakdown (SSoT from Server Stats, fallback to client normalization)
-    let breakdown = null;
-    if (stats && stats.moodBreakdown) {
-      breakdown = stats.moodBreakdown;
-    } else {
+    let breakdown = (stats && (stats.moodBreakdown || stats.mood_breakdown))
+      ? (stats.moodBreakdown || stats.mood_breakdown)
+      : null;
+    if (!breakdown) {
       const moodCounts = { serene: 0, cozy: 0, reflective: 0, grateful: 0, energetic: 0 };
       (entries || []).forEach((e) => {
         const rawMood = (e.mood || e.categoryName || e.category_name || '').trim().toLowerCase();
@@ -213,23 +213,23 @@ const ProfileStats = {
     const photosCountEl = document.getElementById('profile-stat-photos');
 
     let totalPhotos = 0;
-    if (stats && stats.totalPhotos !== undefined) {
-      totalPhotos = Number(stats.totalPhotos);
+    if (stats && (stats.totalPhotos !== undefined || stats.total_photos !== undefined)) {
+      totalPhotos = Number(stats.totalPhotos !== undefined ? stats.totalPhotos : stats.total_photos);
     } else {
       (entries || []).forEach((e) => {
         if (e.photos) totalPhotos += e.photos.length;
       });
     }
 
-    if (entriesCountEl) entriesCountEl.textContent = (stats && stats.totalEntries !== undefined) ? stats.totalEntries : (entries ? entries.length : 0);
-    if (streakEl) streakEl.textContent = `${stats ? stats.streakDays || 0 : 0} ngày`;
+    if (entriesCountEl) entriesCountEl.textContent = (stats && (stats.totalEntries !== undefined || stats.total_entries !== undefined)) ? (stats.totalEntries !== undefined ? stats.totalEntries : stats.total_entries) : (entries ? entries.length : 0);
+    if (streakEl) streakEl.textContent = `${stats ? (stats.streakDays !== undefined ? stats.streakDays : stats.streak_days || 0) : 0} ngày`;
     if (photosCountEl) photosCountEl.textContent = totalPhotos;
 
     // 3. Mood distribution breakdown in Profile
-    if (stats && stats.moodBreakdown) {
-      const breakdown = stats.moodBreakdown;
+    const profileBreakdown = stats && (stats.moodBreakdown || stats.mood_breakdown);
+    if (profileBreakdown) {
       ['serene', 'cozy', 'reflective', 'grateful', 'energetic'].forEach((m) => {
-        const info = breakdown[m] || { percent: 0 };
+        const info = profileBreakdown[m] || { percent: 0 };
         const barEl = document.getElementById(`profile-bar-${m}`);
         const legEl = document.getElementById(`profile-leg-${m}`);
         if (barEl) barEl.style.width = `${info.percent}%`;

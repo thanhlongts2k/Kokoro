@@ -2,6 +2,17 @@
 
 Tất cả các thay đổi đáng chú ý của dự án **Kokoro — Personal Diary & Photo Journal PWA** được ghi nhận chi tiết tại tệp này theo chuẩn [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) và tuân thủ [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.8.7] - 2026-10-21
+### Milestone v1.8.7: PWA Service Worker Cache-Busting & Stats Lifecycle Resilience
+- **Phá Vỡ Service Worker Cache (Cache-Busting):**
+  * Nâng cấp `CACHE_NAME = 'kokoro-v1.8.7'` trong `static/sw.js` và đồng bộ query string `?v=1.8.7` toàn bộ tài nguyên static trong `index.html` và `sw.js`.
+  * Cơ chế `activate` của Service Worker tự động dọn dẹp các cache `kokoro-v1.8.6` cũ, buộc trình duyệt Chrome Desktop tải bản thực thi JavaScript mới nhất.
+- **Vá Vòng Đời Gọi Hàm (Lifecycle Patch) (`static/js/app.js`):**
+  * Bổ sung `this.renderStats()` vào khối `finally` của `loadEntries()`, đảm bảo widget luôn re-render ngay khi danh sách nhật ký được tải về.
+  * Hỗ trợ linh hoạt cả `res.totalEntries` lẫn `res.total_entries` trong `loadStats()`.
+- **Phòng Thủ Kép Hai Kiểu Đặt Tên (Dual-Case Stats) (`static/js/profile-stats.js`):**
+  * Áp dụng toán tử `??` để đọc linh hoạt cả `camelCase` và `snake_case` (`totalEntries` / `total_entries`, `totalPhotos` / `total_photos`, `streakDays` / `streak_days`, `moodBreakdown` / `mood_breakdown`) trong cả `renderStats()` và `renderProfileView()`.
+
 ## [1.8.6] - 2026-10-21
 ### Hotfix: Emotion Journey Widget Data Binding & Server Stats SSoT (`app/repositories/stats_repository.py`, `static/js/profile-stats.js`, `tests/test_v185_stats_widget_contracts.py`)
 - **Khắc Phục Lệch Pha Định Danh Cảm Xúc (Mood Mapping):**
